@@ -7,3 +7,8 @@
 #
 # See https://github.com/juice-lang/juice/blob/master/LICENSE for license information
 # See https://github.com/juice-lang/juice/blob/master/CONTRIBUTORS for the list of Swift project authors
+
+add_executable(juice juice.cpp)
+target_link_libraries(juice juiceBasic)
+
+install(TARGETS juice DESTINATION bin)
