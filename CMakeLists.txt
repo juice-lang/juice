@@ -24,5 +24,6 @@ project(juice DESCRIPTION "The juicy programming language" LANGUAGES CXX)
 
 set(JUICE_VERSION "1.0")
 
+include_directories(${PROJECT_SOURCE_DIR}/include)
 add_subdirectory(src)
 add_subdirectory(tools)
