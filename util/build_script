@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+
+JUICE_UTIL_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+JUICE_REPO_DIR="$(dirname "${JUICE_UTIL_DIR}")"
+JUICE_BUILD_DIR="${JUICE_REPO_DIR}/build"
+JUICE_CMAKE_DIR="${JUICE_BUILD_DIR}/cmake"
+JUICE_BIN_DIR="${JUICE_BUILD_DIR}/bin"
+
+rm -rf ${JUICE_BUILD_DIR} || true
+mkdir ${JUICE_BUILD_DIR}
+mkdir ${JUICE_CMAKE_DIR}
+mkdir ${JUICE_BIN_DIR}
+
+cd ${JUICE_CMAKE_DIR}
+
+cmake ${JUICE_REPO_DIR} -DCMAKE_INSTALL_PREFIX=${JUICE_BUILD_DIR}
+make && make install
