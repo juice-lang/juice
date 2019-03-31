@@ -1,9 +1,13 @@
+// include/juice/Basic/Version.h - Version class to get the current juice version
 //
-// Version.h
-// juice
+// This source file is part of the juice open source project
 //
-// Created by Josef Zoller on 2019-03-30.
+// Copyright (c) 2019 juice project authors
+// Licensed under MIT License
 //
+// See https://github.com/juice-lang/juice/blob/master/LICENSE for license information
+// See https://github.com/juice-lang/juice/blob/master/CONTRIBUTORS.txt for the list of juice project authors
+
 
 #ifndef juice_version_h
 #define juice_version_h

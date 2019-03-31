@@ -1,4 +1,4 @@
-# src/juice/CMakeLists.txt - Juice sources CMake file
+# src/juice/CMakeLists.txt - juice sources CMake file
 #
 # This file is part of the juice open source project
 #
@@ -6,6 +6,7 @@
 # Licensed under MIT License
 #
 # See https://github.com/juice-lang/juice/blob/master/LICENSE for license information
-# See https://github.com/juice-lang/juice/blob/master/CONTRIBUTORS for the list of Swift project authors
+# See https://github.com/juice-lang/juice/blob/master/CONTRIBUTORS.txt for the list of juice project authors
+
 
 add_subdirectory(Basic)

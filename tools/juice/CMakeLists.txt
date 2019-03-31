@@ -1,4 +1,4 @@
-# tools/juice/CMakeLists.txt - Juice tool CMake file
+# tools/juice/CMakeLists.txt - juice tool CMake file
 #
 # This file is part of the juice open source project
 #
@@ -6,7 +6,8 @@
 # Licensed under MIT License
 #
 # See https://github.com/juice-lang/juice/blob/master/LICENSE for license information
-# See https://github.com/juice-lang/juice/blob/master/CONTRIBUTORS for the list of Swift project authors
+# See https://github.com/juice-lang/juice/blob/master/CONTRIBUTORS.txt for the list of juice project authors
+
 
 add_executable(juice juice.cpp)
 target_link_libraries(juice juiceBasic)

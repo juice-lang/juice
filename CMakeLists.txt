@@ -6,7 +6,7 @@
 # Licensed under MIT License
 #
 # See https://github.com/juice-lang/juice/blob/master/LICENSE for license information
-# See https://github.com/juice-lang/juice/blob/master/CONTRIBUTORS for the list of Swift project authors
+# See https://github.com/juice-lang/juice/blob/master/CONTRIBUTORS.txt for the list of juice project authors
 
 
 cmake_minimum_required(VERSION 3.1...3.14)
