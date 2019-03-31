@@ -1,4 +1,4 @@
-# src/juice/CMakeLists.txt - juice sources CMake file
+# src/juice/Driver/CMakeLists.txt - juice Driver sources CMake file
 #
 # This file is part of the juice open source project
 #
@@ -9,5 +9,4 @@
 # See https://github.com/juice-lang/juice/blob/master/CONTRIBUTORS.txt for the list of juice project authors
 
 
-add_subdirectory(Basic)
-add_subdirectory(Driver)
+add_library(juiceDriver STATIC Driver.cpp)

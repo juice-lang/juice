@@ -1,4 +1,4 @@
-// tools/juice/juice.cpp - Dummy juice tool
+// src/juice/Driver/Driver.cpp - Driver class
 //
 // This source file is part of the juice open source project
 //
@@ -11,11 +11,10 @@
 
 #include "juice/Driver/Driver.h"
 
-using namespace juice::driver;
-
-int main(int argc, char ** argv) {
-    std::vector<std::string> args(argv + 1, argv + argc);
-
-    Driver * driver = Driver::withArguments(args);
-    return driver->execute();
+namespace juice {
+    namespace driver {
+        Driver * Driver::withArguments(std::vector<std::string> args) {
+            return nullptr; // TODO Not implemented!
+        }
+    }
 }
