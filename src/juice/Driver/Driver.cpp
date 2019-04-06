@@ -13,7 +13,7 @@
 
 namespace juice {
     namespace driver {
-        Driver * Driver::withArguments(std::vector<std::string> args) {
+        Driver * Driver::withArguments(std::vector<std::string> & args) {
             return nullptr; // TODO Not implemented!
         }
     }

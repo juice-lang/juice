@@ -14,8 +14,11 @@
 using namespace juice::driver;
 
 int main(int argc, char ** argv) {
-    std::vector<std::string> args(argv + 1, argv + argc);
+    auto args = std::vector<std::string>(argv, argv + argc);
 
     Driver * driver = Driver::withArguments(args);
-    return driver->execute();
+    int returnValue = driver->execute();
+
+    delete driver;
+    return returnValue;
 }

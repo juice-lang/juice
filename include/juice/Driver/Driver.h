@@ -19,9 +19,11 @@ namespace juice {
     namespace driver {
         class Driver {
         public:
+            virtual ~Driver() = default;
+
             virtual int execute() = 0;
 
-            static Driver * withArguments(std::vector<std::string> args);
+            static Driver * withArguments(std::vector<std::string> & args);
         };
     }
 }
