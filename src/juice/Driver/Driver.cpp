@@ -11,7 +11,9 @@
 
 #include "juice/Driver/Driver.h"
 
+#include "juice/Driver/CompilerDriver.h"
 #include "juice/Driver/ErrorDriver.h"
+#include "juice/Driver/REPLDriver.h"
 #include "juice/Driver/UsageDriver.h"
 #include "juice/Driver/VersionDriver.h"
 #include "tclap/CmdLine.h"
@@ -29,6 +31,7 @@ namespace juice {
 
                 TCLAP::SwitchArg helpArg("h", "help", "Displays usage information and exits", cmd);
                 TCLAP::SwitchArg versionArg("v", "version", "Displays version information and exits", cmd);
+                TCLAP::UnlabeledValueArg<std::string> filenameArg("filename", "The file to compile", false, "example.juice", "string", cmd);
 
                 cmd.parse(args);
 
@@ -37,7 +40,13 @@ namespace juice {
 
                 if (help) driver = new UsageDriver(false);
                 else if (version) driver = new VersionDriver;
-                else driver = new UsageDriver(true);
+                else {
+                    if (!filenameArg.isSet()) driver = new REPLDriver();
+                    else {
+                        std::string filename = filenameArg.getValue();
+                        driver = new CompilerDriver(filename);
+                    }
+                }
             } catch (TCLAP::ArgException &e) {
                 driver = new ErrorDriver(e.error() + " for arg " + e.argId());
             }
