@@ -9,4 +9,8 @@
 # See https://github.com/juice-lang/juice/blob/master/CONTRIBUTORS.txt for the list of juice project authors
 
 
-add_library(juiceDriver STATIC Driver.cpp)
+add_library(juiceDriver STATIC
+        Driver.cpp
+        ErrorDriver.cpp
+        UsageDriver.cpp
+        VersionDriver.cpp)

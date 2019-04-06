@@ -11,10 +11,38 @@
 
 #include "juice/Driver/Driver.h"
 
+#include "juice/Driver/ErrorDriver.h"
+#include "juice/Driver/UsageDriver.h"
+#include "juice/Driver/VersionDriver.h"
+#include "tclap/CmdLine.h"
+
 namespace juice {
     namespace driver {
         Driver * Driver::withArguments(std::vector<std::string> & args) {
-            return nullptr; // TODO Not implemented!
+
+            Driver * driver = nullptr;
+
+            try {
+                TCLAP::CmdLine cmd("", ' ', "", false);
+
+                cmd.setExceptionHandling(false);
+
+                TCLAP::SwitchArg helpArg("h", "help", "Displays usage information and exits", cmd);
+                TCLAP::SwitchArg versionArg("v", "version", "Displays version information and exits", cmd);
+
+                cmd.parse(args);
+
+                bool help = helpArg.getValue();
+                bool version = versionArg.getValue();
+
+                if (help) driver = new UsageDriver(false);
+                else if (version) driver = new VersionDriver;
+                else driver = new UsageDriver(true);
+            } catch (TCLAP::ArgException &e) {
+                driver = new ErrorDriver(e.error() + " for arg " + e.argId());
+            }
+
+            return driver;
         }
     }
 }
