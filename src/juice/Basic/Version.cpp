@@ -34,7 +34,7 @@
 #endif
 
 namespace juice {
-    namespace version {
+    namespace basic {
         Version::Version(int major, int minor, int patch):
             major(major), minor(minor), patch(patch) {}
 
@@ -44,6 +44,11 @@ namespace juice {
             #else
                 return {JUICE_VERSION_MAJOR, JUICE_VERSION_MINOR};
             #endif
+        }
+
+        std::string Version::getCurrentString() {
+            Version current = Version::getCurrent();
+            return current.getString();
         }
 
         std::string Version::getString() const {
