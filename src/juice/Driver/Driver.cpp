@@ -47,7 +47,7 @@ namespace juice {
                         driver = new CompilerDriver(filename);
                     }
                 }
-            } catch (TCLAP::ArgException &e) {
+            } catch (TCLAP::ArgException & e) {
                 driver = new ErrorDriver(e.error() + " for arg " + e.argId());
             }
 

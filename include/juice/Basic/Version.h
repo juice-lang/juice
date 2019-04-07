@@ -9,15 +9,15 @@
 // See https://github.com/juice-lang/juice/blob/master/CONTRIBUTORS.txt for the list of juice project authors
 
 
-#ifndef juice_version_h
-#define juice_version_h
+#ifndef JUICE_VERSION_H
+#define JUICE_VERSION_H
 
 #include <iostream>
 
 namespace juice {
     namespace basic {
         class Version {
-            int major, minor, patch;
+            int _major, _minor, _patch;
         public:
             Version(int major, int minor, int patch = -1);
             static Version getCurrent();
@@ -25,20 +25,20 @@ namespace juice {
 
             std::string getString() const;
 
-            friend bool operator>=(const Version &lhs, const Version &rhs);
-            friend bool operator==(const Version &lhs, const Version &rhs);
-            friend std::ostream &operator<<(std::ostream &os, const Version &version);
+            friend bool operator>=(const Version & lhs, const Version & rhs);
+            friend bool operator==(const Version & lhs, const Version & rhs);
+            friend std::ostream &operator<<(std::ostream & os, const Version & version);
         };
 
-        bool operator>=(const Version &lhs, const Version &rhs);
-        bool operator<(const Version &lhs, const Version &rhs);
-        bool operator==(const Version &lhs, const Version &rhs);
-        inline bool operator!=(const Version &lhs, const Version &rhs) {
+        bool operator>=(const Version & lhs, const Version & rhs);
+        bool operator<(const Version & lhs, const Version & rhs);
+        bool operator==(const Version & lhs, const Version & rhs);
+        inline bool operator!=(const Version & lhs, const Version & rhs) {
             return !(lhs == rhs);
         }
 
-        std::ostream &operator<<(std::ostream &os, const Version &version);
+        std::ostream & operator<<(std::ostream & os, const Version & version);
     }
 }
 
-#endif //juice_version_h
+#endif //JUICE_VERSION_H

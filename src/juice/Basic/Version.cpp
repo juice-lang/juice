@@ -36,7 +36,7 @@
 namespace juice {
     namespace basic {
         Version::Version(int major, int minor, int patch):
-            major(major), minor(minor), patch(patch) {}
+            _major(major), _minor(minor), _patch(patch) {}
 
         Version Version::getCurrent() {
             #if JUICE_VERSION_PATCHLEVEL
@@ -53,33 +53,33 @@ namespace juice {
 
         std::string Version::getString() const {
             std::ostringstream oss;
-            oss << major << '.' << minor;
-            if (patch >= 0) oss << '.' << patch;
+            oss << _major << '.' << _minor;
+            if (_patch >= 0) oss << '.' << _patch;
 
             return oss.str();
         }
 
-        bool operator>=(const Version &lhs, const Version &rhs) {
-            if (lhs.major > rhs.major) return true;
-            if (lhs.major < rhs.major) return false;
+        bool operator>=(const Version & lhs, const Version & rhs) {
+            if (lhs._major > rhs._major) return true;
+            if (lhs._major < rhs._major) return false;
 
-            if (lhs.minor > rhs.minor) return true;
-            if (lhs.minor < rhs.minor) return false;
+            if (lhs._minor > rhs._minor) return true;
+            if (lhs._minor < rhs._minor) return false;
 
-            return lhs.patch >= rhs.patch;
+            return lhs._patch >= rhs._patch;
         }
 
-        bool operator<(const Version &lhs, const Version &rhs) {
+        bool operator<(const Version & lhs, const Version & rhs) {
             return !(lhs >= rhs);
         }
 
-        bool operator==(const Version &lhs, const Version &rhs) {
-            return lhs.major == rhs.major && lhs.minor == rhs.minor && lhs.patch == rhs.patch;
+        bool operator==(const Version & lhs, const Version & rhs) {
+            return lhs._major == rhs._major && lhs._minor == rhs._minor && lhs._patch == rhs._patch;
         }
 
-        std::ostream &operator<<(std::ostream &os, const Version &version) {
-            os << version.major << '.' << version.minor;
-            if (version.patch >= 0) os << '.' << version.patch;
+        std::ostream & operator<<(std::ostream & os, const Version & version) {
+            os << version._major << '.' << version._minor;
+            if (version._patch >= 0) os << '.' << version._patch;
 
             return os;
         }
