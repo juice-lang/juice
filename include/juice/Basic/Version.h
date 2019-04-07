@@ -15,12 +15,13 @@
 #include <iostream>
 
 namespace juice {
-    namespace version {
+    namespace basic {
         class Version {
             int major, minor, patch;
         public:
             Version(int major, int minor, int patch = -1);
             static Version getCurrent();
+            static std::string getCurrentString();
 
             std::string getString() const;
 

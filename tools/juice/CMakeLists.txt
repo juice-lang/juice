@@ -10,6 +10,6 @@
 
 
 add_executable(juice juice.cpp)
-target_link_libraries(juice juiceBasic)
+target_link_libraries(juice juiceBasic juiceDriver)
 
 install(TARGETS juice DESTINATION bin)

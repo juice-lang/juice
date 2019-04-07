@@ -1,4 +1,4 @@
-// tools/juice/juice.cpp - Dummy juice tool
+// src/juice/Basic/StringHelpers.cpp - Helper functions for working with strings
 //
 // This source file is part of the juice open source project
 //
@@ -9,16 +9,13 @@
 // See https://github.com/juice-lang/juice/blob/master/CONTRIBUTORS.txt for the list of juice project authors
 
 
-#include "juice/Driver/Driver.h"
+#include "juice/Basic/StringHelpers.h"
 
-using namespace juice::driver;
-
-int main(int argc, char ** argv) {
-    auto args = std::vector<std::string>(argv, argv + argc);
-
-    Driver * driver = Driver::withArguments(args);
-    int returnValue = driver->execute();
-
-    delete driver;
-    return returnValue;
+namespace juice {
+    namespace basic {
+        std::string resize(std::string str, int size) {
+            str.resize(size, ' ');
+            return str;
+        }
+    }
 }

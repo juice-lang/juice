@@ -1,4 +1,4 @@
-// tools/juice/juice.cpp - Dummy juice tool
+// src/juice/Driver/REPLDriver.cpp - Driver subclass for running the REPL
 //
 // This source file is part of the juice open source project
 //
@@ -9,16 +9,15 @@
 // See https://github.com/juice-lang/juice/blob/master/CONTRIBUTORS.txt for the list of juice project authors
 
 
-#include "juice/Driver/Driver.h"
+#include "juice/Driver/REPLDriver.h"
 
-using namespace juice::driver;
+#include <iostream>
 
-int main(int argc, char ** argv) {
-    auto args = std::vector<std::string>(argv, argv + argc);
-
-    Driver * driver = Driver::withArguments(args);
-    int returnValue = driver->execute();
-
-    delete driver;
-    return returnValue;
+namespace juice {
+    namespace driver {
+        int REPLDriver::execute() {
+            std::cout << "REPL" << std::endl; // TODO
+            return 0;
+        }
+    }
 }
