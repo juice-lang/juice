@@ -27,7 +27,7 @@ namespace juice {
 
             friend bool operator>=(const Version & lhs, const Version & rhs);
             friend bool operator==(const Version & lhs, const Version & rhs);
-            friend std::ostream &operator<<(std::ostream & os, const Version & version);
+            friend std::ostream & operator<<(std::ostream & os, const Version & version);
         };
 
         bool operator>=(const Version & lhs, const Version & rhs);
