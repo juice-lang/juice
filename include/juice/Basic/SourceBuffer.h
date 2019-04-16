@@ -14,6 +14,9 @@
 
 #include <memory>
 #include <string>
+#include <utility>
+
+#include "SourceLocation.h"
 
 namespace juice {
     namespace basic {
@@ -39,6 +42,12 @@ namespace juice {
             const char * getEnd() const { return _end; }
 
             size_t getSize() const { return _end - _start; }
+
+            std::pair<unsigned, unsigned> getLineAndColumn(SourceLocation location) const;
+
+            unsigned getLine(SourceLocation location) const {
+                return getLineAndColumn(location).first;
+            }
         };
     }
 }

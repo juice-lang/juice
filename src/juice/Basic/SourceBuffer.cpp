@@ -11,7 +11,11 @@
 
 #include "juice/Basic/SourceBuffer.h"
 
+#include <algorithm>
 #include <fstream>
+#include <vector>
+
+#include "juice/Basic/StringRef.h"
 
 namespace juice {
     namespace basic {
@@ -37,6 +41,28 @@ namespace juice {
             buffer[length] = 0;
 
             return std::make_shared<SourceBuffer>(buffer, buffer + length, true);
+        }
+
+        std::pair<unsigned, unsigned> SourceBuffer::getLineAndColumn(SourceLocation location) const {
+            std::vector<unsigned> offsets;
+            for (unsigned i = 0; i < getSize(); ++i) {
+                if (_start[i] == '\n') {
+                    offsets.push_back(i);
+                }
+            }
+
+            const char * pointer = location.getPointer();
+
+            assert(pointer >= _start && pointer <= _end);
+            unsigned pointerOffset = pointer - _start;
+
+            auto eol = std::lower_bound(offsets.begin(), offsets.end(), pointerOffset);
+
+            unsigned line = (1 + (eol - offsets.begin()));
+
+            size_t newlineOffset = StringRef(_start, pointer - _start).lastIndexOfContained("\n\r");
+            if (newlineOffset == StringRef::npos) newlineOffset = ~(size_t)0;
+            return std::make_pair(line, pointer - _start - newlineOffset);
         }
     }
 }
