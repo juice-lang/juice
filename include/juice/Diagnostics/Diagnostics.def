@@ -1,0 +1,33 @@
+// include/juice/Driver/Diagnostics.def - Defines diagnostics that can be emitted by the compiler
+//
+// This source file is part of the juice open source project
+//
+// Copyright (c) 2019 juice project authors
+// Licensed under MIT License
+//
+// See https://github.com/juice-lang/juice/blob/master/LICENSE for license information
+// See https://github.com/juice-lang/juice/blob/master/CONTRIBUTORS.txt for the list of juice project authors
+
+#if !(defined(DIAG) || (defined(ERROR) && defined(WARNING)))
+#error Must define either DIAG or the set {ERROR,WARNING}
+#endif
+
+#ifndef ERROR
+#define ERROR(ID, Text) \
+  DIAG(ERROR, ID, Text)
+#endif
+
+#ifndef WARNING
+#define WARNING(ID, Text) \
+  DIAG(WARNING, ID, Text)
+#endif
+
+ERROR(invalid_diagnostic, "INTERNAL ERROR: this diagnostic should not be produced")
+
+
+#if defined(DIAG)
+#undef DIAG
+#endif
+
+#undef ERROR
+#undef WARNING
