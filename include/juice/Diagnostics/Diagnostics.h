@@ -100,6 +100,21 @@ namespace juice {
 
             void diagnose(basic::SourceLocation location, DiagnosticID id, const std::vector<DiagnosticArg> & args);
 
+        private:
+            static basic::StringRef
+            skipToDelimiter(basic::StringRef & text, char delimiter, bool * foundDelimiter = nullptr);
+
+            static void formatSelectionArgInto(std::ostream & out, basic::StringRef modifierArguments,
+                                               const std::vector<DiagnosticArg> & args, int selectedIndex);
+
+            static void
+            formatDiagnosticArgInto(std::ostream & out, basic::StringRef modifier, basic::StringRef modifierArguments,
+                                    const std::vector<DiagnosticArg> & args, int argIndex);
+
+            static void formatDiagnosticTextInto(std::ostream & out, basic::StringRef text,
+                                                 const std::vector<DiagnosticArg> & args);
+
+        public:
             static DiagnosticKind diagnosticKindFor(DiagnosticID id);
             static const char * diagnosticStringFor(DiagnosticID id);
         };
