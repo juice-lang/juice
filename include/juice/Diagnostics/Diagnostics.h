@@ -20,6 +20,11 @@ namespace juice {
             #define DIAG(KIND, ID, Text) ID,
             #include "Diagnostics.def"
         };
+
+        enum class DiagnosticKind {
+            error,
+            warning
+        };
     }
 }
 
