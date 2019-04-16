@@ -11,12 +11,14 @@
 
 #include "juice/Driver/ErrorDriver.h"
 
-#include <iostream>
+#include "juice/Basic/StringRef.h"
+#include "juice/Diagnostics/Diagnostics.h"
 
 namespace juice {
     namespace driver {
         int ErrorDriver::execute() {
-            std::cerr << "juice: error: " << _message << std::endl;
+            basic::StringRef string(_message);
+            diag::DiagnosticEngine::diagnose(diag::DiagnosticID::error_parsing_args, string);
             return 1;
         }
     }

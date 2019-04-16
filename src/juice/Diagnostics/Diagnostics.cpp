@@ -72,6 +72,32 @@ namespace juice {
             os << std::endl;
         }
 
+        void DiagnosticEngine::diagnose(DiagnosticID id, const std::vector<DiagnosticArg> & args) {
+            DiagnosticKind kind = diagnosticKindFor(id);
+            basic::StringRef text(diagnosticStringFor(id));
+
+            std::ostream & os = kind == DiagnosticKind::error ? std::cerr : std::cout;
+
+            os << "juice: ";
+
+            switch (kind) {
+                case DiagnosticKind::error: {
+                    os << "error";
+                    break;
+                }
+                case DiagnosticKind::warning: {
+                    os << "warning";
+                    break;
+                }
+            }
+
+            os << ": ";
+
+            formatDiagnosticTextInto(os, text, args);
+
+            os << std::endl;
+        }
+
         basic::StringRef
         DiagnosticEngine::skipToDelimiter(basic::StringRef & text, char delimiter, bool * foundDelimiter) {
             unsigned depth = 0;

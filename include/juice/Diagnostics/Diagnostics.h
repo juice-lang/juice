@@ -100,6 +100,16 @@ namespace juice {
 
             void diagnose(basic::SourceLocation location, DiagnosticID id, const std::vector<DiagnosticArg> & args);
 
+            template<typename... Args>
+            static void diagnose(DiagnosticID id, Args... args) {
+                std::vector<DiagnosticArg> vector;
+                DiagnosticArg::getAllInto(vector, args...);
+
+                diagnose(id, vector);
+            }
+
+            static void diagnose(DiagnosticID id, const std::vector<DiagnosticArg> & args);
+
         private:
             static basic::StringRef
             skipToDelimiter(basic::StringRef & text, char delimiter, bool * foundDelimiter = nullptr);

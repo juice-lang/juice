@@ -24,6 +24,10 @@
 
 ERROR(invalid_diagnostic, "INTERNAL ERROR: this diagnostic should not be produced")
 
+// Driver
+ERROR(error_parsing_args, "error while parsing commandline arguments:\n%0")
+ERROR(file_not_found, "no such file or directory: '%0'")
+
 
 #if defined(DIAG)
 #undef DIAG

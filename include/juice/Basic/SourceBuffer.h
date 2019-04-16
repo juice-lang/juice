@@ -17,6 +17,7 @@
 #include <utility>
 
 #include "SourceLocation.h"
+#include "StringRef.h"
 
 namespace juice {
     namespace basic {
@@ -35,7 +36,7 @@ namespace juice {
 
             ~SourceBuffer();
 
-            static std::shared_ptr<SourceBuffer> getFile(const std::string & filename);
+            static std::shared_ptr<SourceBuffer> getFile(StringRef filename);
 
             const char * getStart() const { return _start; }
 

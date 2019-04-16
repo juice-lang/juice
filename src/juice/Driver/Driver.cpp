@@ -31,7 +31,8 @@ namespace juice {
 
                 TCLAP::SwitchArg helpArg("h", "help", "Displays usage information and exits", cmd);
                 TCLAP::SwitchArg versionArg("v", "version", "Displays version information and exits", cmd);
-                TCLAP::UnlabeledValueArg<std::string> filenameArg("filename", "The file to compile", false, "example.juice", "string", cmd);
+                TCLAP::UnlabeledValueArg<std::string> filenameArg("filename", "The file to compile", false,
+                                                                  "example.juice", "string", cmd);
 
                 cmd.parse(args);
 

@@ -25,8 +25,8 @@ namespace juice {
             }
         }
 
-        std::shared_ptr<SourceBuffer> SourceBuffer::getFile(const std::string & filename) {
-            std::ifstream file(filename);
+        std::shared_ptr<SourceBuffer> SourceBuffer::getFile(StringRef filename) {
+            std::ifstream file(filename.str());
 
             if (!file.is_open()) return nullptr;
 

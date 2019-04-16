@@ -11,12 +11,22 @@
 
 #include "juice/Driver/CompilerDriver.h"
 
-#include <iostream>
+#include "juice/Basic/SourceBuffer.h"
+#include "juice/Basic/StringRef.h"
+#include "juice/Diagnostics/Diagnostics.h"
 
 namespace juice {
     namespace driver {
         int CompilerDriver::execute() {
-            std::cout << "Compile file " << _filename << std::endl; // TODO
+            basic::StringRef filename(_filename);
+            auto buffer = basic::SourceBuffer::getFile(filename);
+            if (buffer == nullptr) {
+                diag::DiagnosticEngine::diagnose(diag::DiagnosticID::file_not_found, filename);
+                return 1;
+            }
+
+            diag::DiagnosticEngine diagnostics(buffer);
+            //TODO
             return 0;
         }
     }
