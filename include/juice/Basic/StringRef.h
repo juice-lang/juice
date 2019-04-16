@@ -77,6 +77,86 @@ namespace juice {
             template <typename T>
             typename std::enable_if<std::is_same<T, std::string>::value, StringRef>::type &
             operator=(T &&) = delete;
+
+            bool startsWith(StringRef prefix) const;
+            bool startsWithLower(StringRef prefix) const;
+
+            bool endsWith(StringRef suffix) const;
+            bool endsWithLower(StringRef suffix) const;
+
+            size_t indexOf(char c, size_t from = 0) const;
+            size_t indexOfNot(char c, size_t from = 0) const;
+            size_t indexOfLower(char c, size_t from = 0) const;
+
+            size_t indexWhere(const std::function<bool(char)> & predicate, size_t from = 0) const;
+            size_t indexWhereNot(const std::function<bool(char)> & predicate, size_t from = 0) const;
+
+            size_t indexOf(StringRef string, size_t from = 0) const;
+            size_t indexOfLower(StringRef string, size_t from = 0) const;
+
+            size_t lastIndexOf(char c, size_t from = npos) const;
+            size_t lastIndexOfNot(char c, size_t from = npos) const;
+            size_t lastIndexOfLower(char c, size_t from = npos) const;
+
+            size_t lastIndexOf(StringRef string) const;
+            size_t lastIndexOfLower(StringRef string) const;
+
+            size_t indexOfContained(StringRef chars, size_t from = 0) const;
+            size_t indexOfNotContained(StringRef chars, size_t from = 0) const;
+
+            size_t lastIndexOfContained(StringRef chars, size_t from = npos) const;
+            size_t lastIndexOfNotContained(StringRef chars, size_t from = npos) const;
+
+            bool contains(char c) const { return indexOf(c) != npos; }
+            bool contains(StringRef other) const { return indexOf(other) != npos; }
+
+            bool containsLower(char c) const { return indexOfLower(c) != npos; }
+            bool containsLower(StringRef other) const { return indexOfLower(other) != npos; }
+
+            size_t count(char c) const;
+            size_t count(StringRef string) const;
+
+            std::string lower() const;
+            std::string upper() const;
+
+            StringRef substr(size_t start, size_t n = npos) const;
+
+            StringRef prefix(size_t n = 1) const;
+            StringRef suffix(size_t n = 1) const;
+
+            StringRef prefixWhile(const std::function<bool(char)> & predicate) const;
+            StringRef prefixUntil(const std::function<bool(char)> & predicate) const;
+
+            StringRef dropFirst(size_t n = 1) const;
+            StringRef dropLast(size_t n = 1) const;
+
+            StringRef dropWhile(const std::function<bool(char)> & predicate) const;
+            StringRef dropUntil(const std::function<bool(char)> & predicate) const;
+
+            bool consumeFirst(StringRef prefix);
+            bool consumeLast(StringRef suffix);
+
+            StringRef slice(size_t start, size_t end) const;
+
+            std::pair<StringRef, StringRef> split(char separator) const;
+            std::pair<StringRef, StringRef> split(StringRef separator) const;
+
+            std::pair<StringRef, StringRef> splitLast(char separator) const;
+
+            std::pair<StringRef, StringRef> splitLast(StringRef separator) const;
+
+            void splitInto(std::vector<StringRef> & vector, char separator, int maxSplit = -1, bool keepEmpty = true) const;
+            void splitInto(std::vector<StringRef> & vector, StringRef separator, int maxSplit = -1, bool keepEmpty = true) const;
+
+            StringRef trimFirst(char c) const;
+            StringRef trimFirst(StringRef chars = " \t\n\v\f\r") const;
+
+            StringRef trimLast(char c) const;
+            StringRef trimLast(StringRef chars = " \t\n\v\f\r") const;
+
+            StringRef trim(char c) const;
+
+            StringRef trim(StringRef chars = " \t\n\v\f\r") const;
         };
 
         std::ostream & operator<<(std::ostream & os, const StringRef & string);
