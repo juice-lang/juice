@@ -11,6 +11,9 @@
 
 #include "juice/Diagnostics/Diagnostics.h"
 
+#include <iostream>
+#include <utility>
+
 namespace juice {
     namespace diag {
         static const constexpr DiagnosticKind diagnosticKinds[] {
@@ -24,5 +27,32 @@ namespace juice {
             #define WARNING(ID, Text) Text,
             #include "juice/Diagnostics/Diagnostics.def"
         };
+
+        DiagnosticEngine::DiagnosticEngine(std::shared_ptr<juice::basic::SourceBuffer> sourceBuffer):
+                _sourceBuffer(std::move(sourceBuffer)), _output(std::cout), _errorOutput(std::cerr) {}
+
+        DiagnosticEngine::DiagnosticEngine(std::shared_ptr<basic::SourceBuffer> sourceBuffer, std::ostream & output,
+                                           std::ostream & errorOutput):
+                _sourceBuffer(std::move(sourceBuffer)), _output(output), _errorOutput(errorOutput) {}
+
+        void DiagnosticEngine::diagnose(basic::SourceLocation location, DiagnosticID id,
+                                        const std::vector<DiagnosticArg> & args) {
+            _output << "location: " << location.getPointer() << std::endl;
+            
+            DiagnosticKind kind = diagnosticKindFor(id);
+            basic::StringRef text(diagnosticStringFor(id));
+            
+            switch (kind) {
+                case DiagnosticKind::error: {
+                    _output << "kind: error" << std::endl;
+                    break;
+                }
+                case DiagnosticKind::warning: {
+                    _output << "kind: warning" << std::endl;
+                    break;
+                }
+            }
+            _output << "text: " << text << std::endl;
+        }
     }
 }

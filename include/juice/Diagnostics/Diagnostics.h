@@ -13,8 +13,12 @@
 #define JUICE_DIAGNOSTICS_H
 
 #include <cstdint>
+#include <memory>
+#include <ostream>
 #include <vector>
 
+#include "juice/Basic/SourceBuffer.h"
+#include "juice/Basic/SourceLocation.h"
 #include "juice/Basic/StringRef.h"
 
 namespace juice {
@@ -68,6 +72,36 @@ namespace juice {
             int getAsInteger() const { return _integer; }
             bool getAsBoolean() const { return _boolean; }
             basic::StringRef getAsString() const { return _string; }
+        };
+
+        class DiagnosticEngine {
+            std::shared_ptr<basic::SourceBuffer> _sourceBuffer;
+
+            std::ostream & _output;
+            std::ostream & _errorOutput;
+
+            bool _hadError = false;
+
+        public:
+            explicit DiagnosticEngine(std::shared_ptr<basic::SourceBuffer> sourceBuffer);
+
+            DiagnosticEngine(std::shared_ptr<basic::SourceBuffer> sourceBuffer, std::ostream & output,
+                             std::ostream & errorOutput);
+
+            bool hadError() const { return _hadError; }
+
+            template<typename... Args>
+            void diagnose(basic::SourceLocation location, DiagnosticID id, Args... args) {
+                std::vector<DiagnosticArg> vector;
+                DiagnosticArg::getAllInto(vector, args...);
+
+                diagnose(location, id, vector);
+            }
+
+            void diagnose(basic::SourceLocation location, DiagnosticID id, const std::vector<DiagnosticArg> & args);
+
+            static DiagnosticKind diagnosticKindFor(DiagnosticID id);
+            static const char * diagnosticStringFor(DiagnosticID id);
         };
     }
 }
