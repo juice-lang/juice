@@ -10,6 +10,7 @@
 
 
 add_library(juiceBasic STATIC
+        SourceBuffer.cpp
         StringHelpers.cpp
         StringRef.cpp
         Version.cpp)
