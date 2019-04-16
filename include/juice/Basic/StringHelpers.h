@@ -17,6 +17,9 @@
 namespace juice {
     namespace basic {
         std::string resize(std::string str, int size);
+
+        char toLower(char c);
+        char toUpper(char c);
     }
 }
 
