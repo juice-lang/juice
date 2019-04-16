@@ -60,9 +60,9 @@ namespace juice {
 
             unsigned line = (1 + (eol - offsets.begin()));
 
-            size_t newlineOffset = StringRef(_start, pointer - _start).lastIndexOfContained("\n\r");
+            size_t newlineOffset = StringRef(_start, pointerOffset).lastIndexOfContained("\n\r");
             if (newlineOffset == StringRef::npos) newlineOffset = ~(size_t)0;
-            return std::make_pair(line, pointer - _start - newlineOffset);
+            return std::make_pair(line, pointerOffset - newlineOffset);
         }
     }
 }

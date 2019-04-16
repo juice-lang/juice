@@ -159,7 +159,7 @@ namespace juice {
         }
 
         size_t StringRef::lastIndexOfNot(char c, size_t from) const {
-            for (size_t i = std::min(from, size()) - 1; i > -1; --i) {
+            for (size_t i = std::min(from, size()) - 1; i != -1; --i) {
                 if (_data[i] != c) return i;
             }
             return npos;
@@ -168,7 +168,7 @@ namespace juice {
         size_t StringRef::lastIndexOfLower(char c, size_t from) const {
             from = std::min(from, size());
             size_t i = from;
-            while (i > 0) {
+            while (i != 0) {
                 --i;
                 if (toLower(begin()[i]) == toLower(c)) return i;
             }
@@ -178,7 +178,7 @@ namespace juice {
         size_t StringRef::lastIndexOf(StringRef string) const {
             size_t n = string.size();
             if (n > size()) return npos;
-            for (size_t i = size() - n + 1; i > 0;) {
+            for (size_t i = size() - n + 1; i != 0;) {
                 --i;
                 if (substr(i, n) == string) return i;
             }
@@ -188,7 +188,7 @@ namespace juice {
         size_t StringRef::lastIndexOfLower(StringRef string) const {
             size_t n = string.size();
             if (n > size()) return npos;
-            for (size_t i = size() - n + 1; i > 0;) {
+            for (size_t i = size() - n + 1; i != 0;) {
                 --i;
                 if (substr(i, n).equalsLower(string)) return i;
             }
@@ -201,7 +201,7 @@ namespace juice {
                 charBits.set((unsigned char) i);
             }
 
-            for (size_t i = std::min(from, size()); i < size(); ++i) {
+            for (size_t i = std::min(from, size()); i != size(); ++i) {
                 if (charBits.test((unsigned char) _data[i])) return i;
             }
             return npos;
@@ -213,7 +213,7 @@ namespace juice {
                 charBits.set((unsigned char) i);
             }
 
-            for (size_t i = std::min(from, size()); i < size(); ++i) {
+            for (size_t i = std::min(from, size()); i != size(); ++i) {
                 if (!charBits.test((unsigned char) _data[i])) return i;
             }
             return npos;
@@ -225,7 +225,7 @@ namespace juice {
                 charBits.set((unsigned char) i);
             }
 
-            for (size_t i = std::min(from, size()) - 1; i > -1; --i) {
+            for (size_t i = std::min(from, size()) - 1; i != -1; --i) {
                 if (charBits.test((unsigned char) _data[i])) return i;
             }
             return npos;
@@ -237,7 +237,7 @@ namespace juice {
                 charBits.set((unsigned char) i);
             }
 
-            for (size_t i = std::min(from, size()) - 1; i > -1; --i) {
+            for (size_t i = std::min(from, size()) - 1; i != -1; --i) {
                 if (!charBits.test((unsigned char) _data[i])) return i;
             }
             return npos;
@@ -255,10 +255,9 @@ namespace juice {
             size_t count = 0;
             size_t n = string.size();
             if (n > size()) return 0;
-            for (size_t i = 0; i < size() - n + 1; ++i)
+            for (size_t i = 0; i != size() - n + 1; ++i)
                 if (substr(i, n).equals(string)) {
                     ++count;
-                    i += n - 1;
                 }
             return count;
         }
