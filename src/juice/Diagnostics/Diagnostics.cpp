@@ -18,5 +18,11 @@ namespace juice {
             #define WARNING(ID, Text) DiagnosticKind::warning,
             #include "juice/Diagnostics/Diagnostics.def"
         };
+
+        static constexpr const char * const diagnosticStrings[] {
+            #define ERROR(ID, Text) Text,
+            #define WARNING(ID, Text) Text,
+            #include "juice/Diagnostics/Diagnostics.def"
+        };
     }
 }
