@@ -1,4 +1,4 @@
-# tools/juice/CMakeLists.txt - juice tool CMake file
+# src/juice/Diagnostics/CMakeLists.txt - juice Diagnostics sources CMake file
 #
 # This file is part of the juice open source project
 #
@@ -8,8 +8,5 @@
 # See https://github.com/juice-lang/juice/blob/master/LICENSE for license information
 # See https://github.com/juice-lang/juice/blob/master/CONTRIBUTORS.txt for the list of juice project authors
 
-
-add_executable(juice juice.cpp)
-target_link_libraries(juice juiceBasic juiceDiagnostics juiceDriver juiceParser)
-
-install(TARGETS juice DESTINATION bin)
+add_library(juiceDiagnostics STATIC
+        Diagnostics.cpp)

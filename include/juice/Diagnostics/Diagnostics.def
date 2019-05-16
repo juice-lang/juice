@@ -1,0 +1,52 @@
+// include/juice/Driver/Diagnostics.def - Defines diagnostics that can be emitted by the compiler
+//
+// This source file is part of the juice open source project
+//
+// Copyright (c) 2019 juice project authors
+// Licensed under MIT License
+//
+// See https://github.com/juice-lang/juice/blob/master/LICENSE for license information
+// See https://github.com/juice-lang/juice/blob/master/CONTRIBUTORS.txt for the list of juice project authors
+
+#if !(defined(DIAG) || (defined(ERROR) && defined(WARNING)))
+#error Must define either DIAG or the set {ERROR, WARNING, OUTPUT}
+#endif
+
+#ifndef ERROR
+#define ERROR(ID, Text) \
+  DIAG(ERROR, ID, Text)
+#endif
+
+#ifndef WARNING
+#define WARNING(ID, Text) \
+  DIAG(WARNING, ID, Text)
+#endif
+
+#ifndef OUTPUT
+#define OUTPUT(ID, Text) \
+  DIAG(WARNING, ID, Text)
+#endif
+
+ERROR(invalid_diagnostic, "INTERNAL ERROR: this diagnostic should not be produced")
+
+// Driver
+ERROR(error_parsing_args, "error while parsing commandline arguments:\n%0")
+ERROR(file_not_found, "no such file or directory: '%0'")
+
+//Lexer
+ERROR(expected_digit_decimal_sign, "expected a digit after decimal sign")
+ERROR(expected_digit_exponent, "expected a digit in floating point exponent")
+ERROR(invalid_character, "use of invalid character")
+ERROR(invalid_escape, "invalid escape sequence in string literal")
+ERROR(unterminated_comment, "unterminated block comment")
+ERROR(unterminated_string, "unterminated string literal")
+
+OUTPUT(lexer_token, "%0")
+
+#if defined(DIAG)
+#undef DIAG
+#endif
+
+#undef ERROR
+#undef WARNING
+#undef OUTPUT

@@ -1,4 +1,4 @@
-# tools/juice/CMakeLists.txt - juice tool CMake file
+# src/juice/Parser/CMakeLists.txt - juice Parser sources CMake file
 #
 # This file is part of the juice open source project
 #
@@ -9,7 +9,7 @@
 # See https://github.com/juice-lang/juice/blob/master/CONTRIBUTORS.txt for the list of juice project authors
 
 
-add_executable(juice juice.cpp)
-target_link_libraries(juice juiceBasic juiceDiagnostics juiceDriver juiceParser)
-
-install(TARGETS juice DESTINATION bin)
+add_library(juiceParser STATIC
+        FSM.cpp
+        Lexer.cpp
+        LexerToken.cpp)

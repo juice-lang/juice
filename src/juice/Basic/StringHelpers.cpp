@@ -17,5 +17,35 @@ namespace juice {
             str.resize(size, ' ');
             return str;
         }
+
+        char toLower(char c) {
+            if (c >= 'A' && c <= 'Z') return c - 'A' + 'a';
+            return c;
+        }
+
+        char toUpper(char c) {
+            if (c >= 'a' && c <= 'z') return c - 'a' + 'A';
+            return c;
+        }
+
+        bool isAlpha(char c) {
+            return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z');
+        }
+
+        bool isDigit(char c) {
+            return c >= '0' && c <= '9';
+        }
+
+        bool isAlNum(char c) {
+            return isAlpha(c) || isDigit(c);
+        }
+
+        bool isIdentifierHead(char c) {
+            return isAlpha(c) || c == '_';
+        }
+
+        bool isIdentifierChar(char c) {
+            return isAlNum(c) || c == '_';
+        }
     }
 }
