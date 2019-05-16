@@ -42,6 +42,8 @@ namespace juice {
             void skipLineComment();
             bool skipBlockComment();
 
+            std::unique_ptr<LexerToken> stringLiteral();
+
         public:
             Lexer() = delete;
             Lexer(const Lexer &) = delete;

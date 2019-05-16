@@ -12,6 +12,7 @@
 #include "juice/Parser/Lexer.h"
 
 #include "juice/Basic/StringRef.h"
+#include "juice/Parser/FSM.h"
 
 namespace juice {
     namespace parser {
@@ -88,6 +89,18 @@ namespace juice {
             return true;
         }
 
+        std::unique_ptr<LexerToken> Lexer::stringLiteral() {
+            FSM::Return result = StringFSM::run(_start);
+
+            advanceBy(result.length - 1);
+
+            if (result.error == nullptr) return makeToken(LexerToken::Type::stringLiteral);
+            if (result.state == StringFSM::invalidEscapeEnd)
+                return errorToken(diag::DiagnosticID::invalid_escape, result.error);
+
+            return errorToken(diag::DiagnosticID::unterminated_string, result.error);
+        }
+
         std::unique_ptr<LexerToken> Lexer::nextToken() {
             if (isAtEnd()) return makeToken(LexerToken::Type::eof);
 
@@ -150,6 +163,7 @@ namespace juice {
                         return makeToken(match('=') ? LexerToken::Type::operatorSlashEqual
                                                     : LexerToken::Type::operatorSlash);
                     }
+                    case '"': return stringLiteral();
                     default: {
                         return errorToken(diag::DiagnosticID::invalid_character);
                     }
