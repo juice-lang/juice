@@ -39,6 +39,9 @@ namespace juice {
             std::unique_ptr<LexerToken> errorToken(diag::DiagnosticID id, bool atEnd = false);
             std::unique_ptr<LexerToken> errorToken(diag::DiagnosticID id, const char * position);
 
+            void skipLineComment();
+            bool skipBlockComment();
+
         public:
             Lexer() = delete;
             Lexer(const Lexer &) = delete;

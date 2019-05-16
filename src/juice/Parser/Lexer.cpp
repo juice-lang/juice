@@ -61,6 +61,33 @@ namespace juice {
             return std::make_unique<ErrorToken>(string, id, position);
         }
 
+        void Lexer::skipLineComment() {
+            while (peek() != '\n' && !isAtEnd()) advance();
+        }
+
+        bool Lexer::skipBlockComment() {
+            int nesting = 1;
+            while (nesting > 0) {
+                if (isAtEnd()) return false;
+
+                if (peek() == '/' && peekNext() == '*') {
+                    advanceBy(2);
+                    nesting++;
+                    continue;
+                }
+
+                if (peek() == '*' && peekNext() == '/') {
+                    advanceBy(2);
+                    nesting--;
+                    continue;
+                }
+
+                advance();
+            }
+
+            return true;
+        }
+
         std::unique_ptr<LexerToken> Lexer::nextToken() {
             if (isAtEnd()) return makeToken(LexerToken::Type::eof);
 
@@ -109,6 +136,20 @@ namespace juice {
                                                           : LexerToken::Type::operatorAsterisk);
                     case '%': return makeToken(match('=') ? LexerToken::Type::operatorPercentEqual
                                                           : LexerToken::Type::operatorPercent);
+                    case '/': {
+                        if (match('/')) {
+                            skipLineComment();
+                            break;
+                        }
+
+                        if (match('*')) {
+                            if (!skipBlockComment()) return errorToken(diag::DiagnosticID::unterminated_comment);
+                            break;
+                        }
+
+                        return makeToken(match('=') ? LexerToken::Type::operatorSlashEqual
+                                                    : LexerToken::Type::operatorSlash);
+                    }
                     default: {
                         return errorToken(diag::DiagnosticID::invalid_character);
                     }

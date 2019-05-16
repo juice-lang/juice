@@ -35,6 +35,7 @@ ERROR(file_not_found, "no such file or directory: '%0'")
 
 //Lexer
 ERROR(invalid_character, "use of invalid character")
+ERROR(unterminated_comment, "unterminated block comment")
 OUTPUT(lexer_token, "%0")
 
 #if defined(DIAG)
