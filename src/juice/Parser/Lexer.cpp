@@ -70,6 +70,45 @@ namespace juice {
                 char c = advance();
 
                 switch (c) {
+                    case '\n': return makeToken(LexerToken::Type::delimiterNewline);
+                    case ' ':
+                    case '\r':
+                    case '\t': {
+                        while (peek() == ' ' || peek() == '\r' || peek() == '\t') {
+                            advance();
+                        }
+                        break;
+                    }
+                    case '(': return makeToken(LexerToken::Type::delimiterLeftParen);
+                    case ')': return makeToken(LexerToken::Type::delimiterRightParen);
+                    case '{': return makeToken(LexerToken::Type::delimiterLeftBrace);
+                    case '}': return makeToken(LexerToken::Type::delimiterRightBrace);
+                    case '[': return makeToken(LexerToken::Type::delimiterLeftBracket);
+                    case ']': return makeToken(LexerToken::Type::delimiterRightBracket);
+                    case ':': return makeToken(LexerToken::Type::delimiterColon);
+                    case ';': return makeToken(LexerToken::Type::delimiterSemicolon);
+                    case ',': return makeToken(LexerToken::Type::delimiterComma);
+                    case '.': return makeToken(LexerToken::Type::operatorDot);
+                    case '!': return makeToken(match('=') ? LexerToken::Type::operatorBangEqual
+                                                          : LexerToken::Type::operatorBang);
+                    case '=': return makeToken(match('=') ? LexerToken::Type::operatorEqualEqual
+                                                          : LexerToken::Type::operatorEqual);
+                    case '<': return makeToken(match('=') ? LexerToken::Type::operatorLowerEqual
+                                                          : LexerToken::Type::operatorLower);
+                    case '>': return makeToken(match('=') ? LexerToken::Type::operatorGreaterEqual
+                                                          : LexerToken::Type::operatorGreater);
+                    case '&': return makeToken(match('&') ? LexerToken::Type::operatorAndAnd
+                                                          : LexerToken::Type::operatorAnd);
+                    case '|': return makeToken(match('|') ? LexerToken::Type::operatorPipePipe
+                                                          : LexerToken::Type::operatorPipe);
+                    case '+': return makeToken(match('=') ? LexerToken::Type::operatorPlusEqual
+                                                          : LexerToken::Type::operatorPlus);
+                    case '-': return makeToken(match('=') ? LexerToken::Type::operatorMinusEqual
+                                                          : LexerToken::Type::operatorMinus);
+                    case '*': return makeToken(match('=') ? LexerToken::Type::operatorAsteriskEqual
+                                                          : LexerToken::Type::operatorAsterisk);
+                    case '%': return makeToken(match('=') ? LexerToken::Type::operatorPercentEqual
+                                                          : LexerToken::Type::operatorPercent);
                     default: {
                         return errorToken(diag::DiagnosticID::invalid_character);
                     }
