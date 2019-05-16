@@ -12,10 +12,12 @@
 #ifndef JUICE_LEXER_H
 #define JUICE_LEXER_H
 
+#include <cstddef>
 #include <memory>
 
 #include "LexerToken.h"
 #include "juice/Basic/SourceBuffer.h"
+#include "juice/Diagnostics/Diagnostics.h"
 
 namespace juice {
     namespace parser {
@@ -24,6 +26,18 @@ namespace juice {
 
             const char * _start;
             const char * _current;
+
+            char peek();
+            char peekNext();
+            bool isAtEnd();
+
+            char advance();
+            void advanceBy(size_t amount);
+            bool match(char expected);
+
+            std::unique_ptr<LexerToken> makeToken(LexerToken::Type type);
+            std::unique_ptr<LexerToken> errorToken(diag::DiagnosticID id, bool atEnd = false);
+            std::unique_ptr<LexerToken> errorToken(diag::DiagnosticID id, const char * position);
 
         public:
             Lexer() = delete;
