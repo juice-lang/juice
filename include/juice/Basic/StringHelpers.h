@@ -20,6 +20,13 @@ namespace juice {
 
         char toLower(char c);
         char toUpper(char c);
+
+        bool isAlpha(char c);
+        bool isDigit(char c);
+        bool isAlNum(char c);
+
+        bool isIdentifierHead(char c);
+        bool isIdentifierChar(char c);
     }
 }
 
