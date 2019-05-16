@@ -12,3 +12,4 @@
 add_subdirectory(Basic)
 add_subdirectory(Diagnostics)
 add_subdirectory(Driver)
+add_subdirectory(Parser)
