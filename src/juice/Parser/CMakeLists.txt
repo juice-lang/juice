@@ -10,4 +10,5 @@
 
 
 add_library(juiceParser STATIC
+        Lexer.cpp
         LexerToken.cpp)
