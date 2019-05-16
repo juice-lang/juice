@@ -19,6 +19,15 @@
 
 namespace juice {
     namespace basic {
+        SourceBuffer::SourceBuffer(const char * start, const char * end, bool deletePointer):
+                _start(start), _end(end), _deletePointer(deletePointer) {
+            for (unsigned i = 0; i < getSize(); ++i) {
+                if (_start[i] == '\n') {
+                    _offsets.push_back(i);
+                }
+            }
+        }
+
         SourceBuffer::~SourceBuffer() {
             if (_deletePointer) {
                 delete _start;
@@ -44,25 +53,33 @@ namespace juice {
         }
 
         std::pair<unsigned, unsigned> SourceBuffer::getLineAndColumn(SourceLocation location) const {
-            std::vector<unsigned> offsets;
-            for (unsigned i = 0; i < getSize(); ++i) {
-                if (_start[i] == '\n') {
-                    offsets.push_back(i);
-                }
-            }
-
             const char * pointer = location.getPointer();
 
             assert(pointer >= _start && pointer <= _end);
             unsigned pointerOffset = pointer - _start;
 
-            auto eol = std::lower_bound(offsets.begin(), offsets.end(), pointerOffset);
+            auto eol = std::lower_bound(_offsets.begin(), _offsets.end(), pointerOffset);
 
-            unsigned line = (1 + (eol - offsets.begin()));
+            unsigned line = (1 + (eol - _offsets.begin()));
 
             size_t newlineOffset = StringRef(_start, pointerOffset).lastIndexOfContained("\n\r");
             if (newlineOffset == StringRef::npos) newlineOffset = ~(size_t)0;
             return std::make_pair(line, pointerOffset - newlineOffset);
+        }
+
+        StringRef SourceBuffer::getLineString(SourceLocation location) const {
+            const char * pointer = location.getPointer();
+
+            assert(pointer >= _start && pointer <= _end);
+            unsigned pointerOffset = pointer - _start;
+
+            auto eol1 = std::lower_bound(_offsets.begin(), _offsets.end(), pointerOffset);
+            if (eol1 != _offsets.begin()) eol1--;
+
+            auto eol2 = std::upper_bound(_offsets.begin(), _offsets.end(), pointerOffset);
+
+            StringRef string(_start + *eol1, *eol2 - *eol1);
+            return string.trim("\n\r");
         }
     }
 }

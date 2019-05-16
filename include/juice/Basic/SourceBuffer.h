@@ -25,14 +25,14 @@ namespace juice {
             const char * _start;
             const char * _end;
             bool _deletePointer;
+            std::vector<unsigned> _offsets;
 
         public:
             SourceBuffer(const SourceBuffer &) = delete;
 
             SourceBuffer & operator=(const SourceBuffer &) = delete;
 
-            SourceBuffer(const char * start, const char * end, bool deletePointer):
-                    _start(start), _end(end), _deletePointer(deletePointer) {}
+            SourceBuffer(const char * start, const char * end, bool deletePointer);
 
             ~SourceBuffer();
 
@@ -49,6 +49,8 @@ namespace juice {
             unsigned getLine(SourceLocation location) const {
                 return getLineAndColumn(location).first;
             }
+
+            StringRef getLineString(SourceLocation location) const;
         };
     }
 }

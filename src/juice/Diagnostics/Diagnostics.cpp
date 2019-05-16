@@ -69,6 +69,10 @@ namespace juice {
                 os << " at " << line << ":" << column << ": " << termcolor::reset << termcolor::bold;
 
                 formatDiagnosticTextInto(os, text, args);
+
+                os << termcolor::reset << std::endl << _sourceBuffer->getLineString(location) << std::endl;
+
+                os << std::string(column - 1, ' ') << termcolor::green << '^' << termcolor::reset;
             } else {
                 if (kind != DiagnosticKind::output) os << ": " << termcolor::reset << termcolor::bold;
 
