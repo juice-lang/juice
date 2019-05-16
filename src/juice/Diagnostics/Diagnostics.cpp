@@ -11,23 +11,24 @@
 
 #include "juice/Diagnostics/Diagnostics.h"
 
-#include <cctype>
 #include <iostream>
 #include <string>
 #include <tuple>
 #include <utility>
+
+#include "juice/Basic/StringHelpers.h"
 
 namespace juice {
     namespace diag {
         static const constexpr DiagnosticKind diagnosticKinds[] {
             #define ERROR(ID, Text) DiagnosticKind::error,
             #define WARNING(ID, Text) DiagnosticKind::warning,
+            #define OUTPUT(ID, Text) DiagnosticKind::output,
             #include "juice/Diagnostics/Diagnostics.def"
         };
 
         static constexpr const char * const diagnosticStrings[] {
-            #define ERROR(ID, Text) Text,
-            #define WARNING(ID, Text) Text,
+            #define DIAG(KIND, ID, Text) Text,
             #include "juice/Diagnostics/Diagnostics.def"
         };
 
@@ -45,29 +46,31 @@ namespace juice {
 
             std::ostream & os = kind == DiagnosticKind::error ? _errorOutput : _output;
 
-            os << "juice: ";
-
             switch (kind) {
                 case DiagnosticKind::error: {
-                    os << "error";
+                    _hadError = true;
+                    os << "juice: error";
                     break;
                 }
                 case DiagnosticKind::warning: {
-                    os << "warning";
+                    os << "juice: warning";
                     break;
                 }
+                case DiagnosticKind::output: break;
             }
 
-            if (location.isValid()) {
+            if (kind != DiagnosticKind::output && location.isValid()) {
                 unsigned line, column;
                 std::tie(line, column) = _sourceBuffer->getLineAndColumn(location);
 
-                os << " at " << line << ":" << column;
+                os << " at " << line << ":" << column << ": ";
+
+                formatDiagnosticTextInto(os, text, args);
+            } else {
+                if (kind != DiagnosticKind::output) os << ": ";
+
+                formatDiagnosticTextInto(os, text, args);
             }
-
-            os << ": ";
-
-            formatDiagnosticTextInto(os, text, args);
 
             os << std::endl;
         }
@@ -78,20 +81,17 @@ namespace juice {
 
             std::ostream & os = kind == DiagnosticKind::error ? std::cerr : std::cout;
 
-            os << "juice: ";
-
             switch (kind) {
                 case DiagnosticKind::error: {
-                    os << "error";
+                    os << "juice: error: ";
                     break;
                 }
                 case DiagnosticKind::warning: {
-                    os << "warning";
+                    os << "juice: warning: ";
                     break;
                 }
+                case DiagnosticKind::output: break;
             }
-
-            os << ": ";
 
             formatDiagnosticTextInto(os, text, args);
 
@@ -175,6 +175,11 @@ namespace juice {
                     out << arg.getAsString();
                     break;
                 }
+                case DiagnosticArg::Kind::lexerToken: {
+                    assert(modifier.isEmpty() && "Improper modifier for LexerToken argument");
+                    out << *(arg.getAsLexerToken());
+                    break;
+                }
             }
         }
 
@@ -198,7 +203,7 @@ namespace juice {
 
                 basic::StringRef modifier;
                 {
-                    size_t length = text.indexWhereNot(isalpha);
+                    size_t length = text.indexWhereNot(basic::isAlpha);
                     modifier = text.substr(0, length);
                     text = text.substr(length);
                 }
@@ -209,7 +214,7 @@ namespace juice {
                     modifierArguments = skipToDelimiter(text, '}');
                 }
 
-                size_t length = text.indexWhereNot(isdigit);
+                size_t length = text.indexWhereNot(basic::isDigit);
                 assert(length > 0 && "Unparseable argument index value");
 
                 int argIndex = std::stoi(text.prefix(length).str());

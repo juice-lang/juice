@@ -9,7 +9,7 @@
 // See https://github.com/juice-lang/juice/blob/master/CONTRIBUTORS.txt for the list of juice project authors
 
 #if !(defined(DIAG) || (defined(ERROR) && defined(WARNING)))
-#error Must define either DIAG or the set {ERROR,WARNING}
+#error Must define either DIAG or the set {ERROR, WARNING, OUTPUT}
 #endif
 
 #ifndef ERROR
@@ -22,12 +22,19 @@
   DIAG(WARNING, ID, Text)
 #endif
 
+#ifndef OUTPUT
+#define OUTPUT(ID, Text) \
+  DIAG(WARNING, ID, Text)
+#endif
+
 ERROR(invalid_diagnostic, "INTERNAL ERROR: this diagnostic should not be produced")
 
 // Driver
 ERROR(error_parsing_args, "error while parsing commandline arguments:\n%0")
 ERROR(file_not_found, "no such file or directory: '%0'")
 
+//Lexer
+OUTPUT(lexer_token, "%0")
 
 #if defined(DIAG)
 #undef DIAG
@@ -35,3 +42,4 @@ ERROR(file_not_found, "no such file or directory: '%0'")
 
 #undef ERROR
 #undef WARNING
+#undef OUTPUT

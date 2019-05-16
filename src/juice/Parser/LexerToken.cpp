@@ -91,6 +91,11 @@ namespace juice {
                 case LexerToken::Type::eof:                     return "EOF";
             }
         }
+        
+        void LexerToken::diagnoseInto(diag::DiagnosticEngine & diagnostics) {
+            basic::SourceLocation location(string.begin());
+            diagnostics.diagnose(location, diag::DiagnosticID::lexer_token, this);
+        }
 
         std::ostream & operator<<(std::ostream & os, const LexerToken & token) {
             os << "<" << tokenTypeName(token) << " \"";
@@ -108,6 +113,11 @@ namespace juice {
             }
 
             return os << "\">";
+        }
+        
+        void ErrorToken::diagnoseInto(diag::DiagnosticEngine & diagnostics) {
+            basic::SourceLocation location(errorPosition);
+            diagnostics.diagnose(location, id);
         }
     }
 }

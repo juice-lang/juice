@@ -132,6 +132,8 @@ namespace juice {
             basic::StringRef string;
 
             LexerToken(Type type, basic::StringRef string): type(type), string(string) {}
+
+            virtual void diagnoseInto(diag::DiagnosticEngine & diagnostics);
         };
 
         struct ErrorToken: LexerToken {
@@ -140,6 +142,8 @@ namespace juice {
 
             ErrorToken(basic::StringRef string, diag::DiagnosticID id, const char * errorPosition):
                     LexerToken(Type::error, string), id(id), errorPosition(errorPosition) {}
+
+            void diagnoseInto(diag::DiagnosticEngine & diagnostics) override;
         };
     }
 }

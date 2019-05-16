@@ -22,6 +22,11 @@
 #include "juice/Basic/StringRef.h"
 
 namespace juice {
+    namespace parser {
+        struct LexerToken;
+        std::ostream & operator<<(std::ostream & os, const LexerToken & token);
+    }
+
     namespace diag {
         enum class DiagnosticID: uint32_t {
             #define DIAG(KIND, ID, Text) ID,
@@ -30,7 +35,8 @@ namespace juice {
 
         enum class DiagnosticKind {
             error,
-            warning
+            warning,
+            output
         };
 
         class DiagnosticArg {
@@ -38,7 +44,8 @@ namespace juice {
             enum class Kind {
                 integer,
                 boolean,
-                string
+                string,
+                lexerToken
             };
 
         private:
@@ -47,12 +54,14 @@ namespace juice {
                 int _integer = 0;
                 bool _boolean;
                 basic::StringRef _string;
+                const parser::LexerToken * _lexerToken;
             };
 
         public:
             DiagnosticArg(int integer): _kind(Kind::integer), _integer(integer) {}
             DiagnosticArg(bool boolean): _kind(Kind::boolean), _boolean(boolean) {}
             DiagnosticArg(basic::StringRef string): _kind(Kind::string), _string(string) {}
+            DiagnosticArg(const parser::LexerToken * lexerToken): _kind(Kind::lexerToken), _lexerToken(lexerToken) {}
 
             static void getAllInto(std::vector<DiagnosticArg> & vector) {}
 
@@ -72,6 +81,7 @@ namespace juice {
             int getAsInteger() const { return _integer; }
             bool getAsBoolean() const { return _boolean; }
             basic::StringRef getAsString() const { return _string; }
+            const parser::LexerToken * getAsLexerToken() const { return _lexerToken; }
         };
 
         class DiagnosticEngine {
