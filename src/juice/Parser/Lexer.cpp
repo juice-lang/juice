@@ -62,7 +62,21 @@ namespace juice {
         }
 
         std::unique_ptr<LexerToken> Lexer::nextToken() {
-            return std::make_unique<LexerToken>(LexerToken::Type::eof, basic::StringRef());
+            if (isAtEnd()) return makeToken(LexerToken::Type::eof);
+
+            while(!isAtEnd()) {
+                _start = _current;
+
+                char c = advance();
+
+                switch (c) {
+                    default: {
+                        return errorToken(diag::DiagnosticID::invalid_character);
+                    }
+                }
+            }
+
+            return makeToken(LexerToken::Type::eof);
         }
     }
 }
