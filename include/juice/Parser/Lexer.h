@@ -42,7 +42,11 @@ namespace juice {
             void skipLineComment();
             bool skipBlockComment();
 
+            LexerToken::Type checkKeyword(int startCount, int length, const char * rest, LexerToken::Type type);
+            LexerToken::Type identifierType();
+
             std::unique_ptr<LexerToken> stringLiteral();
+            std::unique_ptr<LexerToken> identifier();
             std::unique_ptr<LexerToken> numberLiteral();
 
         public:
