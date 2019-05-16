@@ -14,6 +14,8 @@
 #include "juice/Basic/SourceBuffer.h"
 #include "juice/Basic/StringRef.h"
 #include "juice/Diagnostics/Diagnostics.h"
+#include "juice/Parser/Lexer.h"
+#include "juice/Parser/LexerToken.h"
 
 namespace juice {
     namespace driver {
@@ -26,8 +28,16 @@ namespace juice {
             }
 
             diag::DiagnosticEngine diagnostics(buffer);
-            //TODO
-            return 0;
+
+            parser::Lexer lexer(buffer);
+
+            std::unique_ptr<parser::LexerToken> token = lexer.nextToken();
+
+            while (token->type != parser::LexerToken::Type::eof) {
+                token->diagnoseInto(diagnostics);
+                token = lexer.nextToken();
+            }
+            return diagnostics.hadError() ? 1 : 0;
         }
     }
 }
