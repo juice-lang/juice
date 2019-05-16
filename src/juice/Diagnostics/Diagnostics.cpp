@@ -17,6 +17,7 @@
 #include <utility>
 
 #include "juice/Basic/StringHelpers.h"
+#include "termcolor/termcolor.hpp"
 
 namespace juice {
     namespace diag {
@@ -46,14 +47,16 @@ namespace juice {
 
             std::ostream & os = kind == DiagnosticKind::error ? _errorOutput : _output;
 
+            os << termcolor::bold;
+
             switch (kind) {
                 case DiagnosticKind::error: {
                     _hadError = true;
-                    os << "juice: error";
+                    os << "juice: " << termcolor::red << "error";
                     break;
                 }
                 case DiagnosticKind::warning: {
-                    os << "juice: warning";
+                    os << "juice: " << termcolor::magenta << "warning";
                     break;
                 }
                 case DiagnosticKind::output: break;
@@ -63,16 +66,16 @@ namespace juice {
                 unsigned line, column;
                 std::tie(line, column) = _sourceBuffer->getLineAndColumn(location);
 
-                os << " at " << line << ":" << column << ": ";
+                os << " at " << line << ":" << column << ": " << termcolor::reset << termcolor::bold;
 
                 formatDiagnosticTextInto(os, text, args);
             } else {
-                if (kind != DiagnosticKind::output) os << ": ";
+                if (kind != DiagnosticKind::output) os << ": " << termcolor::reset << termcolor::bold;
 
                 formatDiagnosticTextInto(os, text, args);
             }
 
-            os << std::endl;
+            os << termcolor::reset << std::endl;
         }
 
         void DiagnosticEngine::diagnose(DiagnosticID id, const std::vector<DiagnosticArg> & args) {
@@ -81,13 +84,15 @@ namespace juice {
 
             std::ostream & os = kind == DiagnosticKind::error ? std::cerr : std::cout;
 
+            os << termcolor::bold;
+
             switch (kind) {
                 case DiagnosticKind::error: {
-                    os << "juice: error: ";
+                    os << "juice: " << termcolor::red << "error" << ": " << termcolor::reset << termcolor::bold;
                     break;
                 }
                 case DiagnosticKind::warning: {
-                    os << "juice: warning: ";
+                    os << "juice: " << termcolor::magenta << "warning" << ": " << termcolor::reset << termcolor::bold;
                     break;
                 }
                 case DiagnosticKind::output: break;
@@ -95,7 +100,7 @@ namespace juice {
 
             formatDiagnosticTextInto(os, text, args);
 
-            os << std::endl;
+            os << termcolor::reset << std::endl;
         }
 
         basic::StringRef
