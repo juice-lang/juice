@@ -197,8 +197,8 @@ namespace juice {
 
         size_t StringRef::indexOfContained(StringRef chars, size_t from) const {
             std::bitset<1 << CHAR_BIT> charBits;
-            for (char i : chars) {
-                charBits.set((unsigned char) i);
+            for (char c: chars) {
+                charBits.set((unsigned char) c);
             }
 
             for (size_t i = std::min(from, size()); i != size(); ++i) {
@@ -209,8 +209,8 @@ namespace juice {
 
         size_t StringRef::indexOfNotContained(StringRef chars, size_t from) const {
             std::bitset<1 << CHAR_BIT> charBits;
-            for (char i : chars) {
-                charBits.set((unsigned char) i);
+            for (char c: chars) {
+                charBits.set((unsigned char) c);
             }
 
             for (size_t i = std::min(from, size()); i != size(); ++i) {
@@ -221,8 +221,8 @@ namespace juice {
 
         size_t StringRef::lastIndexOfContained(StringRef chars, size_t from) const {
             std::bitset<1 << CHAR_BIT> charBits;
-            for (char i : chars) {
-                charBits.set((unsigned char) i);
+            for (char c: chars) {
+                charBits.set((unsigned char) c);
             }
 
             for (size_t i = std::min(from, size()) - 1; i != -1; --i) {
@@ -233,8 +233,8 @@ namespace juice {
 
         size_t StringRef::lastIndexOfNotContained(StringRef chars, size_t from) const {
             std::bitset<1 << CHAR_BIT> charBits;
-            for (char i : chars) {
-                charBits.set((unsigned char) i);
+            for (char c: chars) {
+                charBits.set((unsigned char) c);
             }
 
             for (size_t i = std::min(from, size()) - 1; i != -1; --i) {
