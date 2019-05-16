@@ -34,6 +34,8 @@ ERROR(error_parsing_args, "error while parsing commandline arguments:\n%0")
 ERROR(file_not_found, "no such file or directory: '%0'")
 
 //Lexer
+ERROR(expected_digit_decimal_sign, "expected a digit after decimal sign")
+ERROR(expected_digit_exponent, "expected a digit in floating point exponent")
 ERROR(invalid_character, "use of invalid character")
 ERROR(invalid_escape, "invalid escape sequence in string literal")
 ERROR(unterminated_comment, "unterminated block comment")

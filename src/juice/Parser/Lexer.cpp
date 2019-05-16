@@ -11,6 +11,7 @@
 
 #include "juice/Parser/Lexer.h"
 
+#include "juice/Basic/StringHelpers.h"
 #include "juice/Basic/StringRef.h"
 #include "juice/Parser/FSM.h"
 
@@ -101,6 +102,22 @@ namespace juice {
             return errorToken(diag::DiagnosticID::unterminated_string, result.error);
         }
 
+        std::unique_ptr<LexerToken> Lexer::numberLiteral() {
+            FSM::Return result = NumberFSM::run(_start);
+
+            advanceBy(result.length - 1);
+
+            if (result.error == nullptr)
+                return makeToken(result.state == NumberFSM::integer ? LexerToken::Type::integerLiteral
+                                                                    : LexerToken::Type::decimalLiteral);
+
+            if (result.state == NumberFSM::begin) assert(false);
+            if (result.state == NumberFSM::beginDecimal)
+                return errorToken(diag::DiagnosticID::expected_digit_decimal_sign, result.error);
+
+            return errorToken(diag::DiagnosticID::expected_digit_exponent, result.error);
+        }
+
         std::unique_ptr<LexerToken> Lexer::nextToken() {
             if (isAtEnd()) return makeToken(LexerToken::Type::eof);
 
@@ -165,6 +182,7 @@ namespace juice {
                     }
                     case '"': return stringLiteral();
                     default: {
+                        if (basic::isDigit(c)) return numberLiteral();
                         return errorToken(diag::DiagnosticID::invalid_character);
                     }
                 }
