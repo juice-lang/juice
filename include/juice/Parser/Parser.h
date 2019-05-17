@@ -31,7 +31,7 @@ namespace juice {
             Parser(const Parser &) = delete;
             Parser & operator=(const Parser &) = delete;
 
-            explicit Parser(const std::shared_ptr<diag::DiagnosticEngine> & diagnostics);
+            explicit Parser(std::shared_ptr<diag::DiagnosticEngine> diagnostics);
         };
     }
 }

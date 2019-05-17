@@ -11,10 +11,12 @@
 
 #include "juice/Parser/Parser.h"
 
+#include <utility>
+
 namespace juice {
     namespace parser {
-        Parser::Parser(const std::shared_ptr<diag::DiagnosticEngine> & diagnostics): _diagnostics(diagnostics) {
-            _lexer = std::make_unique<Lexer>(diagnostics->getBuffer());
+        Parser::Parser(std::shared_ptr<diag::DiagnosticEngine> diagnostics): _diagnostics(std::move(diagnostics)) {
+            _lexer = std::make_unique<Lexer>(_diagnostics->getBuffer());
         }
     }
 }

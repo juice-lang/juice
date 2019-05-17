@@ -11,6 +11,8 @@
 
 #include "juice/Parser/Lexer.h"
 
+#include <utility>
+
 #include "juice/Basic/StringHelpers.h"
 #include "juice/Basic/StringRef.h"
 #include "juice/Parser/FSM.h"
@@ -235,6 +237,10 @@ namespace juice {
                 return errorToken(diag::DiagnosticID::expected_digit_decimal_sign, result.error);
 
             return errorToken(diag::DiagnosticID::expected_digit_exponent, result.error);
+        }
+
+        Lexer::Lexer(std::shared_ptr<basic::SourceBuffer> sourceBuffer): _sourceBuffer(std::move(sourceBuffer)) {
+            _start = _current = _sourceBuffer->getStart();
         }
 
         std::unique_ptr<LexerToken> Lexer::nextToken() {
