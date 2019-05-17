@@ -99,6 +99,7 @@ namespace juice {
                              std::ostream & errorOutput);
 
             bool hadError() const { return _hadError; }
+            std::shared_ptr<basic::SourceBuffer> getBuffer() const { return _sourceBuffer; }
 
             template<typename... Args>
             void diagnose(basic::SourceLocation location, DiagnosticID id, Args... args) {
