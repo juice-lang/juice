@@ -19,16 +19,20 @@
 namespace juice {
     namespace parser {
         class ExpressionAST {
+        protected:
+            std::unique_ptr<LexerToken> _token;
+
         public:
+            ExpressionAST(std::unique_ptr<LexerToken> token);
+
             virtual ~ExpressionAST() = default;
         };
 
         class BinaryOperatorExpressionAST: public ExpressionAST {
-            std::unique_ptr<LexerToken> _operatorToken;
             std::unique_ptr<ExpressionAST> _left, _right;
 
         public:
-            BinaryOperatorExpressionAST(std::unique_ptr<LexerToken> operatorToken, std::unique_ptr<ExpressionAST> left,
+            BinaryOperatorExpressionAST(std::unique_ptr<LexerToken> token, std::unique_ptr<ExpressionAST> left,
                                         std::unique_ptr<ExpressionAST> right);
         };
 
@@ -36,7 +40,15 @@ namespace juice {
             double _value;
 
         public:
-            explicit NumberExpressionAST(double value): _value(value) {}
+            explicit NumberExpressionAST(std::unique_ptr<LexerToken> token, double value);
+        };
+
+        class GroupingExpressionAST: public ExpressionAST {
+            std::unique_ptr<ExpressionAST> _expression;
+
+        public:
+            explicit GroupingExpressionAST(std::unique_ptr<LexerToken> token,
+                                           std::unique_ptr<ExpressionAST> expression);
         };
     }
 }
