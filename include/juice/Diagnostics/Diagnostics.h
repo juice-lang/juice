@@ -24,7 +24,21 @@
 namespace juice {
     namespace parser {
         struct LexerToken;
-        std::ostream & operator<<(std::ostream & os, const LexerToken & token);
+
+        class LexerTokenStream {
+            std::ostream & _os;
+            const LexerToken * _token;
+
+        public:
+            LexerTokenStream(std::ostream & os, const LexerToken * token): _os(os), _token(token) {}
+
+            std::ostream & getOS() const { return _os; }
+            const LexerToken * getToken() const { return _token; }
+        };
+
+        std::unique_ptr<LexerTokenStream> operator<<(std::ostream & os, const LexerToken * token);
+        std::ostream & operator<<(std::unique_ptr<LexerTokenStream> tokenStream,
+                                  const std::shared_ptr<basic::SourceBuffer> & sourceBuffer);
     }
 
     namespace diag {
@@ -130,10 +144,12 @@ namespace juice {
 
             static void
             formatDiagnosticArgInto(std::ostream & out, basic::StringRef modifier, basic::StringRef modifierArguments,
-                                    const std::vector<DiagnosticArg> & args, int argIndex);
+                                    const std::vector<DiagnosticArg> & args, int argIndex,
+                                    DiagnosticEngine * diagnostics = nullptr);
 
-            static void formatDiagnosticTextInto(std::ostream & out, basic::StringRef text,
-                                                 const std::vector<DiagnosticArg> & args);
+            static void
+            formatDiagnosticTextInto(std::ostream & out, basic::StringRef text, const std::vector<DiagnosticArg> & args,
+                                     DiagnosticEngine * diagnostics = nullptr);
 
         public:
             static DiagnosticKind diagnosticKindFor(DiagnosticID id);
