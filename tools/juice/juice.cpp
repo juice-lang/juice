@@ -9,6 +9,9 @@
 // See https://github.com/juice-lang/juice/blob/master/CONTRIBUTORS.txt for the list of juice project authors
 
 
+#include <string>
+#include <vector>
+
 #include "juice/Driver/Driver.h"
 
 using namespace juice::driver;

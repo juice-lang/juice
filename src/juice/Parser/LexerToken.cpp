@@ -11,10 +11,12 @@
 
 #include "juice/Parser/LexerToken.h"
 
+#include "juice/Basic/SourceLocation.h"
+
 namespace juice {
     namespace parser {
-        static const char * tokenTypeName(const LexerToken & token) {
-            switch (token.type) {
+        static const char * tokenTypeName(const LexerToken * token) {
+            switch (token->type) {
                 case LexerToken::Type::operatorDot:             return "OPERATOR_DOT";
                 case LexerToken::Type::operatorAsteriskEqual:   return "OPERATOR_ASTERISK_EQUAL";
                 case LexerToken::Type::operatorEqual:           return "OPERATOR_EQUAL";
@@ -97,10 +99,29 @@ namespace juice {
             diagnostics.diagnose(location, diag::DiagnosticID::lexer_token, this);
         }
 
-        std::ostream & operator<<(std::ostream & os, const LexerToken & token) {
-            os << "<" << tokenTypeName(token) << " \"";
+        std::unique_ptr<LexerTokenStream> operator<<(std::ostream & os, const LexerToken * token) {
+            return std::make_unique<LexerTokenStream>(os, token);
+        }
 
-            for (char c: token.string) {
+        std::ostream & operator<<(std::unique_ptr<LexerTokenStream> tokenStream,
+                                  const std::shared_ptr<basic::SourceBuffer> & sourceBuffer) {
+            std::ostream & os = tokenStream->getOS();
+            const LexerToken * token = tokenStream->getToken();
+
+            os << "<" << tokenTypeName(token);
+
+            if (sourceBuffer != nullptr) {
+                basic::SourceLocation location(token->string.begin());
+
+                unsigned line, column;
+                std::tie(line, column) = sourceBuffer->getLineAndColumn(location);
+
+                os << " " << line << ":" << column;
+            }
+
+            os << " \"";
+
+            for (char c: token->string) {
                 switch (c) {
                     case '\0': os << "\\0"; break;
                     case '\t': os << "\\t"; break;

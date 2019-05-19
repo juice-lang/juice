@@ -22,15 +22,20 @@
 namespace juice {
     namespace diag {
         static const constexpr DiagnosticKind diagnosticKinds[] {
-            #define ERROR(ID, Text) DiagnosticKind::error,
-            #define WARNING(ID, Text) DiagnosticKind::warning,
-            #define OUTPUT(ID, Text) DiagnosticKind::output,
+            #define ERROR(ID, Text, Newline) DiagnosticKind::error,
+            #define WARNING(ID, Text, Newline) DiagnosticKind::warning,
+            #define OUTPUT(ID, Text, Newline) DiagnosticKind::output,
             #include "juice/Diagnostics/Diagnostics.def"
         };
 
         static constexpr const char * const diagnosticStrings[] {
-            #define DIAG(KIND, ID, Text) Text,
+            #define DIAG(KIND, ID, Text, Newline) Text,
             #include "juice/Diagnostics/Diagnostics.def"
+        };
+
+        static const constexpr bool diagnosticNewlines[] {
+        #define DIAG(KIND, ID, Text, Newline) Newline,
+        #include "juice/Diagnostics/Diagnostics.def"
         };
 
         DiagnosticEngine::DiagnosticEngine(std::shared_ptr<juice::basic::SourceBuffer> sourceBuffer):
@@ -44,6 +49,7 @@ namespace juice {
                                         const std::vector<DiagnosticArg> & args) {
             DiagnosticKind kind = diagnosticKindFor(id);
             basic::StringRef text(diagnosticStringFor(id));
+            bool newline = diagnosticNewlineFor(id);
 
             std::ostream & os = kind == DiagnosticKind::error ? _errorOutput : _output;
 
@@ -68,7 +74,7 @@ namespace juice {
 
                 os << " at " << line << ":" << column << ": " << termcolor::reset << termcolor::bold;
 
-                formatDiagnosticTextInto(os, text, args);
+                formatDiagnosticTextInto(os, text, args, this);
 
                 os << termcolor::reset << std::endl << _sourceBuffer->getLineString(location) << std::endl;
 
@@ -76,15 +82,18 @@ namespace juice {
             } else {
                 if (kind != DiagnosticKind::output) os << ": " << termcolor::reset << termcolor::bold;
 
-                formatDiagnosticTextInto(os, text, args);
+                formatDiagnosticTextInto(os, text, args, this);
             }
 
-            os << termcolor::reset << std::endl;
+            os << termcolor::reset;
+
+            if (newline) os << std::endl;
         }
 
         void DiagnosticEngine::diagnose(DiagnosticID id, const std::vector<DiagnosticArg> & args) {
             DiagnosticKind kind = diagnosticKindFor(id);
             basic::StringRef text(diagnosticStringFor(id));
+            bool newline = diagnosticNewlineFor(id);
 
             std::ostream & os = kind == DiagnosticKind::error ? std::cerr : std::cout;
 
@@ -102,9 +111,11 @@ namespace juice {
                 case DiagnosticKind::output: break;
             }
 
-            formatDiagnosticTextInto(os, text, args);
+            formatDiagnosticTextInto(os, text, args, nullptr);
 
-            os << termcolor::reset << std::endl;
+            os << termcolor::reset;
+
+            if (newline) os << std::endl;
         }
 
         basic::StringRef
@@ -143,7 +154,7 @@ namespace juice {
                 assert((modifierArguments.isNotEmpty() || foundPipe) && "Index beyond bounds in %select modifier");
                 basic::StringRef text = skipToDelimiter(modifierArguments, '|', &foundPipe);
                 if (selectedIndex == 0) {
-                    formatDiagnosticTextInto(out, text, args);
+                    formatDiagnosticTextInto(out, text, args, nullptr);
                     break;
                 }
                 --selectedIndex;
@@ -152,7 +163,12 @@ namespace juice {
 
         void DiagnosticEngine::formatDiagnosticArgInto(std::ostream & out, basic::StringRef modifier,
                                                        basic::StringRef modifierArguments,
-                                                       const std::vector<DiagnosticArg> & args, int argIndex) {
+                                                       const std::vector<DiagnosticArg> & args, int argIndex,
+                                                       DiagnosticEngine * diagnostics) {
+            if (modifier == "reset") {
+                out << termcolor::reset << termcolor::bold;
+                return;
+            }
             DiagnosticArg arg = args[argIndex];
             switch (arg.getKind()) {
                 case DiagnosticArg::Kind::integer: {
@@ -168,10 +184,15 @@ namespace juice {
                     }
                     break;
                 }
+                case DiagnosticArg::Kind::doubleValue: {
+                    assert(modifier.isEmpty() && "Improper modifier for double argument");
+                    out << arg.getAsDouble();
+                    break;
+                }
                 case DiagnosticArg::Kind::boolean: {
                     if (modifier == "if") {
                         if (arg.getAsBoolean()) {
-                            formatDiagnosticTextInto(out, modifierArguments, args);
+                            formatDiagnosticTextInto(out, modifierArguments, args, diagnostics);
                         }
                     } else {
                         assert(modifier.isEmpty() && "Improper modifier for boolean argument");
@@ -186,14 +207,20 @@ namespace juice {
                 }
                 case DiagnosticArg::Kind::lexerToken: {
                     assert(modifier.isEmpty() && "Improper modifier for LexerToken argument");
-                    out << *(arg.getAsLexerToken());
+                    out << arg.getAsLexerToken() << (diagnostics != nullptr ? diagnostics->_sourceBuffer : nullptr);
+                    break;
+                }
+                case DiagnosticArg::Kind::color: {
+                    assert(modifier.isEmpty() && "Improper modifier for Color argument");
+                    out << termcolor::bold << arg.getAsColor();
                     break;
                 }
             }
         }
 
         void DiagnosticEngine::formatDiagnosticTextInto(std::ostream & out, basic::StringRef text,
-                                                        const std::vector<DiagnosticArg> & args) {
+                                                        const std::vector<DiagnosticArg> & args,
+                                                        DiagnosticEngine * diagnostics) {
             while (text.isNotEmpty()) {
                 size_t percent = text.indexOf('%');
                 if (percent == basic::StringRef::npos) {
@@ -223,15 +250,19 @@ namespace juice {
                     modifierArguments = skipToDelimiter(text, '}');
                 }
 
-                size_t length = text.indexWhereNot(basic::isDigit);
-                assert(length > 0 && "Unparseable argument index value");
+                int argIndex;
 
-                int argIndex = std::stoi(text.prefix(length).str());
-                assert(argIndex < args.size() && "Out-of-range argument index");
+                if (modifier != "reset") {
+                    size_t length = text.indexWhereNot(basic::isDigit);
+                    assert(length > 0 && "Unparseable argument index value");
 
-                text = text.substr(length);
+                    argIndex = std::stoi(text.prefix(length).str());
+                    assert(argIndex < args.size() && "Out-of-range argument index");
 
-                formatDiagnosticArgInto(out, modifier, modifierArguments, args, argIndex);
+                    text = text.substr(length);
+                } else argIndex = 0;
+
+                formatDiagnosticArgInto(out, modifier, modifierArguments, args, argIndex, diagnostics);
             }
         }
 
@@ -243,6 +274,8 @@ namespace juice {
             return diagnosticStrings[(unsigned)id];
         }
 
-
+        bool DiagnosticEngine::diagnosticNewlineFor(DiagnosticID id) {
+            return diagnosticNewlines[(unsigned)id];
+        }
     }
 }

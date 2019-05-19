@@ -54,8 +54,7 @@ namespace juice {
             Lexer(const Lexer &) = delete;
             Lexer & operator=(const Lexer &) = delete;
 
-            explicit Lexer(const std::shared_ptr<basic::SourceBuffer> & sourceBuffer):
-                    _sourceBuffer(sourceBuffer), _start(sourceBuffer->getStart()), _current(sourceBuffer->getStart()) {}
+            explicit Lexer(std::shared_ptr<basic::SourceBuffer> sourceBuffer);
 
             std::unique_ptr<LexerToken> nextToken();
         };

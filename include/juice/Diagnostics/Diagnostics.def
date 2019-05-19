@@ -13,35 +13,46 @@
 #endif
 
 #ifndef ERROR
-#define ERROR(ID, Text) \
-  DIAG(ERROR, ID, Text)
+#define ERROR(ID, Text, Newline) \
+  DIAG(ERROR, ID, Text, Newline)
 #endif
 
 #ifndef WARNING
-#define WARNING(ID, Text) \
-  DIAG(WARNING, ID, Text)
+#define WARNING(ID, Text, Newline) \
+  DIAG(WARNING, ID, Text, Newline)
 #endif
 
 #ifndef OUTPUT
-#define OUTPUT(ID, Text) \
-  DIAG(WARNING, ID, Text)
+#define OUTPUT(ID, Text, Newline) \
+  DIAG(WARNING, ID, Text, Newline)
 #endif
 
-ERROR(invalid_diagnostic, "INTERNAL ERROR: this diagnostic should not be produced")
+ERROR(invalid_diagnostic, "INTERNAL ERROR: this diagnostic should not be produced", true)
 
 // Driver
-ERROR(error_parsing_args, "error while parsing commandline arguments:\n%0")
-ERROR(file_not_found, "no such file or directory: '%0'")
+ERROR(error_parsing_args, "error while parsing commandline arguments:\n%0", true)
+ERROR(file_not_found, "no such file or directory: '%0'", true)
 
 //Lexer
-ERROR(expected_digit_decimal_sign, "expected a digit after decimal sign")
-ERROR(expected_digit_exponent, "expected a digit in floating point exponent")
-ERROR(invalid_character, "use of invalid character")
-ERROR(invalid_escape, "invalid escape sequence in string literal")
-ERROR(unterminated_comment, "unterminated block comment")
-ERROR(unterminated_string, "unterminated string literal")
+ERROR(expected_digit_decimal_sign, "expected a digit after decimal sign", true)
+ERROR(expected_digit_exponent, "expected a digit in floating point exponent", true)
+ERROR(invalid_character, "use of invalid character", true)
+ERROR(invalid_escape, "invalid escape sequence in string literal", true)
+ERROR(unterminated_comment, "unterminated block comment", true)
+ERROR(unterminated_string, "unterminated string literal", true)
 
-OUTPUT(lexer_token, "%0")
+OUTPUT(lexer_token, "%0", true)
+
+//Parser
+ERROR(expected_end_of_file, "expected end of file", true)
+ERROR(expected_expression, "expected expression", true)
+ERROR(expected_newline, "expected newline after expression", true)
+ERROR(expected_right_paren, "expected closing parenthesis after expression", true)
+
+OUTPUT(binary_operator_expression_ast_0, "%0BinaryOperatorExpressionAST(\n%1  token: %reset%2\n%0%1  left: ", false)
+OUTPUT(binary_operator_expression_ast_1, "%0%1  right: ", false)
+OUTPUT(binary_operator_expression_ast_2, "%0%1)", true)
+OUTPUT(number_expression_ast, "%0NumberExpressionAST(\n%01  token: %reset%2\n%0%1  number: %reset%3\n%0%1)", true)
 
 #if defined(DIAG)
 #undef DIAG

@@ -43,10 +43,14 @@ namespace juice {
             size_t length = file.tellg();
             file.seekg(0, file.beg);
 
-            char * buffer = new char[length + 1];
+            char * buffer = new char[length + 2];
 
             file.read(buffer, length);
 
+            if (buffer[length - 1] != '\n') {
+                buffer[length++] = '\n';
+            }
+            
             buffer[length] = 0;
 
             return std::make_shared<SourceBuffer>(buffer, buffer + length, true);
@@ -73,12 +77,13 @@ namespace juice {
             assert(pointer >= _start && pointer <= _end);
             unsigned pointerOffset = pointer - _start;
 
-            auto eol1 = std::lower_bound(_offsets.begin(), _offsets.end(), pointerOffset);
-            if (eol1 != _offsets.begin()) eol1--;
+            auto eol = std::lower_bound(_offsets.begin(), _offsets.end(), pointerOffset);
 
-            auto eol2 = std::upper_bound(_offsets.begin(), _offsets.end(), pointerOffset);
+            unsigned eolBefore;
+            if (eol != _offsets.begin()) eolBefore = *(eol - 1);
+            else eolBefore = 0;
 
-            StringRef string(_start + *eol1, *eol2 - *eol1);
+            StringRef string(_start + eolBefore, *eol - eolBefore);
             return string.trim("\n\r");
         }
     }

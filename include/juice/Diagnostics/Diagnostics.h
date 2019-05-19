@@ -24,12 +24,26 @@
 namespace juice {
     namespace parser {
         struct LexerToken;
-        std::ostream & operator<<(std::ostream & os, const LexerToken & token);
+
+        class LexerTokenStream {
+            std::ostream & _os;
+            const LexerToken * _token;
+
+        public:
+            LexerTokenStream(std::ostream & os, const LexerToken * token): _os(os), _token(token) {}
+
+            std::ostream & getOS() const { return _os; }
+            const LexerToken * getToken() const { return _token; }
+        };
+
+        std::unique_ptr<LexerTokenStream> operator<<(std::ostream & os, const LexerToken * token);
+        std::ostream & operator<<(std::unique_ptr<LexerTokenStream> tokenStream,
+                                  const std::shared_ptr<basic::SourceBuffer> & sourceBuffer);
     }
 
     namespace diag {
         enum class DiagnosticID: uint32_t {
-            #define DIAG(KIND, ID, Text) ID,
+            #define DIAG(KIND, ID, Text, Newline) ID,
             #include "Diagnostics.def"
         };
 
@@ -39,29 +53,37 @@ namespace juice {
             output
         };
 
+        typedef std::ostream & (*Color)(std::ostream &);
+
         class DiagnosticArg {
         public:
             enum class Kind {
                 integer,
+                doubleValue,
                 boolean,
                 string,
-                lexerToken
+                lexerToken,
+                color
             };
 
         private:
             Kind _kind;
             union {
                 int _integer = 0;
+                double _double;
                 bool _boolean;
                 basic::StringRef _string;
                 const parser::LexerToken * _lexerToken;
+                const Color _color;
             };
 
         public:
             DiagnosticArg(int integer): _kind(Kind::integer), _integer(integer) {}
+            DiagnosticArg(double doubleValue): _kind(Kind::doubleValue), _double(doubleValue) {}
             DiagnosticArg(bool boolean): _kind(Kind::boolean), _boolean(boolean) {}
             DiagnosticArg(basic::StringRef string): _kind(Kind::string), _string(string) {}
             DiagnosticArg(const parser::LexerToken * lexerToken): _kind(Kind::lexerToken), _lexerToken(lexerToken) {}
+            DiagnosticArg(const Color color): _kind(Kind::color), _color(color) {}
 
             static void getAllInto(std::vector<DiagnosticArg> & vector) {}
 
@@ -79,9 +101,11 @@ namespace juice {
             Kind getKind() const { return _kind; }
 
             int getAsInteger() const { return _integer; }
+            double getAsDouble() const { return _double; }
             bool getAsBoolean() const { return _boolean; }
             basic::StringRef getAsString() const { return _string; }
             const parser::LexerToken * getAsLexerToken() const { return _lexerToken; }
+            const Color getAsColor() const { return _color; }
         };
 
         class DiagnosticEngine {
@@ -99,6 +123,7 @@ namespace juice {
                              std::ostream & errorOutput);
 
             bool hadError() const { return _hadError; }
+            std::shared_ptr<basic::SourceBuffer> getBuffer() const { return _sourceBuffer; }
 
             template<typename... Args>
             void diagnose(basic::SourceLocation location, DiagnosticID id, Args... args) {
@@ -129,14 +154,17 @@ namespace juice {
 
             static void
             formatDiagnosticArgInto(std::ostream & out, basic::StringRef modifier, basic::StringRef modifierArguments,
-                                    const std::vector<DiagnosticArg> & args, int argIndex);
+                                    const std::vector<DiagnosticArg> & args, int argIndex,
+                                    DiagnosticEngine * diagnostics = nullptr);
 
-            static void formatDiagnosticTextInto(std::ostream & out, basic::StringRef text,
-                                                 const std::vector<DiagnosticArg> & args);
+            static void
+            formatDiagnosticTextInto(std::ostream & out, basic::StringRef text, const std::vector<DiagnosticArg> & args,
+                                     DiagnosticEngine * diagnostics = nullptr);
 
         public:
             static DiagnosticKind diagnosticKindFor(DiagnosticID id);
             static const char * diagnosticStringFor(DiagnosticID id);
+            static bool diagnosticNewlineFor(DiagnosticID id);
         };
     }
 }
