@@ -19,12 +19,12 @@
 
 namespace juice {
     namespace basic {
-        inline int StringRef::compareMemory(const char * lhs, const char * rhs, size_t length) {
+        int StringRef::compareMemory(const char * lhs, const char * rhs, size_t length) {
             if (length == 0) return 0;
             return memcmp(lhs, rhs, length);
         }
 
-        inline int StringRef::compareMemoryLower(const char * lhs, const char * rhs, size_t length) {
+        int StringRef::compareMemoryLower(const char * lhs, const char * rhs, size_t length) {
             for (size_t i = 0; i < length; ++i) {
                 unsigned char lhc = toLower(lhs[i]);
                 unsigned char rhc = toLower(rhs[i]);
@@ -33,15 +33,15 @@ namespace juice {
             return 0;
         }
 
-        inline bool StringRef::equals(StringRef rhs) const {
+        bool StringRef::equals(StringRef rhs) const {
             return size() == rhs.size() && compareMemory(begin(), rhs.begin(), size()) == 0;
         }
 
-        inline bool StringRef::equalsLower(StringRef rhs) const {
+        bool StringRef::equalsLower(StringRef rhs) const {
             return size() == rhs.size() && compareLower(rhs) == 0;
         }
 
-        inline int StringRef::compare(StringRef rhs) const {
+        int StringRef::compare(StringRef rhs) const {
             if (int result = compareMemory(begin(), rhs.begin(), std::min(size(), rhs.size()))) {
                 return result < 0 ? -1 : 1;
             }
@@ -51,7 +51,7 @@ namespace juice {
             return size() < rhs.size() ? -1 : 1;
         }
 
-        inline int StringRef::compareLower(StringRef rhs) const {
+        int StringRef::compareLower(StringRef rhs) const {
             if (int result = compareMemoryLower(begin(), rhs.begin(), std::min(size(), rhs.size()))) {
                 return result < 0 ? -1 : 1;
             }
@@ -61,20 +61,20 @@ namespace juice {
             return size() < rhs.size() ? -1 : 1;
         }
 
-        inline bool StringRef::startsWith(StringRef prefix) const {
+        bool StringRef::startsWith(StringRef prefix) const {
             return size() >= prefix.size() && compareMemory(begin(), prefix.begin(), prefix.size()) == 0;
         }
 
-        inline bool StringRef::startsWithLower(StringRef prefix) const {
+        bool StringRef::startsWithLower(StringRef prefix) const {
             return size() >= prefix.size() && compareMemoryLower(begin(), prefix.begin(), prefix.size()) == 0;
         }
 
-        inline bool StringRef::endsWith(StringRef suffix) const {
+        bool StringRef::endsWith(StringRef suffix) const {
             return size() >= suffix.size() &&
                    compareMemory(end() - suffix.size(), suffix.begin(), suffix.size()) == 0;
         }
 
-        inline bool StringRef::endsWithLower(StringRef suffix) const {
+        bool StringRef::endsWithLower(StringRef suffix) const {
             return size() >= suffix.size() &&
                    compareMemoryLower(end() - suffix.size(), suffix.begin(), suffix.size()) == 0;
         }
@@ -325,7 +325,7 @@ namespace juice {
             return true;
         }
 
-        inline StringRef StringRef::slice(size_t start, size_t end) const {
+        StringRef StringRef::slice(size_t start, size_t end) const {
             start = std::min(start, size());
             end = std::min(std::max(start, end), size());
             return {begin() + start, end - start};
