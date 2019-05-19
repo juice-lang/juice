@@ -43,6 +43,12 @@ ERROR(unterminated_string, "unterminated string literal")
 
 OUTPUT(lexer_token, "%0")
 
+//Parser
+ERROR(expected_end_of_file, "expected end of file")
+ERROR(expected_expression, "expected expression")
+ERROR(expected_newline, "expected newline after expression")
+ERROR(expected_right_paren, "expected closing parenthesis after expression")
+
 #if defined(DIAG)
 #undef DIAG
 #endif

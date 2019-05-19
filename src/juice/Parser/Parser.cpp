@@ -11,7 +11,10 @@
 
 #include "juice/Parser/Parser.h"
 
+#include <string>
 #include <utility>
+
+#include "juice/Basic/SourceLocation.h"
 
 namespace juice {
     namespace parser {
@@ -43,9 +46,75 @@ namespace juice {
             else throw Error(errorID);
         }
 
+        std::unique_ptr<ExpressionAST> Parser::parseGroupedExpression() {
+            if (match(LexerToken::Type::delimiterLeftParen)) {
+                auto token = std::move(_previousToken);
+                auto expression = parseAdditionPrecedenceExpression();
+                consume(LexerToken::Type::delimiterRightParen, diag::DiagnosticID::expected_right_paren);
+                return std::make_unique<GroupingExpressionAST>(std::move(token), std::move(expression));
+            }
+            throw Error(diag::DiagnosticID::expected_expression);
+        }
+
+        std::unique_ptr<ExpressionAST> Parser::parseNumberExpression() {
+            if (match(LexerToken::Type::integerLiteral) || match(LexerToken::Type::decimalLiteral)) {
+                auto token = std::move(_previousToken);
+                double number = std::stod(token->string.str());
+                return std::make_unique<NumberExpressionAST>(std::move(token), number);
+            }
+            return parseGroupedExpression();
+        }
+
+        std::unique_ptr<ExpressionAST> Parser::parseMultiplicationPrecedenceExpression() {
+            auto node = parseNumberExpression();
+
+            while (match(LexerToken::Type::operatorAsterisk) || match(LexerToken::Type::operatorSlash) ||
+                   match(LexerToken::Type::operatorPercent)) {
+                auto token = std::move(_previousToken);
+                auto right = parseNumberExpression();
+                node = std::make_unique<BinaryOperatorExpressionAST>(std::move(token), std::move(node),
+                                                                     std::move(right));
+            }
+
+            return node;
+        }
+
+        std::unique_ptr<ExpressionAST> Parser::parseAdditionPrecedenceExpression() {
+            auto node = parseMultiplicationPrecedenceExpression();
+
+            while (match(LexerToken::Type::operatorPlus) || match(LexerToken::Type::operatorMinus)) {
+                auto token = std::move(_previousToken);
+                auto right = parseMultiplicationPrecedenceExpression();
+                node = std::make_unique<BinaryOperatorExpressionAST>(std::move(token), std::move(node),
+                                                                     std::move(right));
+            }
+
+            return node;
+        }
+
         Parser::Parser(std::shared_ptr<diag::DiagnosticEngine> diagnostics):
                 _diagnostics(std::move(diagnostics)), _previousToken(nullptr), _currentToken(nullptr) {
             _lexer = std::make_unique<Lexer>(_diagnostics->getBuffer());
+        }
+
+        std::unique_ptr<ExpressionAST> Parser::parseProgram() {
+            try {
+                advance();
+                auto expression = parseAdditionPrecedenceExpression();
+
+                consume(LexerToken::Type::delimiterNewline, diag::DiagnosticID::expected_newline);
+
+                if (!isAtEnd()) throw Error(diag::DiagnosticID::expected_end_of_file);
+
+                return expression;
+            } catch (Error & error) {
+                basic::SourceLocation location(_currentToken->string.begin());
+                _diagnostics->diagnose(location, error.id);
+            } catch (LexerError & error) {
+                _currentToken->diagnoseInto(*_diagnostics);
+            }
+
+            return nullptr;
         }
     }
 }

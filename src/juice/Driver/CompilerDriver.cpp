@@ -12,6 +12,7 @@
 #include "juice/Driver/CompilerDriver.h"
 
 #include <memory>
+#include <juice/Parser/Parser.h>
 
 #include "juice/Basic/SourceBuffer.h"
 #include "juice/Basic/StringRef.h"
@@ -31,14 +32,10 @@ namespace juice {
 
             auto diagnostics = std::make_shared<diag::DiagnosticEngine>(buffer);
 
-            parser::Lexer lexer(buffer);
+            parser::Parser juiceParser(diagnostics);
 
-            std::unique_ptr<parser::LexerToken> token = lexer.nextToken();
+            auto expression = juiceParser.parseProgram();
 
-            while (token->type != parser::LexerToken::Type::eof) {
-                token->diagnoseInto(*diagnostics);
-                token = lexer.nextToken();
-            }
             return diagnostics->hadError() ? 1 : 0;
         }
     }
