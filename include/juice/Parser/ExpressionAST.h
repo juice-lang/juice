@@ -15,6 +15,7 @@
 #include <memory>
 
 #include "LexerToken.h"
+#include "juice/Diagnostics/Diagnostics.h"
 
 namespace juice {
     namespace parser {
@@ -26,6 +27,7 @@ namespace juice {
             ExpressionAST(std::unique_ptr<LexerToken> token);
 
             virtual ~ExpressionAST() = default;
+            virtual void diagnoseInto(diag::DiagnosticEngine & diagnostics, unsigned level = 0) = 0;
         };
 
         class BinaryOperatorExpressionAST: public ExpressionAST {
@@ -34,6 +36,8 @@ namespace juice {
         public:
             BinaryOperatorExpressionAST(std::unique_ptr<LexerToken> token, std::unique_ptr<ExpressionAST> left,
                                         std::unique_ptr<ExpressionAST> right);
+
+            void diagnoseInto(diag::DiagnosticEngine & diagnostics, unsigned level) override;
         };
 
         class NumberExpressionAST: public ExpressionAST {
@@ -41,6 +45,8 @@ namespace juice {
 
         public:
             explicit NumberExpressionAST(std::unique_ptr<LexerToken> token, double value);
+
+            void diagnoseInto(diag::DiagnosticEngine & diagnostics, unsigned level) override;
         };
 
         class GroupingExpressionAST: public ExpressionAST {
@@ -49,6 +55,8 @@ namespace juice {
         public:
             explicit GroupingExpressionAST(std::unique_ptr<LexerToken> token,
                                            std::unique_ptr<ExpressionAST> expression);
+
+            void diagnoseInto(diag::DiagnosticEngine & diagnostics, unsigned level) override;
         };
     }
 }

@@ -36,6 +36,8 @@ namespace juice {
 
             auto expression = juiceParser.parseProgram();
 
+            if (expression != nullptr) expression->diagnoseInto(*diagnostics);
+
             return diagnostics->hadError() ? 1 : 0;
         }
     }
