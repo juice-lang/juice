@@ -15,7 +15,36 @@
 
 namespace juice {
     namespace parser {
-        Parser::Parser(std::shared_ptr<diag::DiagnosticEngine> diagnostics): _diagnostics(std::move(diagnostics)) {
+        bool Parser::isAtEnd() {
+            return _currentToken != nullptr && _currentToken->type == LexerToken::Type::eof;
+        }
+
+        bool Parser::check(LexerToken::Type type) {
+            if (isAtEnd()) return false;
+            return _currentToken->type == type;
+        }
+
+        void Parser::advance() {
+            _previousToken = std::move(_currentToken);
+            if (!isAtEnd()) _currentToken = _lexer->nextToken();
+            if (check(LexerToken::Type::error)) throw LexerError();
+        }
+
+        bool Parser::match(LexerToken::Type type) {
+            if (check(type)) {
+                advance();
+                return true;
+            }
+            return false;
+        }
+
+        void Parser::consume(LexerToken::Type type, diag::DiagnosticID errorID) {
+            if (check(type)) advance();
+            else throw Error(errorID);
+        }
+
+        Parser::Parser(std::shared_ptr<diag::DiagnosticEngine> diagnostics):
+                _diagnostics(std::move(diagnostics)), _previousToken(nullptr), _currentToken(nullptr) {
             _lexer = std::make_unique<Lexer>(_diagnostics->getBuffer());
         }
     }

@@ -12,6 +12,7 @@
 #ifndef JUICE_PARSER_H
 #define JUICE_PARSER_H
 
+#include <exception>
 #include <memory>
 
 #include "Lexer.h"
@@ -21,10 +22,27 @@
 namespace juice {
     namespace parser {
         class Parser {
+            struct Error: std::exception {
+                diag::DiagnosticID id;
+
+                explicit Error(diag::DiagnosticID id): id(id) {}
+            };
+
+            struct LexerError: std::exception {};
+
             std::shared_ptr<diag::DiagnosticEngine> _diagnostics;
             std::unique_ptr<Lexer> _lexer;
 
-            std::unique_ptr<LexerToken> currentToken() const { return _lexer->nextToken(); }
+            std::unique_ptr<LexerToken> _previousToken;
+            std::unique_ptr<LexerToken> _currentToken;
+
+            bool isAtEnd();
+            bool check(LexerToken::Type type);
+
+            void advance();
+            bool match(LexerToken::Type type);
+
+            void consume(LexerToken::Type type, diag::DiagnosticID errorID);
 
         public:
             Parser() = delete;
