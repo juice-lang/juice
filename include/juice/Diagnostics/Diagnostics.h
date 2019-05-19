@@ -43,7 +43,7 @@ namespace juice {
 
     namespace diag {
         enum class DiagnosticID: uint32_t {
-            #define DIAG(KIND, ID, Text) ID,
+            #define DIAG(KIND, ID, Text, Newline) ID,
             #include "Diagnostics.def"
         };
 
@@ -53,29 +53,37 @@ namespace juice {
             output
         };
 
+        typedef std::ostream & (*Color)(std::ostream &);
+
         class DiagnosticArg {
         public:
             enum class Kind {
                 integer,
+                doubleValue,
                 boolean,
                 string,
-                lexerToken
+                lexerToken,
+                color
             };
 
         private:
             Kind _kind;
             union {
                 int _integer = 0;
+                double _double;
                 bool _boolean;
                 basic::StringRef _string;
                 const parser::LexerToken * _lexerToken;
+                const Color _color;
             };
 
         public:
             DiagnosticArg(int integer): _kind(Kind::integer), _integer(integer) {}
+            DiagnosticArg(double doubleValue): _kind(Kind::doubleValue), _double(doubleValue) {}
             DiagnosticArg(bool boolean): _kind(Kind::boolean), _boolean(boolean) {}
             DiagnosticArg(basic::StringRef string): _kind(Kind::string), _string(string) {}
             DiagnosticArg(const parser::LexerToken * lexerToken): _kind(Kind::lexerToken), _lexerToken(lexerToken) {}
+            DiagnosticArg(const Color color): _kind(Kind::color), _color(color) {}
 
             static void getAllInto(std::vector<DiagnosticArg> & vector) {}
 
@@ -93,9 +101,11 @@ namespace juice {
             Kind getKind() const { return _kind; }
 
             int getAsInteger() const { return _integer; }
+            double getAsDouble() const { return _double; }
             bool getAsBoolean() const { return _boolean; }
             basic::StringRef getAsString() const { return _string; }
             const parser::LexerToken * getAsLexerToken() const { return _lexerToken; }
+            const Color getAsColor() const { return _color; }
         };
 
         class DiagnosticEngine {
@@ -154,6 +164,7 @@ namespace juice {
         public:
             static DiagnosticKind diagnosticKindFor(DiagnosticID id);
             static const char * diagnosticStringFor(DiagnosticID id);
+            static bool diagnosticNewlineFor(DiagnosticID id);
         };
     }
 }
