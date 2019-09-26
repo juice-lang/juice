@@ -25,16 +25,55 @@ done
 
 JUICE_UTIL_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 JUICE_REPO_DIR="$(dirname "${JUICE_UTIL_DIR}")"
+JUICE_ROOT_DIR="$(dirname "${JUICE_REPO_DIR}")"
+
 JUICE_BUILD_DIR="${JUICE_REPO_DIR}/build"
 JUICE_CMAKE_DIR="${JUICE_BUILD_DIR}/cmake"
 JUICE_BIN_DIR="${JUICE_BUILD_DIR}/bin"
 
-rm -rf ${JUICE_BUILD_DIR} || true
-mkdir ${JUICE_BUILD_DIR}
-mkdir ${JUICE_CMAKE_DIR}
-mkdir ${JUICE_BIN_DIR}
+JUICE_LLVM_REPO_DIR="${JUICE_ROOT_DIR}/juice-llvm"
+JUICE_LLVM_BUILD_DIR="${JUICE_LLVM_REPO_DIR}/build"
+JUICE_LLVM_INSTALL_DIR="${JUICE_LLVM_BUILD_DIR}/install"
 
-cd ${JUICE_CMAKE_DIR}
+
+if [ -e "${JUICE_LLVM_REPO_DIR}" ]; then
+    echo -n "File \"juice-llvm\" does already exist at the juice root! Do you want to update automatically (y/n)? "
+
+    old_stty_cfg=$(stty -g)
+    stty raw -echo
+    answer=$(while ! head -c 1 | grep -i '[ny]'; do true; done)
+    stty "$old_stty_cfg"
+
+    if echo "$answer" | grep -iq "^y"; then
+        echo "Pulling git updates..."
+
+        cd "${JUICE_LLVM_REPO_DIR}" || exit
+
+        git pull
+    fi
+
+else
+    echo "File \"juice-llvm\" wasn't found at the juice root! Cloning from git..."
+
+    git clone https://github.com/juice-lang/juice-llvm.git "${JUICE_LLVM_REPO_DIR}"
+
+    mkdir "${JUICE_LLVM_BUILD_DIR}"
+    mkdir "${JUICE_LLVM_INSTALL_DIR}"
+fi
+
+cd "${JUICE_LLVM_BUILD_DIR}" || exit
+
+cmake "${JUICE_LLVM_REPO_DIR}" -G "Unix Makefiles" \
+    -DCMAKE_INSTALL_PREFIX="${JUICE_LLVM_INSTALL_DIR}" -DCMAKE_BUILD_TYPE=${MODE}
+
+make -j"$(portable_nproc)" && make install
+
+rm -rf "${JUICE_BUILD_DIR}" || true
+mkdir "${JUICE_BUILD_DIR}"
+mkdir "${JUICE_CMAKE_DIR}"
+mkdir "${JUICE_BIN_DIR}"
+
+cd "${JUICE_CMAKE_DIR}" || exit
 
 cmake "${JUICE_REPO_DIR}" -G "Unix Makefiles" -DCMAKE_INSTALL_PREFIX="${JUICE_BUILD_DIR}" -DCMAKE_BUILD_TYPE=${MODE}
 
