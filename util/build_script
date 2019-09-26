@@ -2,6 +2,19 @@
 
 DEBUG_MODE=false
 
+portable_nproc() {
+    OS=$(uname -s)
+    if [ "$OS" = "Linux" ]; then
+        NPROCS=$(nproc --all)
+    elif [ "$OS" = "Darwin" ] || \
+            [ "$(echo "$OS" | grep -q BSD)" = "BSD" ]; then
+        NPROCS=$(sysctl -n hw.ncpu)
+    else
+        NPROCS=$(getconf _NPROCESSORS_ONLN)  # glibc/coreutils fallback
+    fi
+    echo "$NPROCS"
+}
+
 while getopts ":d" OPTION; do
     case $OPTION in
         d) DEBUG_MODE=true ;;
@@ -28,4 +41,4 @@ else
     cmake ${JUICE_REPO_DIR} -DCMAKE_INSTALL_PREFIX=${JUICE_BUILD_DIR} -DCMAKE_BUILD_TYPE=Release
 fi
 
-make && make install
+make -j"$(portable_nproc)" && make install
