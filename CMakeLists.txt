@@ -17,13 +17,17 @@ if(${CMAKE_VERSION} VERSION_LESS 3.12)
 endif()
 
 # Activate C++14
-set (CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD 14)
 
 
 project(juice DESCRIPTION "The juicy programming language" LANGUAGES CXX)
 
 set(JUICE_VERSION "1.0")
 
+set(LLVM_INSTALL_DIR ${PROJECT_SOURCE_DIR}/../juice-llvm/build/install)
+set(LLVM_LIB_DIR ${LLVM_INSTALL_DIR}/lib)
+
 include_directories(${PROJECT_SOURCE_DIR}/include)
+include_directories(${LLVM_INSTALL_DIR}/include)
 add_subdirectory(src)
 add_subdirectory(tools)
