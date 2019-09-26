@@ -16,6 +16,9 @@
 
 #include "LexerToken.h"
 #include "juice/Diagnostics/Diagnostics.h"
+#include "llvm/IR/IRBuilder.h"
+#include "llvm/IR/LLVMContext.h"
+#include "llvm/IR/Value.h"
 
 namespace juice {
     namespace parser {
@@ -24,10 +27,11 @@ namespace juice {
             std::unique_ptr<LexerToken> _token;
 
         public:
-            ExpressionAST(std::unique_ptr<LexerToken> token);
+            explicit ExpressionAST(std::unique_ptr<LexerToken> token);
 
             virtual ~ExpressionAST() = default;
             virtual void diagnoseInto(diag::DiagnosticEngine & diagnostics, unsigned level = 0) = 0;
+            virtual llvm::Value * codegen(llvm::LLVMContext & context, llvm::IRBuilder<> & builder) = 0;
         };
 
         class BinaryOperatorExpressionAST: public ExpressionAST {
@@ -38,6 +42,7 @@ namespace juice {
                                         std::unique_ptr<ExpressionAST> right);
 
             void diagnoseInto(diag::DiagnosticEngine & diagnostics, unsigned level) override;
+            llvm::Value * codegen(llvm::LLVMContext & context, llvm::IRBuilder<> & builder) override;
         };
 
         class NumberExpressionAST: public ExpressionAST {
@@ -47,6 +52,7 @@ namespace juice {
             explicit NumberExpressionAST(std::unique_ptr<LexerToken> token, double value);
 
             void diagnoseInto(diag::DiagnosticEngine & diagnostics, unsigned level) override;
+            llvm::Value * codegen(llvm::LLVMContext & context, llvm::IRBuilder<> & builder) override;
         };
 
         class GroupingExpressionAST: public ExpressionAST {
@@ -57,6 +63,7 @@ namespace juice {
                                            std::unique_ptr<ExpressionAST> expression);
 
             void diagnoseInto(diag::DiagnosticEngine & diagnostics, unsigned level) override;
+            llvm::Value * codegen(llvm::LLVMContext & context, llvm::IRBuilder<> & builder) override;
         };
     }
 }

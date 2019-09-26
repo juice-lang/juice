@@ -68,8 +68,7 @@ namespace juice {
         std::unique_ptr<ExpressionAST> Parser::parseMultiplicationPrecedenceExpression() {
             auto node = parseNumberExpression();
 
-            while (match(LexerToken::Type::operatorAsterisk) || match(LexerToken::Type::operatorSlash) ||
-                   match(LexerToken::Type::operatorPercent)) {
+            while (match(LexerToken::Type::operatorAsterisk) || match(LexerToken::Type::operatorSlash)) {
                 auto token = std::move(_previousToken);
                 auto right = parseNumberExpression();
                 node = std::make_unique<BinaryOperatorExpressionAST>(std::move(token), std::move(node),

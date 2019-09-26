@@ -16,6 +16,8 @@
 
 #include "juice/Basic/SourceLocation.h"
 #include "juice/Basic/StringRef.h"
+#include "llvm/ADT/APFloat.h"
+#include "llvm/IR/Constants.h"
 #include "termcolor/termcolor.hpp"
 
 namespace juice {
@@ -53,6 +55,22 @@ namespace juice {
                                  indentationRef);
         }
 
+        llvm::Value *
+        BinaryOperatorExpressionAST::codegen(llvm::LLVMContext & context, llvm::IRBuilder<> & builder) {
+            llvm::Value * left = _left->codegen(context, builder);
+            llvm::Value * right = _right->codegen(context, builder);
+
+            if (left == nullptr || right == nullptr) return nullptr;
+
+            switch (_token->type) {
+                case LexerToken::Type::operatorPlus: return builder.CreateFAdd(left, right, "addtmp");
+                case LexerToken::Type::operatorMinus: return builder.CreateFSub(left, right, "subtmp");
+                case LexerToken::Type::operatorAsterisk: return builder.CreateFMul(left, right, "multmp");
+                case LexerToken::Type::operatorSlash: return builder.CreateFDiv(left, right, "divtmp");
+                default: return nullptr;
+            }
+        }
+
         NumberExpressionAST::NumberExpressionAST(std::unique_ptr<LexerToken> token, double value):
                 ExpressionAST(std::move(token)), _value(value) {}
 
@@ -67,12 +85,20 @@ namespace juice {
                                  _token.get(), _value);
         }
 
+        llvm::Value * NumberExpressionAST::codegen(llvm::LLVMContext & context, llvm::IRBuilder<> & builder) {
+            return llvm::ConstantFP::get(context, llvm::APFloat(_value));
+        }
+
         GroupingExpressionAST::GroupingExpressionAST(std::unique_ptr<LexerToken> token,
                                                      std::unique_ptr<juice::parser::ExpressionAST> expression):
                 ExpressionAST(std::move(token)), _expression(std::move(expression)) {}
 
         void GroupingExpressionAST::diagnoseInto(diag::DiagnosticEngine & diagnostics, unsigned level) {
             _expression->diagnoseInto(diagnostics, level);
+        }
+
+        llvm::Value * GroupingExpressionAST::codegen(llvm::LLVMContext & context, llvm::IRBuilder<> & builder) {
+            return _expression->codegen(context, builder);
         }
     }
 }
