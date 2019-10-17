@@ -11,9 +11,9 @@
 
 #include "juice/Diagnostics/Diagnostics.h"
 
-#include <iostream>
+#include <ostream>
+#include <sstream>
 #include <string>
-#include <tuple>
 #include <utility>
 
 #include "juice/Basic/StringHelpers.h"
@@ -38,12 +38,8 @@ namespace juice {
         #include "juice/Diagnostics/Diagnostics.def"
         };
 
-        DiagnosticEngine::DiagnosticEngine(std::shared_ptr<juice::basic::SourceBuffer> sourceBuffer):
-                _sourceBuffer(std::move(sourceBuffer)), _output(std::cout), _errorOutput(std::cerr) {}
-
-        DiagnosticEngine::DiagnosticEngine(std::shared_ptr<basic::SourceBuffer> sourceBuffer, std::ostream & output,
-                                           std::ostream & errorOutput):
-                _sourceBuffer(std::move(sourceBuffer)), _output(output), _errorOutput(errorOutput) {}
+        DiagnosticEngine::DiagnosticEngine(std::unique_ptr<basic::SourceManager> sourceManager):
+                _sourceManager(std::move(sourceManager)) {}
 
         void DiagnosticEngine::diagnose(basic::SourceLocation location, DiagnosticID id,
                                         const std::vector<DiagnosticArg> & args) {
@@ -51,43 +47,33 @@ namespace juice {
             basic::StringRef text(diagnosticStringFor(id));
             bool newline = diagnosticNewlineFor(id);
 
-            std::ostream & os = kind == DiagnosticKind::error ? _errorOutput : _output;
+            std::ostringstream os;
 
             os << termcolor::bold;
 
             switch (kind) {
                 case DiagnosticKind::error: {
-                    _hadError = true;
-                    os << "juice: " << termcolor::red << "error";
+                    os << "juice: " << termcolor::red << "error" << ": " << termcolor::reset << termcolor::bold;
                     break;
                 }
                 case DiagnosticKind::warning: {
-                    os << "juice: " << termcolor::magenta << "warning";
+                    os << "juice: " << termcolor::magenta << "warning" << ": " << termcolor::reset << termcolor::bold;
                     break;
                 }
                 case DiagnosticKind::output: break;
             }
 
-            if (kind != DiagnosticKind::output && location.isValid()) {
-                unsigned line, column;
-                std::tie(line, column) = _sourceBuffer->getLineAndColumn(location);
-
-                os << " at " << line << ":" << column << ": " << termcolor::reset << termcolor::bold;
-
-                formatDiagnosticTextInto(os, text, args, this);
-
-                os << termcolor::reset << std::endl << _sourceBuffer->getLineString(location) << std::endl;
-
-                os << std::string(column - 1, ' ') << termcolor::green << '^' << termcolor::reset;
-            } else {
-                if (kind != DiagnosticKind::output) os << ": " << termcolor::reset << termcolor::bold;
-
-                formatDiagnosticTextInto(os, text, args, this);
-            }
+            formatDiagnosticTextInto(os, text, args, this);
 
             os << termcolor::reset;
 
             if (newline) os << std::endl;
+
+            if (kind == DiagnosticKind::output) std::cout << os.str();
+            else {
+                std::string s(os.str());
+                _sourceManager->printDiagnostic(s, kind, location);
+            }
         }
 
         void DiagnosticEngine::diagnose(DiagnosticID id, const std::vector<DiagnosticArg> & args) {
@@ -95,7 +81,7 @@ namespace juice {
             basic::StringRef text(diagnosticStringFor(id));
             bool newline = diagnosticNewlineFor(id);
 
-            std::ostream & os = kind == DiagnosticKind::error ? std::cerr : std::cout;
+            std::ostringstream os;
 
             os << termcolor::bold;
 
@@ -116,6 +102,8 @@ namespace juice {
             os << termcolor::reset;
 
             if (newline) os << std::endl;
+
+            (kind == DiagnosticKind::error ? std::cerr : std::cout) << os.str();
         }
 
         basic::StringRef
@@ -207,7 +195,7 @@ namespace juice {
                 }
                 case DiagnosticArg::Kind::lexerToken: {
                     assert(modifier.isEmpty() && "Improper modifier for LexerToken argument");
-                    out << arg.getAsLexerToken() << (diagnostics != nullptr ? diagnostics->_sourceBuffer : nullptr);
+                    out << arg.getAsLexerToken() << (diagnostics != nullptr ? diagnostics->_sourceManager.get() : nullptr);
                     break;
                 }
                 case DiagnosticArg::Kind::color: {

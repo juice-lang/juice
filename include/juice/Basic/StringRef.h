@@ -20,6 +20,9 @@
 #include <utility>
 #include <vector>
 
+#include "llvm/ADT/StringRef.h"
+#include "llvm/ADT/Twine.h"
+
 namespace juice {
     namespace basic {
         class StringRef {
@@ -36,8 +39,8 @@ namespace juice {
             StringRef() = default;
             StringRef(std::nullptr_t) = delete;
 
-            StringRef(const char * string): _data(string), _length(string ? strlen(string) : 0) {}
-            StringRef(const std::string & string): _data(string.data()), _length(string.length()) {}
+            /* implicit */ StringRef(const char * string): _data(string), _length(string ? strlen(string) : 0) {}
+            /* implicit */ StringRef(const std::string & string): _data(string.data()), _length(string.length()) {}
 
             constexpr StringRef(const char * data, size_t length): _data(data), _length(length) {}
 
@@ -52,6 +55,9 @@ namespace juice {
             char last() const { return isEmpty() ? 0 : _data[size() - 1]; }
 
             std::string str() const { return begin() ? std::string(begin(), size()) : std::string(); }
+
+            llvm::StringRef llvm() const { return {begin(), size()}; }
+            llvm::Twine twine() const { return llvm::Twine(llvm()); }
 
             bool isEmpty() const { return size() == 0; }
             bool isNotEmpty() const { return size() > 0; }

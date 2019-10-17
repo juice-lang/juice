@@ -14,12 +14,13 @@
 
 #include <cstdint>
 #include <memory>
-#include <ostream>
 #include <vector>
 
 #include "juice/Basic/SourceBuffer.h"
 #include "juice/Basic/SourceLocation.h"
+#include "juice/Basic/SourceManager.h"
 #include "juice/Basic/StringRef.h"
+#include "llvm/Support/SourceMgr.h"
 
 namespace juice {
     namespace parser {
@@ -38,7 +39,7 @@ namespace juice {
 
         std::unique_ptr<LexerTokenStream> operator<<(std::ostream & os, const LexerToken * token);
         std::ostream & operator<<(std::unique_ptr<LexerTokenStream> tokenStream,
-                                  const std::shared_ptr<basic::SourceBuffer> & sourceBuffer);
+                                  const basic::SourceManager * sourceManager);
     }
 
     namespace diag {
@@ -47,10 +48,35 @@ namespace juice {
             #include "Diagnostics.def"
         };
 
-        enum class DiagnosticKind {
-            error,
-            warning,
-            output
+        class DiagnosticKind {
+        public:
+            enum Kind : uint8_t {
+                error,
+                warning,
+                output
+            };
+
+            DiagnosticKind() = default;
+            /* implicit */ constexpr DiagnosticKind(Kind kind) : _kind(kind) {}
+
+            /* implicit */ constexpr operator Kind() const { return _kind; }
+
+            explicit operator bool() = delete;
+            constexpr bool operator==(DiagnosticKind other) const { return _kind == other._kind; }
+            constexpr bool operator==(Kind other) const { return _kind == other; }
+            constexpr bool operator!=(DiagnosticKind other) const { return _kind != other._kind; }
+            constexpr bool operator!=(Kind other) const { return _kind != other; }
+
+            llvm::SourceMgr::DiagKind llvm() const {
+                switch (_kind) {
+                    case error:   return llvm::SourceMgr::DK_Error;
+                    case warning: return llvm::SourceMgr::DK_Warning;
+                    case output:  return llvm::SourceMgr::DK_Error;
+                }
+            }
+
+        private:
+            Kind _kind;
         };
 
         typedef std::ostream & (*Color)(std::ostream &);
@@ -78,23 +104,25 @@ namespace juice {
             };
 
         public:
-            DiagnosticArg(int integer): _kind(Kind::integer), _integer(integer) {}
-            DiagnosticArg(double doubleValue): _kind(Kind::doubleValue), _double(doubleValue) {}
-            DiagnosticArg(bool boolean): _kind(Kind::boolean), _boolean(boolean) {}
-            DiagnosticArg(basic::StringRef string): _kind(Kind::string), _string(string) {}
-            DiagnosticArg(const parser::LexerToken * lexerToken): _kind(Kind::lexerToken), _lexerToken(lexerToken) {}
-            DiagnosticArg(const Color color): _kind(Kind::color), _color(color) {}
+            DiagnosticArg() = delete;
+
+            explicit DiagnosticArg(int integer): _kind(Kind::integer), _integer(integer) {}
+            explicit DiagnosticArg(double doubleValue): _kind(Kind::doubleValue), _double(doubleValue) {}
+            explicit DiagnosticArg(bool boolean): _kind(Kind::boolean), _boolean(boolean) {}
+            explicit DiagnosticArg(basic::StringRef string): _kind(Kind::string), _string(string) {}
+            explicit DiagnosticArg(const parser::LexerToken * lexerToken): _kind(Kind::lexerToken), _lexerToken(lexerToken) {}
+            explicit DiagnosticArg(const Color color): _kind(Kind::color), _color(color) {}
 
             static void getAllInto(std::vector<DiagnosticArg> & vector) {}
 
             template<typename T>
             static void getAllInto(std::vector<DiagnosticArg> & vector, T first) {
-                vector.push_back(first);
+                vector.push_back(DiagnosticArg(first));
             }
 
             template<typename T, typename... Args>
             static void getAllInto(std::vector<DiagnosticArg> & vector, T first, Args... args) {
-                vector.push_back(first);
+                vector.push_back(DiagnosticArg(first));
                 getAllInto(vector, args...);
             }
 
@@ -105,25 +133,19 @@ namespace juice {
             bool getAsBoolean() const { return _boolean; }
             basic::StringRef getAsString() const { return _string; }
             const parser::LexerToken * getAsLexerToken() const { return _lexerToken; }
-            const Color getAsColor() const { return _color; }
+            Color getAsColor() const { return _color; }
         };
 
         class DiagnosticEngine {
-            std::shared_ptr<basic::SourceBuffer> _sourceBuffer;
-
-            std::ostream & _output;
-            std::ostream & _errorOutput;
+            std::unique_ptr<basic::SourceManager> _sourceManager;
 
             bool _hadError = false;
 
         public:
-            explicit DiagnosticEngine(std::shared_ptr<basic::SourceBuffer> sourceBuffer);
-
-            DiagnosticEngine(std::shared_ptr<basic::SourceBuffer> sourceBuffer, std::ostream & output,
-                             std::ostream & errorOutput);
+            explicit DiagnosticEngine(std::unique_ptr<basic::SourceManager> sourceManager);
 
             bool hadError() const { return _hadError; }
-            std::shared_ptr<basic::SourceBuffer> getBuffer() const { return _sourceBuffer; }
+            std::shared_ptr<basic::SourceBuffer> getBuffer() const { return _sourceManager->getMainBuffer(); }
 
             template<typename... Args>
             void diagnose(basic::SourceLocation location, DiagnosticID id, Args... args) {

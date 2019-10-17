@@ -16,41 +16,36 @@
 #include <string>
 #include <utility>
 
+#include "llvm/Support/MemoryBuffer.h"
 #include "SourceLocation.h"
 #include "StringRef.h"
 
 namespace juice {
     namespace basic {
         class SourceBuffer {
-            const char * _start;
-            const char * _end;
+            const char * _start, * _end;
+            StringRef _filename;
             bool _deletePointer;
-            std::vector<unsigned> _offsets;
 
         public:
             SourceBuffer(const SourceBuffer &) = delete;
 
             SourceBuffer & operator=(const SourceBuffer &) = delete;
 
-            SourceBuffer(const char * start, const char * end, bool deletePointer);
+            SourceBuffer(const char * start, const char * end, StringRef filename, bool deletePointer):
+                    _start(start), _end(end), _filename(filename), _deletePointer(deletePointer) {}
+
+            explicit SourceBuffer(const llvm::MemoryBuffer * buffer);
 
             ~SourceBuffer();
 
-            static std::shared_ptr<SourceBuffer> getFile(StringRef filename);
-
             const char * getStart() const { return _start; }
-
             const char * getEnd() const { return _end; }
+            size_t getSize() const { return getEnd() - getStart(); }
 
-            size_t getSize() const { return _end - _start; }
+            StringRef getString() const { return {getStart(), getSize()}; }
 
-            std::pair<unsigned, unsigned> getLineAndColumn(SourceLocation location) const;
-
-            unsigned getLine(SourceLocation location) const {
-                return getLineAndColumn(location).first;
-            }
-
-            StringRef getLineString(SourceLocation location) const;
+            StringRef getFilename() const { return _filename; }
         };
     }
 }

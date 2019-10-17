@@ -104,17 +104,17 @@ namespace juice {
         }
 
         std::ostream & operator<<(std::unique_ptr<LexerTokenStream> tokenStream,
-                                  const std::shared_ptr<basic::SourceBuffer> & sourceBuffer) {
+                                  const basic::SourceManager * sourceManager) {
             std::ostream & os = tokenStream->getOS();
             const LexerToken * token = tokenStream->getToken();
 
             os << "<" << tokenTypeName(token);
 
-            if (sourceBuffer != nullptr) {
+            if (sourceManager != nullptr) {
                 basic::SourceLocation location(token->string.begin());
 
                 unsigned line, column;
-                std::tie(line, column) = sourceBuffer->getLineAndColumn(location);
+                std::tie(line, column) = sourceManager->getLineAndColumn(location);
 
                 os << " " << line << ":" << column;
             }
