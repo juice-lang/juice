@@ -15,14 +15,8 @@
 
 namespace juice {
     namespace basic {
-        SourceBuffer::SourceBuffer(const llvm::MemoryBuffer * buffer):
-                _start(buffer->getBufferStart()), _end(buffer->getBufferEnd()),
-                _filename(buffer->getBufferIdentifier()), _deletePointer(false) {}
-
         SourceBuffer::~SourceBuffer() {
-            if (_deletePointer) {
-                delete getStart();
-            }
+            if (_deleteBuffer) delete[] _start;
         }
     }
 }

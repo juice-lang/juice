@@ -77,7 +77,7 @@ namespace juice {
             return lhs._major == rhs._major && lhs._minor == rhs._minor && lhs._patch == rhs._patch;
         }
 
-        std::ostream & operator<<(std::ostream & os, const Version & version) {
+        llvm::raw_ostream & operator<<(llvm::raw_ostream & os, const Version & version) {
             os << version._major << '.' << version._minor;
             if (version._patch >= 0) os << '.' << version._patch;
 

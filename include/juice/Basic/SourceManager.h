@@ -12,7 +12,6 @@
 #ifndef JUICE_SOURCEMANAGER_H
 #define JUICE_SOURCEMANAGER_H
 
-#include <exception>
 #include <memory>
 #include <system_error>
 #include <utility>
@@ -29,26 +28,18 @@ namespace juice {
     }
 
     namespace basic {
-        class SourceException: public std::exception {
-            std::error_code _code;
-
-        public:
-            explicit SourceException(std::error_code code): _code(code) {}
-
-            std::error_code getCode() const { return _code; }
-        };
-
         class SourceManager {
             llvm::SourceMgr _sourceMgr;
 
-            std::vector<std::shared_ptr<SourceBuffer>> _buffers;
+            std::shared_ptr<SourceBuffer> _mainBuffer;
+
+            SourceManager() = default;
 
         public:
-            SourceManager() = delete;
             SourceManager(const SourceManager &) = delete;
             SourceManager & operator=(const SourceManager &) = delete;
 
-            explicit SourceManager(llvm::StringRef filename);
+            static std::unique_ptr<SourceManager> mainFile(llvm::StringRef filename);
 
             llvm::SourceMgr & getLLVMSourceMgr() {
                 return _sourceMgr;
@@ -59,7 +50,7 @@ namespace juice {
             }
 
             std::shared_ptr<SourceBuffer> getMainBuffer() const {
-                return _buffers[0];
+                return _mainBuffer;
             }
 
             unsigned getLineNumber(SourceLocation location) const {

@@ -12,6 +12,7 @@
 
 #include <utility>
 
+#include "juice/Basic/RawStreamHelpers.h"
 #include "juice/Diagnostics/Diagnostics.h"
 #include "llvm/Support/MemoryBuffer.h"
 #include "llvm/Support/raw_ostream.h"
@@ -19,17 +20,31 @@
 
 namespace juice {
     namespace basic {
-        SourceManager::SourceManager(llvm::StringRef filename) {
-            auto buffer = llvm::MemoryBuffer::getFile(filename);
-            if (auto error = buffer.getError()) throw SourceException(error);
-            unsigned id = _sourceMgr.AddNewSourceBuffer(std::move(buffer.get()), llvm::SMLoc());
+        std::unique_ptr<SourceManager> SourceManager::mainFile(llvm::StringRef filename) {
+            std::unique_ptr<SourceManager> manager(new SourceManager);
+            llvm::SourceMgr & mgr = manager->_sourceMgr;
 
-            _buffers.push_back(std::make_shared<SourceBuffer>(_sourceMgr.getMemoryBuffer(id)));
+            auto buffer = llvm::MemoryBuffer::getFile(filename);
+
+            if (buffer.getError()) return nullptr;
+
+            unsigned index = mgr.AddNewSourceBuffer(std::move(buffer.get()), llvm::SMLoc());
+
+            manager->_mainBuffer = std::make_shared<SourceBuffer>(mgr.getMemoryBuffer(index)->getBufferStart(),
+                                                                  mgr.getMemoryBuffer(index)->getBufferEnd(), filename,
+                                                                  false);
+
+            return manager;
         }
 
         void SourceManager::printDiagnostic(llvm::Twine message, diag::DiagnosticKind kind, SourceLocation location) {
+            llvm::raw_ostream & os = kind == diag::DiagnosticKind::error ? llvm::errs() : llvm::outs();
+
             llvm::SMDiagnostic diagnostic = _sourceMgr.GetMessage(location.llvm(), kind.llvm(), message);
-            _sourceMgr.PrintMessage(kind == diag::DiagnosticKind::error ? llvm::errs() : llvm::outs(), diagnostic);
+
+            os << Color::bold << Color::yellow << "juice: " << Color::reset;
+
+            _sourceMgr.PrintMessage(os, diagnostic);
         }
     }
 }

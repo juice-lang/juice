@@ -11,15 +11,14 @@
 
 #include "juice/Driver/VersionDriver.h"
 
-#include <iostream>
-
 #include "juice/Basic/Version.h"
+#include "llvm/Support/raw_ostream.h"
 
 namespace juice {
     namespace driver {
         int VersionDriver::execute() {
             auto currentVersion = basic::Version::getCurrent();
-            std::cout << "juice version " << currentVersion << std::endl;
+            llvm::outs() << "juice version " << currentVersion << '\n';
             return 0;
         }
     }

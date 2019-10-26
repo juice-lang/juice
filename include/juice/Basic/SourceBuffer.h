@@ -25,17 +25,16 @@ namespace juice {
         class SourceBuffer {
             const char * _start, * _end;
             llvm::StringRef _filename;
-            bool _deletePointer;
+            bool _deleteBuffer;
 
         public:
+            SourceBuffer() = delete;
             SourceBuffer(const SourceBuffer &) = delete;
 
             SourceBuffer & operator=(const SourceBuffer &) = delete;
 
-            SourceBuffer(const char * start, const char * end, llvm::StringRef filename, bool deletePointer):
-                    _start(start), _end(end), _filename(filename), _deletePointer(deletePointer) {}
-
-            explicit SourceBuffer(const llvm::MemoryBuffer * buffer);
+            SourceBuffer(const char * start, const char * end, llvm::StringRef filename, bool deleteBuffer):
+                    _start(start), _end(end), _filename(filename), _deleteBuffer(deleteBuffer) {}
 
             ~SourceBuffer();
 

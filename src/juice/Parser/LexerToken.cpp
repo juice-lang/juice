@@ -99,13 +99,13 @@ namespace juice {
             diagnostics.diagnose(location, diag::DiagnosticID::lexer_token, this);
         }
 
-        std::unique_ptr<LexerTokenStream> operator<<(std::ostream & os, const LexerToken * token) {
+        std::unique_ptr<LexerTokenStream> operator<<(llvm::raw_ostream & os, const LexerToken * token) {
             return std::make_unique<LexerTokenStream>(os, token);
         }
 
-        std::ostream & operator<<(std::unique_ptr<LexerTokenStream> tokenStream,
+        llvm::raw_ostream & operator<<(std::unique_ptr<LexerTokenStream> tokenStream,
                                   const basic::SourceManager * sourceManager) {
-            std::ostream & os = tokenStream->getOS();
+            llvm::raw_ostream & os = tokenStream->getOS();
             const LexerToken * token = tokenStream->getToken();
 
             os << "<" << tokenTypeName(token);

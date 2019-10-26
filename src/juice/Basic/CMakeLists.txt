@@ -10,6 +10,7 @@
 
 
 add_library(juiceBasic STATIC
+        RawStreamHelpers.cpp
         SourceBuffer.cpp
         SourceManager.cpp
         StringHelpers.cpp

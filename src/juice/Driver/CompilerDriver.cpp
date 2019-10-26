@@ -15,7 +15,6 @@
 #include <vector>
 #include <utility>
 
-#include "juice/Basic/SourceBuffer.h"
 #include "juice/Basic/SourceManager.h"
 #include "juice/Diagnostics/Diagnostics.h"
 #include "juice/Parser/Parser.h"
@@ -80,25 +79,24 @@ namespace juice {
         
         int CompilerDriver::execute() {
             llvm::StringRef filename(_filename);
-            try {
-                auto manager = std::make_unique<basic::SourceManager>(filename);
 
-                auto diagnostics = std::make_shared<diag::DiagnosticEngine>(std::move(manager));
-
-                parser::Parser juiceParser(diagnostics);
-
-                auto expression = juiceParser.parseProgram();
-
-                if (expression != nullptr) {
-                    createExpressionPrintingProgram(std::move(expression));
-                }
-
-                return diagnostics->hadError() ? 1 : 0;
-
-            } catch (basic::SourceException & e) {
+            auto manager = basic::SourceManager::mainFile(filename);
+            if (manager == nullptr) {
                 diag::DiagnosticEngine::diagnose(diag::DiagnosticID::file_not_found, filename);
                 return 1;
             }
+
+            auto diagnostics = std::make_shared<diag::DiagnosticEngine>(std::move(manager));
+
+            parser::Parser juiceParser(diagnostics);
+
+            auto expression = juiceParser.parseProgram();
+
+            if (expression != nullptr) {
+                createExpressionPrintingProgram(std::move(expression));
+            }
+
+            return diagnostics->hadError() ? 1 : 0;
         }
     }
 }

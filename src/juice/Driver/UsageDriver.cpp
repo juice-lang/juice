@@ -11,22 +11,21 @@
 
 #include "juice/Driver/UsageDriver.h"
 
-#include <iostream>
-
 #include "juice/Basic/StringHelpers.h"
+#include "llvm/Support/raw_ostream.h"
 
 namespace juice {
     namespace driver {
         int UsageDriver::execute() {
-            std::ostream & os = _error ? std::cerr : std::cout;
+            llvm::raw_ostream & os = _error ? llvm::errs() : llvm::outs();
 
-            os << "OVERVIEW: juice compiler" << std::endl << std::endl;
-            os << "USAGE: juice [options] <inputs>" << std::endl << std::endl;
-            os << "OPTIONS:" << std::endl;
+            os << "OVERVIEW: juice compiler\n\n";
+            os << "USAGE: juice [options] <inputs>\n\n";
+            os << "OPTIONS:\n";
             os << "  " << basic::resize("-h, --help", 20);
-            os << "Display this message" << std::endl;
+            os << "Display this message\n";
             os << "  " << basic::resize("-v, --version", 20);
-            os << "Print version info and exit" << std::endl;
+            os << "Print version info and exit\n";
 
             return _error ? 1 : 0;
         }

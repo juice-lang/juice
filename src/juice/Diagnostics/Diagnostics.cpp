@@ -11,13 +11,10 @@
 
 #include "juice/Diagnostics/Diagnostics.h"
 
-#include <ostream>
-#include <sstream>
 #include <string>
 #include <utility>
 
 #include "juice/Basic/StringHelpers.h"
-#include "termcolor/termcolor.hpp"
 
 namespace juice {
     namespace diag {
@@ -34,8 +31,8 @@ namespace juice {
         };
 
         static const constexpr bool diagnosticNewlines[] {
-        #define DIAG(KIND, ID, Text, Newline) Newline,
-        #include "juice/Diagnostics/Diagnostics.def"
+            #define DIAG(KIND, ID, Text, Newline) Newline,
+            #include "juice/Diagnostics/Diagnostics.def"
         };
 
         DiagnosticEngine::DiagnosticEngine(std::unique_ptr<basic::SourceManager> sourceManager):
@@ -47,32 +44,23 @@ namespace juice {
             llvm::StringRef text(diagnosticStringFor(id));
             bool newline = diagnosticNewlineFor(id);
 
-            std::ostringstream os;
+            std::string message;
 
-            os << termcolor::bold;
+            llvm::raw_string_ostream os(message);
 
-            switch (kind) {
-                case DiagnosticKind::error: {
-                    os << "juice: " << termcolor::red << "error" << ": " << termcolor::reset << termcolor::bold;
-                    break;
-                }
-                case DiagnosticKind::warning: {
-                    os << "juice: " << termcolor::magenta << "warning" << ": " << termcolor::reset << termcolor::bold;
-                    break;
-                }
-                case DiagnosticKind::output: break;
-            }
+            os << basic::Color::bold;
 
             formatDiagnosticTextInto(os, text, args, this);
 
-            os << termcolor::reset;
+            os << basic::Color::reset;
 
-            if (newline) os << std::endl;
+            if (newline) os << '\n';
 
-            if (kind == DiagnosticKind::output) std::cout << os.str();
+            os.flush();
+
+            if (kind == DiagnosticKind::output) llvm::outs() << message;
             else {
-                std::string s(os.str());
-                _sourceManager->printDiagnostic(s, kind, location);
+                _sourceManager->printDiagnostic(message, kind, location);
             }
         }
 
@@ -81,29 +69,36 @@ namespace juice {
             llvm::StringRef text(diagnosticStringFor(id));
             bool newline = diagnosticNewlineFor(id);
 
-            std::ostringstream os;
+            std::string message;
 
-            os << termcolor::bold;
+            llvm::raw_string_ostream os(message);
+
+            os << basic::Color::bold;
 
             switch (kind) {
                 case DiagnosticKind::error: {
-                    os << "juice: " << termcolor::red << "error" << ": " << termcolor::reset << termcolor::bold;
+                    os << basic::Color::yellow << "juice: " << basic::Color::red << "error: " << basic::Color::reset
+                       << basic::Color::bold;
                     break;
                 }
                 case DiagnosticKind::warning: {
-                    os << "juice: " << termcolor::magenta << "warning" << ": " << termcolor::reset << termcolor::bold;
+                    os << basic::Color::yellow << "juice: " << basic::Color::magenta << "error: " << basic::Color::reset
+                       << basic::Color::bold;
                     break;
                 }
-                case DiagnosticKind::output: break;
+                case DiagnosticKind::output:
+                    break;
             }
 
             formatDiagnosticTextInto(os, text, args, nullptr);
 
-            os << termcolor::reset;
+            os << basic::Color::reset;
 
-            if (newline) os << std::endl;
+            if (newline) os << '\n';
 
-            (kind == DiagnosticKind::error ? std::cerr : std::cout) << os.str();
+            os.flush();
+
+            (kind == DiagnosticKind::error ? llvm::errs() : llvm::outs()) << message;
         }
 
         llvm::StringRef
@@ -135,7 +130,7 @@ namespace juice {
             return result;
         }
 
-        void DiagnosticEngine::formatSelectionArgInto(std::ostream & out, llvm::StringRef modifierArguments,
+        void DiagnosticEngine::formatSelectionArgInto(llvm::raw_ostream & out, llvm::StringRef modifierArguments,
                                                       const std::vector<DiagnosticArg> & args, int selectedIndex) {
             bool foundPipe = false;
             do {
@@ -149,12 +144,12 @@ namespace juice {
             } while (true);
         }
 
-        void DiagnosticEngine::formatDiagnosticArgInto(std::ostream & out, llvm::StringRef modifier,
+        void DiagnosticEngine::formatDiagnosticArgInto(llvm::raw_ostream & out, llvm::StringRef modifier,
                                                        llvm::StringRef modifierArguments,
-                                                       const std::vector<DiagnosticArg> & args, int argIndex,
+                                                       const std::vector<DiagnosticArg> & args, unsigned argIndex,
                                                        DiagnosticEngine * diagnostics) {
             if (modifier == "reset") {
-                out << termcolor::reset << termcolor::bold;
+                out << basic::Color::reset << basic::Color::bold;
                 return;
             }
             DiagnosticArg arg = args[argIndex];
@@ -195,18 +190,19 @@ namespace juice {
                 }
                 case DiagnosticArg::Kind::lexerToken: {
                     assert(modifier.empty() && "Improper modifier for LexerToken argument");
-                    out << arg.getAsLexerToken() << (diagnostics != nullptr ? diagnostics->_sourceManager.get() : nullptr);
+                    out << arg.getAsLexerToken()
+                        << (diagnostics != nullptr ? diagnostics->_sourceManager.get() : nullptr);
                     break;
                 }
                 case DiagnosticArg::Kind::color: {
                     assert(modifier.empty() && "Improper modifier for Color argument");
-                    out << termcolor::bold << arg.getAsColor();
+                    out << basic::Color::bold << arg.getAsColor();
                     break;
                 }
             }
         }
 
-        void DiagnosticEngine::formatDiagnosticTextInto(std::ostream & out, llvm::StringRef text,
+        void DiagnosticEngine::formatDiagnosticTextInto(llvm::raw_ostream & out, llvm::StringRef text,
                                                         const std::vector<DiagnosticArg> & args,
                                                         DiagnosticEngine * diagnostics) {
             while (!text.empty()) {
@@ -244,7 +240,7 @@ namespace juice {
                     size_t length = text.find_if_not(basic::isDigit);
                     bool Result = text.substr(0, length).getAsInteger(10, argIndex);
                     assert(!Result && "Unparseable argument index value?");
-                    (void) Result;
+                    (void)Result;
                     assert(argIndex < args.size() && "Out-of-range argument index");
 
                     text = text.substr(length);
