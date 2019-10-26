@@ -14,31 +14,34 @@
 
 #include <cstdint>
 #include <memory>
-#include <ostream>
 #include <vector>
 
+#include "juice/Basic/RawStreamHelpers.h"
 #include "juice/Basic/SourceBuffer.h"
 #include "juice/Basic/SourceLocation.h"
-#include "juice/Basic/StringRef.h"
+#include "juice/Basic/SourceManager.h"
+#include "llvm/ADT/StringRef.h"
+#include "llvm/Support/raw_ostream.h"
+#include "llvm/Support/SourceMgr.h"
 
 namespace juice {
     namespace parser {
         struct LexerToken;
 
         class LexerTokenStream {
-            std::ostream & _os;
+            llvm::raw_ostream & _os;
             const LexerToken * _token;
 
         public:
-            LexerTokenStream(std::ostream & os, const LexerToken * token): _os(os), _token(token) {}
+            LexerTokenStream(llvm::raw_ostream & os, const LexerToken * token): _os(os), _token(token) {}
 
-            std::ostream & getOS() const { return _os; }
+            llvm::raw_ostream & getOS() const { return _os; }
             const LexerToken * getToken() const { return _token; }
         };
 
-        std::unique_ptr<LexerTokenStream> operator<<(std::ostream & os, const LexerToken * token);
-        std::ostream & operator<<(std::unique_ptr<LexerTokenStream> tokenStream,
-                                  const std::shared_ptr<basic::SourceBuffer> & sourceBuffer);
+        std::unique_ptr<LexerTokenStream> operator<<(llvm::raw_ostream & os, const LexerToken * token);
+        llvm::raw_ostream & operator<<(std::unique_ptr<LexerTokenStream> tokenStream,
+                                  const basic::SourceManager * sourceManager);
     }
 
     namespace diag {
@@ -47,13 +50,36 @@ namespace juice {
             #include "Diagnostics.def"
         };
 
-        enum class DiagnosticKind {
-            error,
-            warning,
-            output
-        };
+        class DiagnosticKind {
+        public:
+            enum Kind : uint8_t {
+                error,
+                warning,
+                output
+            };
 
-        typedef std::ostream & (*Color)(std::ostream &);
+            DiagnosticKind() = default;
+            /* implicit */ constexpr DiagnosticKind(Kind kind) : _kind(kind) {}
+
+            /* implicit */ constexpr operator Kind() const { return _kind; }
+
+            explicit operator bool() = delete;
+            constexpr bool operator==(DiagnosticKind other) const { return _kind == other._kind; }
+            constexpr bool operator==(Kind other) const { return _kind == other; }
+            constexpr bool operator!=(DiagnosticKind other) const { return _kind != other._kind; }
+            constexpr bool operator!=(Kind other) const { return _kind != other; }
+
+            llvm::SourceMgr::DiagKind llvm() const {
+                switch (_kind) {
+                    case error:   return llvm::SourceMgr::DK_Error;
+                    case warning: return llvm::SourceMgr::DK_Warning;
+                    case output:  return llvm::SourceMgr::DK_Error;
+                }
+            }
+
+        private:
+            Kind _kind;
+        };
 
         class DiagnosticArg {
         public:
@@ -72,29 +98,31 @@ namespace juice {
                 int _integer = 0;
                 double _double;
                 bool _boolean;
-                basic::StringRef _string;
+                llvm::StringRef _string;
                 const parser::LexerToken * _lexerToken;
-                const Color _color;
+                const basic::Color _color;
             };
 
         public:
-            DiagnosticArg(int integer): _kind(Kind::integer), _integer(integer) {}
-            DiagnosticArg(double doubleValue): _kind(Kind::doubleValue), _double(doubleValue) {}
-            DiagnosticArg(bool boolean): _kind(Kind::boolean), _boolean(boolean) {}
-            DiagnosticArg(basic::StringRef string): _kind(Kind::string), _string(string) {}
-            DiagnosticArg(const parser::LexerToken * lexerToken): _kind(Kind::lexerToken), _lexerToken(lexerToken) {}
-            DiagnosticArg(const Color color): _kind(Kind::color), _color(color) {}
+            DiagnosticArg() = delete;
+
+            explicit DiagnosticArg(int integer): _kind(Kind::integer), _integer(integer) {}
+            explicit DiagnosticArg(double doubleValue): _kind(Kind::doubleValue), _double(doubleValue) {}
+            explicit DiagnosticArg(bool boolean): _kind(Kind::boolean), _boolean(boolean) {}
+            explicit DiagnosticArg(llvm::StringRef string): _kind(Kind::string), _string(string) {}
+            explicit DiagnosticArg(const parser::LexerToken * lexerToken): _kind(Kind::lexerToken), _lexerToken(lexerToken) {}
+            explicit DiagnosticArg(const basic::Color color): _kind(Kind::color), _color(color) {}
 
             static void getAllInto(std::vector<DiagnosticArg> & vector) {}
 
             template<typename T>
             static void getAllInto(std::vector<DiagnosticArg> & vector, T first) {
-                vector.push_back(first);
+                vector.push_back(DiagnosticArg(first));
             }
 
             template<typename T, typename... Args>
             static void getAllInto(std::vector<DiagnosticArg> & vector, T first, Args... args) {
-                vector.push_back(first);
+                vector.push_back(DiagnosticArg(first));
                 getAllInto(vector, args...);
             }
 
@@ -103,27 +131,21 @@ namespace juice {
             int getAsInteger() const { return _integer; }
             double getAsDouble() const { return _double; }
             bool getAsBoolean() const { return _boolean; }
-            basic::StringRef getAsString() const { return _string; }
+            llvm::StringRef getAsString() const { return _string; }
             const parser::LexerToken * getAsLexerToken() const { return _lexerToken; }
-            const Color getAsColor() const { return _color; }
+            basic::Color getAsColor() const { return _color; }
         };
 
         class DiagnosticEngine {
-            std::shared_ptr<basic::SourceBuffer> _sourceBuffer;
-
-            std::ostream & _output;
-            std::ostream & _errorOutput;
+            std::unique_ptr<basic::SourceManager> _sourceManager;
 
             bool _hadError = false;
 
         public:
-            explicit DiagnosticEngine(std::shared_ptr<basic::SourceBuffer> sourceBuffer);
-
-            DiagnosticEngine(std::shared_ptr<basic::SourceBuffer> sourceBuffer, std::ostream & output,
-                             std::ostream & errorOutput);
+            explicit DiagnosticEngine(std::unique_ptr<basic::SourceManager> sourceManager);
 
             bool hadError() const { return _hadError; }
-            std::shared_ptr<basic::SourceBuffer> getBuffer() const { return _sourceBuffer; }
+            std::shared_ptr<basic::SourceBuffer> getBuffer() const { return _sourceManager->getMainBuffer(); }
 
             template<typename... Args>
             void diagnose(basic::SourceLocation location, DiagnosticID id, Args... args) {
@@ -146,19 +168,19 @@ namespace juice {
             static void diagnose(DiagnosticID id, const std::vector<DiagnosticArg> & args);
 
         private:
-            static basic::StringRef
-            skipToDelimiter(basic::StringRef & text, char delimiter, bool * foundDelimiter = nullptr);
+            static llvm::StringRef
+            skipToDelimiter(llvm::StringRef & text, char delimiter, bool * foundDelimiter = nullptr);
 
-            static void formatSelectionArgInto(std::ostream & out, basic::StringRef modifierArguments,
+            static void formatSelectionArgInto(llvm::raw_ostream & out, llvm::StringRef modifierArguments,
                                                const std::vector<DiagnosticArg> & args, int selectedIndex);
 
             static void
-            formatDiagnosticArgInto(std::ostream & out, basic::StringRef modifier, basic::StringRef modifierArguments,
-                                    const std::vector<DiagnosticArg> & args, int argIndex,
+            formatDiagnosticArgInto(llvm::raw_ostream & out, llvm::StringRef modifier, llvm::StringRef modifierArguments,
+                                    const std::vector<DiagnosticArg> & args, unsigned argIndex,
                                     DiagnosticEngine * diagnostics = nullptr);
 
             static void
-            formatDiagnosticTextInto(std::ostream & out, basic::StringRef text, const std::vector<DiagnosticArg> & args,
+            formatDiagnosticTextInto(llvm::raw_ostream & out, llvm::StringRef text, const std::vector<DiagnosticArg> & args,
                                      DiagnosticEngine * diagnostics = nullptr);
 
         public:

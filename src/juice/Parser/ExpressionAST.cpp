@@ -14,21 +14,21 @@
 #include <string>
 #include <utility>
 
+#include "juice/Basic/RawStreamHelpers.h"
 #include "juice/Basic/SourceLocation.h"
-#include "juice/Basic/StringRef.h"
 #include "llvm/ADT/APFloat.h"
+#include "llvm/ADT/StringRef.h"
 #include "llvm/IR/Constants.h"
-#include "termcolor/termcolor.hpp"
 
 namespace juice {
     namespace parser {
-        static const diag::Color colors[] {
-            termcolor::cyan,
-            termcolor::blue,
-            termcolor::magenta,
-            termcolor::red,
-            termcolor::yellow,
-            termcolor::green
+        static const basic::Color colors[] {
+            basic::Color::cyan,
+            basic::Color::blue,
+            basic::Color::magenta,
+            basic::Color::red,
+            basic::Color::yellow,
+            basic::Color::green
         };
 
         ExpressionAST::ExpressionAST(std::unique_ptr<juice::parser::LexerToken> token): _token(std::move(token)) {}
@@ -44,7 +44,7 @@ namespace juice {
             for (unsigned i = 0; i < level; ++i) {
                 indentation += "    ";
             }
-            basic::StringRef indentationRef(indentation);
+            llvm::StringRef indentationRef(indentation);
             diagnostics.diagnose(location, diag::DiagnosticID::binary_operator_expression_ast_0, colors[level % 6],
                                  indentationRef, _token.get());
             _left->diagnoseInto(diagnostics, level + 1);
@@ -80,7 +80,7 @@ namespace juice {
             for (unsigned i = 0; i < level; ++i) {
                 indentation += "    ";
             }
-            basic::StringRef indentationRef(indentation);
+            llvm::StringRef indentationRef(indentation);
             diagnostics.diagnose(location, diag::DiagnosticID::number_expression_ast, colors[level % 6], indentationRef,
                                  _token.get(), _value);
         }

@@ -11,12 +11,12 @@
 
 #include "juice/Driver/REPLDriver.h"
 
-#include <iostream>
+#include "llvm/Support/raw_ostream.h"
 
 namespace juice {
     namespace driver {
         int REPLDriver::execute() {
-            std::cout << "REPL" << std::endl; // TODO
+            llvm::outs() << "REPL\n"; // TODO
             return 0;
         }
     }

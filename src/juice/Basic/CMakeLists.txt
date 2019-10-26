@@ -10,9 +10,10 @@
 
 
 add_library(juiceBasic STATIC
+        RawStreamHelpers.cpp
         SourceBuffer.cpp
+        SourceManager.cpp
         StringHelpers.cpp
-        StringRef.cpp
         Version.cpp)
 
 string(REGEX REPLACE "([0-9]+)\\.[0-9]+(\\.[0-9]+)?" "\\1" JUICE_VERSION_MAJOR ${JUICE_VERSION})

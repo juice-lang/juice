@@ -25,7 +25,14 @@ project(juice DESCRIPTION "The juicy programming language" LANGUAGES CXX)
 set(JUICE_VERSION "1.0")
 
 set(LLVM_INSTALL_DIR ${PROJECT_SOURCE_DIR}/../juice-llvm/build/install)
-set(LLVM_LIB_DIR ${LLVM_INSTALL_DIR}/lib)
+
+set(LLVM_CONFIG_CMD "${LLVM_INSTALL_DIR}/bin/llvm-config")
+execute_process(COMMAND ${LLVM_CONFIG_CMD} --libfiles
+        OUTPUT_VARIABLE LLVM_LIBS
+        OUTPUT_STRIP_TRAILING_WHITESPACE)
+separate_arguments(LLVM_LIBS)
+
+add_definitions("-fvisibility=hidden")
 
 include_directories(${PROJECT_SOURCE_DIR}/include)
 include_directories(${LLVM_INSTALL_DIR}/include)

@@ -14,7 +14,7 @@
 
 #include <cstdint>
 
-#include "juice/Basic/StringRef.h"
+#include "llvm/ADT/StringRef.h"
 #include "juice/Diagnostics/Diagnostics.h"
 
 namespace juice {
@@ -129,9 +129,9 @@ namespace juice {
             };
 
             Type type;
-            basic::StringRef string;
+            llvm::StringRef string;
 
-            LexerToken(Type type, basic::StringRef string): type(type), string(string) {}
+            LexerToken(Type type, llvm::StringRef string): type(type), string(string) {}
 
             virtual void diagnoseInto(diag::DiagnosticEngine & diagnostics);
         };
@@ -140,7 +140,7 @@ namespace juice {
             diag::DiagnosticID id;
             const char * errorPosition;
 
-            ErrorToken(basic::StringRef string, diag::DiagnosticID id, const char * errorPosition):
+            ErrorToken(llvm::StringRef string, diag::DiagnosticID id, const char * errorPosition):
                     LexerToken(Type::error, string), id(id), errorPosition(errorPosition) {}
 
             void diagnoseInto(diag::DiagnosticEngine & diagnostics) override;

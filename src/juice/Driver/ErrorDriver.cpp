@@ -11,13 +11,13 @@
 
 #include "juice/Driver/ErrorDriver.h"
 
-#include "juice/Basic/StringRef.h"
 #include "juice/Diagnostics/Diagnostics.h"
+#include "llvm/ADT/StringRef.h"
 
 namespace juice {
     namespace driver {
         int ErrorDriver::execute() {
-            basic::StringRef string(_message);
+            llvm::StringRef string(_message);
             diag::DiagnosticEngine::diagnose(diag::DiagnosticID::error_parsing_args, string);
             return 1;
         }

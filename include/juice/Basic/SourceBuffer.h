@@ -16,41 +16,35 @@
 #include <string>
 #include <utility>
 
+#include "llvm/ADT/StringRef.h"
+#include "llvm/Support/MemoryBuffer.h"
 #include "SourceLocation.h"
-#include "StringRef.h"
 
 namespace juice {
     namespace basic {
         class SourceBuffer {
-            const char * _start;
-            const char * _end;
-            bool _deletePointer;
-            std::vector<unsigned> _offsets;
+            const char * _start, * _end;
+            llvm::StringRef _filename;
+            bool _deleteBuffer;
 
         public:
+            SourceBuffer() = delete;
             SourceBuffer(const SourceBuffer &) = delete;
 
             SourceBuffer & operator=(const SourceBuffer &) = delete;
 
-            SourceBuffer(const char * start, const char * end, bool deletePointer);
+            SourceBuffer(const char * start, const char * end, llvm::StringRef filename, bool deleteBuffer):
+                    _start(start), _end(end), _filename(filename), _deleteBuffer(deleteBuffer) {}
 
             ~SourceBuffer();
 
-            static std::shared_ptr<SourceBuffer> getFile(StringRef filename);
-
             const char * getStart() const { return _start; }
-
             const char * getEnd() const { return _end; }
+            size_t getSize() const { return getEnd() - getStart(); }
 
-            size_t getSize() const { return _end - _start; }
+            llvm::StringRef getString() const { return {getStart(), getSize()}; }
 
-            std::pair<unsigned, unsigned> getLineAndColumn(SourceLocation location) const;
-
-            unsigned getLine(SourceLocation location) const {
-                return getLineAndColumn(location).first;
-            }
-
-            StringRef getLineString(SourceLocation location) const;
+            llvm::StringRef getFilename() const { return _filename; }
         };
     }
 }

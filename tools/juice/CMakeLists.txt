@@ -11,6 +11,6 @@
 
 add_executable(juice juice.cpp)
 target_link_libraries(juice ncurses)
-target_link_libraries(juice juiceBasic juiceDiagnostics juiceDriver juiceParser ${LLVM_LIB_DIR}/libLLVMBinaryFormat.a ${LLVM_LIB_DIR}/libLLVMCore.a ${LLVM_LIB_DIR}/libLLVMDemangle.a ${LLVM_LIB_DIR}/libLLVMSupport.a)
+target_link_libraries(juice juiceBasic juiceDiagnostics juiceDriver juiceParser ${LLVM_LIBS})
 
 install(TARGETS juice DESTINATION bin)
