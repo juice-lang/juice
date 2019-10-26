@@ -19,7 +19,8 @@
 #include <vector>
 
 #include "juice/Basic/SourceBuffer.h"
-#include "juice/Basic/StringRef.h"
+#include "llvm/ADT/StringRef.h"
+#include "llvm/ADT/Twine.h"
 #include "llvm/Support/SourceMgr.h"
 
 namespace juice {
@@ -47,7 +48,7 @@ namespace juice {
             SourceManager(const SourceManager &) = delete;
             SourceManager & operator=(const SourceManager &) = delete;
 
-            explicit SourceManager(StringRef filename);
+            explicit SourceManager(llvm::StringRef filename);
 
             llvm::SourceMgr & getLLVMSourceMgr() {
                 return _sourceMgr;
@@ -69,7 +70,7 @@ namespace juice {
                 return _sourceMgr.getLineAndColumn(location.llvm());
             }
 
-            void printDiagnostic(StringRef text, diag::DiagnosticKind kind, SourceLocation location);
+            void printDiagnostic(llvm::Twine message, diag::DiagnosticKind kind, SourceLocation location);
         };
     }
 }

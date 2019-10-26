@@ -44,7 +44,7 @@ namespace juice {
         void DiagnosticEngine::diagnose(basic::SourceLocation location, DiagnosticID id,
                                         const std::vector<DiagnosticArg> & args) {
             DiagnosticKind kind = diagnosticKindFor(id);
-            basic::StringRef text(diagnosticStringFor(id));
+            llvm::StringRef text(diagnosticStringFor(id));
             bool newline = diagnosticNewlineFor(id);
 
             std::ostringstream os;
@@ -78,7 +78,7 @@ namespace juice {
 
         void DiagnosticEngine::diagnose(DiagnosticID id, const std::vector<DiagnosticArg> & args) {
             DiagnosticKind kind = diagnosticKindFor(id);
-            basic::StringRef text(diagnosticStringFor(id));
+            llvm::StringRef text(diagnosticStringFor(id));
             bool newline = diagnosticNewlineFor(id);
 
             std::ostringstream os;
@@ -106,8 +106,8 @@ namespace juice {
             (kind == DiagnosticKind::error ? std::cerr : std::cout) << os.str();
         }
 
-        basic::StringRef
-        DiagnosticEngine::skipToDelimiter(basic::StringRef & text, char delimiter, bool * foundDelimiter) {
+        llvm::StringRef
+        DiagnosticEngine::skipToDelimiter(llvm::StringRef & text, char delimiter, bool * foundDelimiter) {
             unsigned depth = 0;
             if (foundDelimiter) *foundDelimiter = false;
 
@@ -130,17 +130,17 @@ namespace juice {
             }
 
             assert(depth == 0 && "Unbalanced {} set in diagnostic text");
-            basic::StringRef result = text.substr(0, i);
+            llvm::StringRef result = text.substr(0, i);
             text = text.substr(i + 1);
             return result;
         }
 
-        void DiagnosticEngine::formatSelectionArgInto(std::ostream & out, basic::StringRef modifierArguments,
+        void DiagnosticEngine::formatSelectionArgInto(std::ostream & out, llvm::StringRef modifierArguments,
                                                       const std::vector<DiagnosticArg> & args, int selectedIndex) {
             bool foundPipe = false;
             do {
-                assert((modifierArguments.isNotEmpty() || foundPipe) && "Index beyond bounds in %select modifier");
-                basic::StringRef text = skipToDelimiter(modifierArguments, '|', &foundPipe);
+                assert((!modifierArguments.empty() || foundPipe) && "Index beyond bounds in %select modifier");
+                llvm::StringRef text = skipToDelimiter(modifierArguments, '|', &foundPipe);
                 if (selectedIndex == 0) {
                     formatDiagnosticTextInto(out, text, args, nullptr);
                     break;
@@ -149,8 +149,8 @@ namespace juice {
             } while (true);
         }
 
-        void DiagnosticEngine::formatDiagnosticArgInto(std::ostream & out, basic::StringRef modifier,
-                                                       basic::StringRef modifierArguments,
+        void DiagnosticEngine::formatDiagnosticArgInto(std::ostream & out, llvm::StringRef modifier,
+                                                       llvm::StringRef modifierArguments,
                                                        const std::vector<DiagnosticArg> & args, int argIndex,
                                                        DiagnosticEngine * diagnostics) {
             if (modifier == "reset") {
@@ -167,13 +167,13 @@ namespace juice {
                         if (arg.getAsInteger() != 1)
                             out << 's';
                     } else {
-                        assert(modifier.isEmpty() && "Improper modifier for integer argument");
+                        assert(modifier.empty() && "Improper modifier for integer argument");
                         out << arg.getAsInteger();
                     }
                     break;
                 }
                 case DiagnosticArg::Kind::doubleValue: {
-                    assert(modifier.isEmpty() && "Improper modifier for double argument");
+                    assert(modifier.empty() && "Improper modifier for double argument");
                     out << arg.getAsDouble();
                     break;
                 }
@@ -183,68 +183,68 @@ namespace juice {
                             formatDiagnosticTextInto(out, modifierArguments, args, diagnostics);
                         }
                     } else {
-                        assert(modifier.isEmpty() && "Improper modifier for boolean argument");
+                        assert(modifier.empty() && "Improper modifier for boolean argument");
                         out << (arg.getAsBoolean() ? "true" : "false");
                     }
                     break;
                 }
                 case DiagnosticArg::Kind::string: {
-                    assert(modifier.isEmpty() && "Improper modifier for string argument");
+                    assert(modifier.empty() && "Improper modifier for string argument");
                     out << arg.getAsString();
                     break;
                 }
                 case DiagnosticArg::Kind::lexerToken: {
-                    assert(modifier.isEmpty() && "Improper modifier for LexerToken argument");
+                    assert(modifier.empty() && "Improper modifier for LexerToken argument");
                     out << arg.getAsLexerToken() << (diagnostics != nullptr ? diagnostics->_sourceManager.get() : nullptr);
                     break;
                 }
                 case DiagnosticArg::Kind::color: {
-                    assert(modifier.isEmpty() && "Improper modifier for Color argument");
+                    assert(modifier.empty() && "Improper modifier for Color argument");
                     out << termcolor::bold << arg.getAsColor();
                     break;
                 }
             }
         }
 
-        void DiagnosticEngine::formatDiagnosticTextInto(std::ostream & out, basic::StringRef text,
+        void DiagnosticEngine::formatDiagnosticTextInto(std::ostream & out, llvm::StringRef text,
                                                         const std::vector<DiagnosticArg> & args,
                                                         DiagnosticEngine * diagnostics) {
-            while (text.isNotEmpty()) {
-                size_t percent = text.indexOf('%');
-                if (percent == basic::StringRef::npos) {
+            while (!text.empty()) {
+                size_t percent = text.find('%');
+                if (percent == llvm::StringRef::npos) {
                     out << text;
                     break;
                 }
 
-                out << text.prefix(percent);
+                out << text.take_front(percent);
                 text = text.substr(percent + 1);
 
                 if (text[0] == '%') {
                     out << '%';
-                    text = text.dropFirst();
+                    text = text.drop_front();
                     continue;
                 }
 
-                basic::StringRef modifier;
+                llvm::StringRef modifier;
                 {
-                    size_t length = text.indexWhereNot(basic::isAlpha);
+                    size_t length = text.find_if_not(basic::isAlpha);
                     modifier = text.substr(0, length);
                     text = text.substr(length);
                 }
 
-                basic::StringRef modifierArguments;
+                llvm::StringRef modifierArguments;
                 if (text[0] == '{') {
                     text = text.substr(1);
                     modifierArguments = skipToDelimiter(text, '}');
                 }
 
-                int argIndex;
+                unsigned argIndex;
 
                 if (modifier != "reset") {
-                    size_t length = text.indexWhereNot(basic::isDigit);
-                    assert(length > 0 && "Unparseable argument index value");
-
-                    argIndex = std::stoi(text.prefix(length).str());
+                    size_t length = text.find_if_not(basic::isDigit);
+                    bool Result = text.substr(0, length).getAsInteger(10, argIndex);
+                    assert(!Result && "Unparseable argument index value?");
+                    (void) Result;
                     assert(argIndex < args.size() && "Out-of-range argument index");
 
                     text = text.substr(length);

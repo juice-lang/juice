@@ -14,8 +14,8 @@
 #include <utility>
 
 #include "juice/Basic/StringHelpers.h"
-#include "juice/Basic/StringRef.h"
 #include "juice/Parser/FSM.h"
+#include "llvm/ADT/StringRef.h"
 
 namespace juice {
     namespace parser {
@@ -51,17 +51,17 @@ namespace juice {
         }
 
         std::unique_ptr<LexerToken> Lexer::makeToken(LexerToken::Type type) {
-            basic::StringRef string(_start, _current - _start);
+            llvm::StringRef string(_start, _current - _start);
             return std::make_unique<LexerToken>(type, string);
         }
 
         std::unique_ptr<LexerToken> Lexer::errorToken(diag::DiagnosticID id, bool atEnd) {
-            basic::StringRef string(_start, _current - _start);
+            llvm::StringRef string(_start, _current - _start);
             return std::make_unique<ErrorToken>(string, id, atEnd ? _current : _start);
         }
 
         std::unique_ptr<LexerToken> Lexer::errorToken(diag::DiagnosticID id, const char * position) {
-            basic::StringRef string(_start, _current - _start);
+            llvm::StringRef string(_start, _current - _start);
             return std::make_unique<ErrorToken>(string, id, position);
         }
 

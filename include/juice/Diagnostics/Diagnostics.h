@@ -19,7 +19,7 @@
 #include "juice/Basic/SourceBuffer.h"
 #include "juice/Basic/SourceLocation.h"
 #include "juice/Basic/SourceManager.h"
-#include "juice/Basic/StringRef.h"
+#include "llvm/ADT/StringRef.h"
 #include "llvm/Support/SourceMgr.h"
 
 namespace juice {
@@ -98,7 +98,7 @@ namespace juice {
                 int _integer = 0;
                 double _double;
                 bool _boolean;
-                basic::StringRef _string;
+                llvm::StringRef _string;
                 const parser::LexerToken * _lexerToken;
                 const Color _color;
             };
@@ -109,7 +109,7 @@ namespace juice {
             explicit DiagnosticArg(int integer): _kind(Kind::integer), _integer(integer) {}
             explicit DiagnosticArg(double doubleValue): _kind(Kind::doubleValue), _double(doubleValue) {}
             explicit DiagnosticArg(bool boolean): _kind(Kind::boolean), _boolean(boolean) {}
-            explicit DiagnosticArg(basic::StringRef string): _kind(Kind::string), _string(string) {}
+            explicit DiagnosticArg(llvm::StringRef string): _kind(Kind::string), _string(string) {}
             explicit DiagnosticArg(const parser::LexerToken * lexerToken): _kind(Kind::lexerToken), _lexerToken(lexerToken) {}
             explicit DiagnosticArg(const Color color): _kind(Kind::color), _color(color) {}
 
@@ -131,7 +131,7 @@ namespace juice {
             int getAsInteger() const { return _integer; }
             double getAsDouble() const { return _double; }
             bool getAsBoolean() const { return _boolean; }
-            basic::StringRef getAsString() const { return _string; }
+            llvm::StringRef getAsString() const { return _string; }
             const parser::LexerToken * getAsLexerToken() const { return _lexerToken; }
             Color getAsColor() const { return _color; }
         };
@@ -168,19 +168,19 @@ namespace juice {
             static void diagnose(DiagnosticID id, const std::vector<DiagnosticArg> & args);
 
         private:
-            static basic::StringRef
-            skipToDelimiter(basic::StringRef & text, char delimiter, bool * foundDelimiter = nullptr);
+            static llvm::StringRef
+            skipToDelimiter(llvm::StringRef & text, char delimiter, bool * foundDelimiter = nullptr);
 
-            static void formatSelectionArgInto(std::ostream & out, basic::StringRef modifierArguments,
+            static void formatSelectionArgInto(std::ostream & out, llvm::StringRef modifierArguments,
                                                const std::vector<DiagnosticArg> & args, int selectedIndex);
 
             static void
-            formatDiagnosticArgInto(std::ostream & out, basic::StringRef modifier, basic::StringRef modifierArguments,
-                                    const std::vector<DiagnosticArg> & args, int argIndex,
+            formatDiagnosticArgInto(std::ostream & out, llvm::StringRef modifier, llvm::StringRef modifierArguments,
+                                    const std::vector<DiagnosticArg> & args, unsigned argIndex,
                                     DiagnosticEngine * diagnostics = nullptr);
 
             static void
-            formatDiagnosticTextInto(std::ostream & out, basic::StringRef text, const std::vector<DiagnosticArg> & args,
+            formatDiagnosticTextInto(std::ostream & out, llvm::StringRef text, const std::vector<DiagnosticArg> & args,
                                      DiagnosticEngine * diagnostics = nullptr);
 
         public:

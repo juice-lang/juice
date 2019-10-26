@@ -17,9 +17,9 @@
 
 #include "juice/Basic/SourceBuffer.h"
 #include "juice/Basic/SourceManager.h"
-#include "juice/Basic/StringRef.h"
 #include "juice/Diagnostics/Diagnostics.h"
 #include "juice/Parser/Parser.h"
+#include "llvm/ADT/StringRef.h"
 #include "llvm/IR/BasicBlock.h"
 #include "llvm/IR/Function.h"
 #include "llvm/IR/IRBuilder.h"
@@ -79,7 +79,7 @@ namespace juice {
         }
         
         int CompilerDriver::execute() {
-            basic::StringRef filename(_filename);
+            llvm::StringRef filename(_filename);
             try {
                 auto manager = std::make_unique<basic::SourceManager>(filename);
 

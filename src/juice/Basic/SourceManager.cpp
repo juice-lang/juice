@@ -19,16 +19,16 @@
 
 namespace juice {
     namespace basic {
-        SourceManager::SourceManager(StringRef filename) {
-            auto buffer = llvm::MemoryBuffer::getFile(filename.twine());
+        SourceManager::SourceManager(llvm::StringRef filename) {
+            auto buffer = llvm::MemoryBuffer::getFile(filename);
             if (auto error = buffer.getError()) throw SourceException(error);
             unsigned id = _sourceMgr.AddNewSourceBuffer(std::move(buffer.get()), llvm::SMLoc());
 
             _buffers.push_back(std::make_shared<SourceBuffer>(_sourceMgr.getMemoryBuffer(id)));
         }
 
-        void SourceManager::printDiagnostic(StringRef text, diag::DiagnosticKind kind, SourceLocation location) {
-            llvm::SMDiagnostic diagnostic = _sourceMgr.GetMessage(location.llvm(), kind.llvm(), text.twine());
+        void SourceManager::printDiagnostic(llvm::Twine message, diag::DiagnosticKind kind, SourceLocation location) {
+            llvm::SMDiagnostic diagnostic = _sourceMgr.GetMessage(location.llvm(), kind.llvm(), message);
             _sourceMgr.PrintMessage(kind == diag::DiagnosticKind::error ? llvm::errs() : llvm::outs(), diagnostic);
         }
     }

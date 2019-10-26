@@ -11,12 +11,7 @@
 
 #include "juice/Basic/SourceBuffer.h"
 
-#include <algorithm>
-#include <fstream>
 #include <memory>
-#include <vector>
-
-#include "juice/Basic/StringRef.h"
 
 namespace juice {
     namespace basic {

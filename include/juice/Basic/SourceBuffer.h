@@ -16,15 +16,15 @@
 #include <string>
 #include <utility>
 
+#include "llvm/ADT/StringRef.h"
 #include "llvm/Support/MemoryBuffer.h"
 #include "SourceLocation.h"
-#include "StringRef.h"
 
 namespace juice {
     namespace basic {
         class SourceBuffer {
             const char * _start, * _end;
-            StringRef _filename;
+            llvm::StringRef _filename;
             bool _deletePointer;
 
         public:
@@ -32,7 +32,7 @@ namespace juice {
 
             SourceBuffer & operator=(const SourceBuffer &) = delete;
 
-            SourceBuffer(const char * start, const char * end, StringRef filename, bool deletePointer):
+            SourceBuffer(const char * start, const char * end, llvm::StringRef filename, bool deletePointer):
                     _start(start), _end(end), _filename(filename), _deletePointer(deletePointer) {}
 
             explicit SourceBuffer(const llvm::MemoryBuffer * buffer);
@@ -43,9 +43,9 @@ namespace juice {
             const char * getEnd() const { return _end; }
             size_t getSize() const { return getEnd() - getStart(); }
 
-            StringRef getString() const { return {getStart(), getSize()}; }
+            llvm::StringRef getString() const { return {getStart(), getSize()}; }
 
-            StringRef getFilename() const { return _filename; }
+            llvm::StringRef getFilename() const { return _filename; }
         };
     }
 }
