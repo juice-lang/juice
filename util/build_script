@@ -15,6 +15,25 @@ portable_nproc() {
     echo "$NPROCS"
 }
 
+git_needs_pull() {
+    git remote update
+
+    UPSTREAM="@{u}"
+    LOCAL=$(git rev-parse @)
+    REMOTE=$(git rev-parse "$UPSTREAM")
+    BASE=$(git merge-base @ "$UPSTREAM")
+
+    if [ "$LOCAL" = "$REMOTE" ]; then
+        return 0
+    elif [ "$LOCAL" = "$BASE" ]; then
+        return 1
+    elif [ "$REMOTE" = "$BASE" ]; then
+        return 2
+    else
+        return 2
+    fi
+}
+
 while getopts ":dr" OPTION; do
     case $OPTION in
         d) MODE="Debug" ;;
@@ -35,26 +54,40 @@ JUICE_LLVM_REPO_DIR="${JUICE_ROOT_DIR}/juice-llvm"
 JUICE_LLVM_BUILD_DIR="${JUICE_LLVM_REPO_DIR}/build"
 JUICE_LLVM_INSTALL_DIR="${JUICE_LLVM_BUILD_DIR}/install"
 
+SHOULD_BUILD_LLVM=1
 
 if [ -e "${JUICE_LLVM_REPO_DIR}" ]; then
-    echo -n "File \"juice-llvm\" does already exist at the juice root! Do you want to update automatically (y/n)? "
 
-    old_stty_cfg=$(stty -g)
-    stty raw -echo
-    answer=$(while ! head -c 1 | grep -i '[ny]'; do true; done)
-    stty "$old_stty_cfg"
+    cd "${JUICE_LLVM_REPO_DIR}" || exit
 
-    if echo "$answer" | grep -iq "^y"; then
+    git_needs_pull
+    SHOULD_PULL=$?
+
+    echo -n "Directory \"juice-llvm\" does already exist at the juice root, "
+
+    if [ "$SHOULD_PULL" == 0 ]; then
+        SHOULD_BUILD_LLVM=0
+        echo "and is up-to-date with the upstream!"
+    elif [ "$SHOULD_PULL" == 1 ]; then
+        echo -n "but there are changes at the upstream! Do you want to update automatically (y/n)? "
+
+        OLD_STTY_CFG=$(stty -g)
+        stty raw -echo
+        ANSWER=$(while ! head -c 1 | grep -i '[ny]'; do true; done)
+        stty "$OLD_STTY_CFG"
+
         echo ""
-        echo "Pulling git updates..."
 
-        cd "${JUICE_LLVM_REPO_DIR}" || exit
+        if echo "$ANSWER" | grep -iq "^y"; then
+            echo "Pulling git updates..."
 
-        git pull
+            git pull
+        fi
+    else
+        echo "and has unpushed changes!"
     fi
-
 else
-    echo "File \"juice-llvm\" wasn't found at the juice root! Cloning from git..."
+    echo "Directory \"juice-llvm\" wasn't found at the juice root! Cloning from git..."
 
     git clone https://github.com/juice-lang/juice-llvm.git "${JUICE_LLVM_REPO_DIR}"
 
@@ -62,12 +95,14 @@ else
     mkdir "${JUICE_LLVM_INSTALL_DIR}"
 fi
 
-cd "${JUICE_LLVM_BUILD_DIR}" || exit
+if [ "$SHOULD_BUILD_LLVM" == 1 ]; then
+    cd "${JUICE_LLVM_BUILD_DIR}" || exit
 
-cmake "${JUICE_LLVM_REPO_DIR}" -G "Unix Makefiles" \
-    -DCMAKE_INSTALL_PREFIX="${JUICE_LLVM_INSTALL_DIR}" -DCMAKE_BUILD_TYPE=${MODE}
+    cmake "${JUICE_LLVM_REPO_DIR}" -G "Unix Makefiles" \
+        -DCMAKE_INSTALL_PREFIX="${JUICE_LLVM_INSTALL_DIR}" -DCMAKE_BUILD_TYPE=${MODE}
 
-make -j"$(portable_nproc)" && make install
+    make -j"$(portable_nproc)" && make install
+fi
 
 rm -rf "${JUICE_BUILD_DIR}" || true
 mkdir "${JUICE_BUILD_DIR}"
