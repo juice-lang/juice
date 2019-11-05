@@ -14,20 +14,20 @@
 
 #include <memory>
 
-#include "LexerToken.h"
+#include "juice/Parser/LexerToken.h"
 #include "juice/Diagnostics/Diagnostics.h"
 #include "llvm/IR/IRBuilder.h"
 #include "llvm/IR/LLVMContext.h"
 #include "llvm/IR/Value.h"
 
 namespace juice {
-    namespace parser {
+    namespace ast {
         class ExpressionAST {
         protected:
-            std::unique_ptr<LexerToken> _token;
+            std::unique_ptr<parser::LexerToken> _token;
 
         public:
-            explicit ExpressionAST(std::unique_ptr<LexerToken> token);
+            explicit ExpressionAST(std::unique_ptr<parser::LexerToken> token);
 
             virtual ~ExpressionAST() = default;
             virtual void diagnoseInto(diag::DiagnosticEngine & diagnostics, unsigned level = 0) = 0;
@@ -38,7 +38,7 @@ namespace juice {
             std::unique_ptr<ExpressionAST> _left, _right;
 
         public:
-            BinaryOperatorExpressionAST(std::unique_ptr<LexerToken> token, std::unique_ptr<ExpressionAST> left,
+            BinaryOperatorExpressionAST(std::unique_ptr<parser::LexerToken> token, std::unique_ptr<ExpressionAST> left,
                                         std::unique_ptr<ExpressionAST> right);
 
             void diagnoseInto(diag::DiagnosticEngine & diagnostics, unsigned level) override;
@@ -49,7 +49,7 @@ namespace juice {
             double _value;
 
         public:
-            explicit NumberExpressionAST(std::unique_ptr<LexerToken> token, double value);
+            explicit NumberExpressionAST(std::unique_ptr<parser::LexerToken> token, double value);
 
             void diagnoseInto(diag::DiagnosticEngine & diagnostics, unsigned level) override;
             llvm::Value * codegen(llvm::LLVMContext & context, llvm::IRBuilder<> & builder) override;
@@ -59,7 +59,7 @@ namespace juice {
             std::unique_ptr<ExpressionAST> _expression;
 
         public:
-            explicit GroupingExpressionAST(std::unique_ptr<LexerToken> token,
+            explicit GroupingExpressionAST(std::unique_ptr<parser::LexerToken> token,
                                            std::unique_ptr<ExpressionAST> expression);
 
             void diagnoseInto(diag::DiagnosticEngine & diagnostics, unsigned level) override;

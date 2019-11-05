@@ -9,7 +9,7 @@
 // See https://github.com/juice-lang/juice/blob/master/CONTRIBUTORS.txt for the list of juice project authors
 
 
-#include "juice/Parser/ExpressionAST.h"
+#include "juice/AST/ExpressionAST.h"
 
 #include <string>
 #include <utility>
@@ -21,7 +21,7 @@
 #include "llvm/IR/Constants.h"
 
 namespace juice {
-    namespace parser {
+    namespace ast {
         static const basic::Color colors[] {
             basic::Color::cyan,
             basic::Color::blue,
@@ -33,7 +33,7 @@ namespace juice {
 
         ExpressionAST::ExpressionAST(std::unique_ptr<juice::parser::LexerToken> token): _token(std::move(token)) {}
 
-        BinaryOperatorExpressionAST::BinaryOperatorExpressionAST(std::unique_ptr<LexerToken> token,
+        BinaryOperatorExpressionAST::BinaryOperatorExpressionAST(std::unique_ptr<parser::LexerToken> token,
                                                                  std::unique_ptr<ExpressionAST> left,
                                                                  std::unique_ptr<ExpressionAST> right):
                 ExpressionAST(std::move(token)), _left(std::move(left)), _right(std::move(right)) {}
@@ -63,15 +63,15 @@ namespace juice {
             if (left == nullptr || right == nullptr) return nullptr;
 
             switch (_token->type) {
-                case LexerToken::Type::operatorPlus: return builder.CreateFAdd(left, right, "addtmp");
-                case LexerToken::Type::operatorMinus: return builder.CreateFSub(left, right, "subtmp");
-                case LexerToken::Type::operatorAsterisk: return builder.CreateFMul(left, right, "multmp");
-                case LexerToken::Type::operatorSlash: return builder.CreateFDiv(left, right, "divtmp");
+                case parser::LexerToken::Type::operatorPlus: return builder.CreateFAdd(left, right, "addtmp");
+                case parser::LexerToken::Type::operatorMinus: return builder.CreateFSub(left, right, "subtmp");
+                case parser::LexerToken::Type::operatorAsterisk: return builder.CreateFMul(left, right, "multmp");
+                case parser::LexerToken::Type::operatorSlash: return builder.CreateFDiv(left, right, "divtmp");
                 default: return nullptr;
             }
         }
 
-        NumberExpressionAST::NumberExpressionAST(std::unique_ptr<LexerToken> token, double value):
+        NumberExpressionAST::NumberExpressionAST(std::unique_ptr<parser::LexerToken> token, double value):
                 ExpressionAST(std::move(token)), _value(value) {}
 
         void NumberExpressionAST::diagnoseInto(diag::DiagnosticEngine & diagnostics, unsigned level) {
@@ -89,8 +89,8 @@ namespace juice {
             return llvm::ConstantFP::get(context, llvm::APFloat(_value));
         }
 
-        GroupingExpressionAST::GroupingExpressionAST(std::unique_ptr<LexerToken> token,
-                                                     std::unique_ptr<juice::parser::ExpressionAST> expression):
+        GroupingExpressionAST::GroupingExpressionAST(std::unique_ptr<parser::LexerToken> token,
+                                                     std::unique_ptr<ExpressionAST> expression):
                 ExpressionAST(std::move(token)), _expression(std::move(expression)) {}
 
         void GroupingExpressionAST::diagnoseInto(diag::DiagnosticEngine & diagnostics, unsigned level) {

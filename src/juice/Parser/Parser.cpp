@@ -46,45 +46,45 @@ namespace juice {
             else throw Error(errorID);
         }
 
-        std::unique_ptr<ExpressionAST> Parser::parseGroupedExpression() {
+        std::unique_ptr<ast::ExpressionAST> Parser::parseGroupedExpression() {
             if (match(LexerToken::Type::delimiterLeftParen)) {
                 auto token = std::move(_previousToken);
                 auto expression = parseAdditionPrecedenceExpression();
                 consume(LexerToken::Type::delimiterRightParen, diag::DiagnosticID::expected_right_paren);
-                return std::make_unique<GroupingExpressionAST>(std::move(token), std::move(expression));
+                return std::make_unique<ast::GroupingExpressionAST>(std::move(token), std::move(expression));
             }
             throw Error(diag::DiagnosticID::expected_expression);
         }
 
-        std::unique_ptr<ExpressionAST> Parser::parseNumberExpression() {
+        std::unique_ptr<ast::ExpressionAST> Parser::parseNumberExpression() {
             if (match(LexerToken::Type::integerLiteral) || match(LexerToken::Type::decimalLiteral)) {
                 auto token = std::move(_previousToken);
                 double number = std::stod(token->string.str());
-                return std::make_unique<NumberExpressionAST>(std::move(token), number);
+                return std::make_unique<ast::NumberExpressionAST>(std::move(token), number);
             }
             return parseGroupedExpression();
         }
 
-        std::unique_ptr<ExpressionAST> Parser::parseMultiplicationPrecedenceExpression() {
+        std::unique_ptr<ast::ExpressionAST> Parser::parseMultiplicationPrecedenceExpression() {
             auto node = parseNumberExpression();
 
             while (match(LexerToken::Type::operatorAsterisk) || match(LexerToken::Type::operatorSlash)) {
                 auto token = std::move(_previousToken);
                 auto right = parseNumberExpression();
-                node = std::make_unique<BinaryOperatorExpressionAST>(std::move(token), std::move(node),
+                node = std::make_unique<ast::BinaryOperatorExpressionAST>(std::move(token), std::move(node),
                                                                      std::move(right));
             }
 
             return node;
         }
 
-        std::unique_ptr<ExpressionAST> Parser::parseAdditionPrecedenceExpression() {
+        std::unique_ptr<ast::ExpressionAST> Parser::parseAdditionPrecedenceExpression() {
             auto node = parseMultiplicationPrecedenceExpression();
 
             while (match(LexerToken::Type::operatorPlus) || match(LexerToken::Type::operatorMinus)) {
                 auto token = std::move(_previousToken);
                 auto right = parseMultiplicationPrecedenceExpression();
-                node = std::make_unique<BinaryOperatorExpressionAST>(std::move(token), std::move(node),
+                node = std::make_unique<ast::BinaryOperatorExpressionAST>(std::move(token), std::move(node),
                                                                      std::move(right));
             }
 
@@ -96,7 +96,7 @@ namespace juice {
             _lexer = std::make_unique<Lexer>(_diagnostics->getBuffer());
         }
 
-        std::unique_ptr<ExpressionAST> Parser::parseProgram() {
+        std::unique_ptr<ast::ExpressionAST> Parser::parseProgram() {
             try {
                 advance();
                 auto expression = parseAdditionPrecedenceExpression();

@@ -9,6 +9,7 @@
 # See https://github.com/juice-lang/juice/blob/master/CONTRIBUTORS.txt for the list of juice project authors
 
 
+add_subdirectory(AST)
 add_subdirectory(Basic)
 add_subdirectory(Diagnostics)
 add_subdirectory(Driver)

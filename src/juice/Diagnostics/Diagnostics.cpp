@@ -44,8 +44,10 @@ namespace juice {
             llvm::StringRef text(diagnosticStringFor(id));
             bool newline = diagnosticNewlineFor(id);
 
-            std::string message;
+            if (kind == DiagnosticKind::error) _hadError = true;
 
+
+            std::string message;
             llvm::raw_string_ostream os(message);
 
             os << basic::Color::bold;

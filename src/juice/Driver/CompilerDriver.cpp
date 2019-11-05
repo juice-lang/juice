@@ -12,71 +12,18 @@
 #include "juice/Driver/CompilerDriver.h"
 
 #include <memory>
-#include <vector>
+#include <string>
 #include <utility>
 
+#include "juice/AST/Codegen.h"
 #include "juice/Basic/SourceManager.h"
 #include "juice/Diagnostics/Diagnostics.h"
 #include "juice/Parser/Parser.h"
 #include "llvm/ADT/StringRef.h"
-#include "llvm/IR/BasicBlock.h"
-#include "llvm/IR/Function.h"
-#include "llvm/IR/IRBuilder.h"
-#include "llvm/IR/LLVMContext.h"
-#include "llvm/IR/Module.h"
-#include "llvm/IR/Type.h"
-#include "llvm/IR/Value.h"
-#include "llvm/IR/Verifier.h"
+#include "llvm/Support/raw_ostream.h"
 
 namespace juice {
     namespace driver {
-        static llvm::Function * createFunction(llvm::Type * returnType, const std::vector<llvm::Type *> & params, bool isVarArg, const std::string & name, llvm::Module * module) {
-            llvm::FunctionType * type = llvm::FunctionType::get(returnType, params, isVarArg);
-            return llvm::Function::Create(type, llvm::Function::ExternalLinkage, name, module);
-        }
-
-        static void createExpressionPrintingProgram(std::unique_ptr<parser::ExpressionAST> expression) {
-            llvm::LLVMContext context;
-            llvm::IRBuilder<> builder(context);
-
-            std::string string = "%f\n";
-
-            auto module = std::make_unique<llvm::Module>("expression", context);
-
-            auto * global = new llvm::GlobalVariable(*module, llvm::ArrayType::get(llvm::Type::getInt8Ty(context), string.size() + 1), true, llvm::GlobalValue::PrivateLinkage, llvm::ConstantDataArray::getString(context, string), ".str");
-
-            llvm::Function * expressionFunction = createFunction(llvm::Type::getDoubleTy(context), {}, false, "expression", module.get());
-            llvm::BasicBlock * expressionEntryBlock = llvm::BasicBlock::Create(context, "entry", expressionFunction);
-            builder.SetInsertPoint(expressionEntryBlock);
-
-            if (llvm::Value * value = expression->codegen(context, builder)) {
-                builder.CreateRet(value);
-
-                llvm::verifyFunction(*expressionFunction);
-
-                llvm::Function * printfFunction = createFunction(llvm::Type::getInt32Ty(context), {llvm::Type::getInt8PtrTy(context)}, true, "printf", module.get());
-
-                llvm::Function * mainFunction = createFunction(llvm::Type::getInt32Ty(context), {}, false, "main", module.get());
-                llvm::BasicBlock * mainEntryBlock = llvm::BasicBlock::Create(context, "entry", mainFunction);
-                builder.SetInsertPoint(mainEntryBlock);
-
-                llvm::Value * expressionValue = builder.CreateCall(expressionFunction, {}, "expressionCall");
-                llvm::Value * stringValue = builder.CreateBitCast(global, llvm::Type::getInt8PtrTy(context), "cast");
-
-                builder.CreateCall(printfFunction, {stringValue, expressionValue}, "printfCall");
-
-                llvm::Value * zero = llvm::ConstantInt::get(context, llvm::APInt(32, 0, true));
-
-                builder.CreateRet(zero);
-
-                llvm::verifyFunction(*mainFunction);
-
-                module->print(llvm::outs(), nullptr);
-            } else {
-                expressionFunction->eraseFromParent();
-            }
-        }
-        
         int CompilerDriver::execute() {
             llvm::StringRef filename(_filename);
 
@@ -93,7 +40,18 @@ namespace juice {
             auto expression = juiceParser.parseProgram();
 
             if (expression != nullptr) {
-                createExpressionPrintingProgram(std::move(expression));
+                ast::Codegen codegen(std::move(expression));
+
+                std::string error;
+                llvm::raw_string_ostream errorStream(error);
+
+                if (codegen.generate(errorStream)) {
+                    codegen.dumpProgram(llvm::outs());
+                } else {
+                    errorStream.flush();
+
+                    diagnostics->diagnose(diag::DiagnosticID::codegen_error, error);
+                }
             }
 
             return diagnostics->hadError() ? 1 : 0;
