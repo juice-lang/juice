@@ -15,7 +15,8 @@
 #include <memory>
 #include <vector>
 
-#include "ExpressionAST.h"
+#include "AST.h"
+#include "StatementAST.h"
 #include "llvm/IR/Function.h"
 #include "llvm/IR/IRBuilder.h"
 #include "llvm/IR/LLVMContext.h"
@@ -24,14 +25,14 @@
 namespace juice {
     namespace ast {
         class Codegen {
-            std::unique_ptr<ExpressionAST> _expression;
+            std::unique_ptr<ModuleAST> _ast;
 
             llvm::LLVMContext _context;
             llvm::IRBuilder<> _builder;
             std::unique_ptr<llvm::Module> _module;
 
         public:
-            explicit Codegen(std::unique_ptr<ExpressionAST> expression);
+            explicit Codegen(std::unique_ptr<ModuleAST> ast);
 
             bool generate(llvm::raw_string_ostream & os);
             void dumpProgram(llvm::raw_ostream & os);

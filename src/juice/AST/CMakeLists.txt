@@ -9,5 +9,7 @@
 # See https://github.com/juice-lang/juice/blob/master/CONTRIBUTORS.txt for the list of juice project authors
 
 add_library(juiceAST STATIC
+        AST.cpp
+        Codegen.cpp
         ExpressionAST.cpp
-        Codegen.cpp)
+        StatementAST.cpp)

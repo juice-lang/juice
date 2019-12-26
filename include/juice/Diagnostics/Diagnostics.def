@@ -46,7 +46,7 @@ OUTPUT(lexer_token, "%0", true)
 //Parser
 ERROR(expected_end_of_file, "expected end of file", true)
 ERROR(expected_expression, "expected expression", true)
-ERROR(expected_newline, "expected newline after expression", true)
+ERROR(expression_statement_expected_newline_or_semicolon, "expected newline or ';' after expression.", true)
 ERROR(expected_right_paren, "expected closing parenthesis after expression", true)
 
 OUTPUT(binary_operator_expression_ast_0, "%0BinaryOperatorExpressionAST(\n%1  token: %reset%2\n%0%1  left: ", false)

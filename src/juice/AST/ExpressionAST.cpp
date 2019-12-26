@@ -38,7 +38,7 @@ namespace juice {
                                                                  std::unique_ptr<ExpressionAST> right):
                 ExpressionAST(std::move(token)), _left(std::move(left)), _right(std::move(right)) {}
 
-        void BinaryOperatorExpressionAST::diagnoseInto(diag::DiagnosticEngine & diagnostics, unsigned level) {
+        void BinaryOperatorExpressionAST::diagnoseInto(diag::DiagnosticEngine & diagnostics, unsigned level) const {
             basic::SourceLocation location(_token->string.begin());
             std::string indentation;
             for (unsigned i = 0; i < level; ++i) {
@@ -56,7 +56,7 @@ namespace juice {
         }
 
         llvm::Value *
-        BinaryOperatorExpressionAST::codegen(llvm::LLVMContext & context, llvm::IRBuilder<> & builder) {
+        BinaryOperatorExpressionAST::codegen(llvm::LLVMContext & context, llvm::IRBuilder<> & builder) const {
             llvm::Value * left = _left->codegen(context, builder);
             llvm::Value * right = _right->codegen(context, builder);
 
@@ -74,7 +74,7 @@ namespace juice {
         NumberExpressionAST::NumberExpressionAST(std::unique_ptr<parser::LexerToken> token, double value):
                 ExpressionAST(std::move(token)), _value(value) {}
 
-        void NumberExpressionAST::diagnoseInto(diag::DiagnosticEngine & diagnostics, unsigned level) {
+        void NumberExpressionAST::diagnoseInto(diag::DiagnosticEngine & diagnostics, unsigned level) const {
             basic::SourceLocation location(_token->string.begin());
             std::string indentation;
             for (unsigned i = 0; i < level; ++i) {
@@ -85,7 +85,7 @@ namespace juice {
                                  _token.get(), _value);
         }
 
-        llvm::Value * NumberExpressionAST::codegen(llvm::LLVMContext & context, llvm::IRBuilder<> & builder) {
+        llvm::Value * NumberExpressionAST::codegen(llvm::LLVMContext & context, llvm::IRBuilder<> & builder) const {
             return llvm::ConstantFP::get(context, llvm::APFloat(_value));
         }
 
@@ -93,11 +93,11 @@ namespace juice {
                                                      std::unique_ptr<ExpressionAST> expression):
                 ExpressionAST(std::move(token)), _expression(std::move(expression)) {}
 
-        void GroupingExpressionAST::diagnoseInto(diag::DiagnosticEngine & diagnostics, unsigned level) {
+        void GroupingExpressionAST::diagnoseInto(diag::DiagnosticEngine & diagnostics, unsigned level) const {
             _expression->diagnoseInto(diagnostics, level);
         }
 
-        llvm::Value * GroupingExpressionAST::codegen(llvm::LLVMContext & context, llvm::IRBuilder<> & builder) {
+        llvm::Value * GroupingExpressionAST::codegen(llvm::LLVMContext & context, llvm::IRBuilder<> & builder) const {
             return _expression->codegen(context, builder);
         }
     }

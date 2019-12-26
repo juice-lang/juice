@@ -37,10 +37,12 @@ namespace juice {
 
             parser::Parser juiceParser(diagnostics);
 
-            auto expression = juiceParser.parseProgram();
+            auto ast = juiceParser.parseProgram();
 
-            if (expression != nullptr) {
-                ast::Codegen codegen(std::move(expression));
+            if (ast != nullptr) {
+                ast->diagnoseInto(*diagnostics, 0);
+
+                ast::Codegen codegen(std::move(ast));
 
                 std::string error;
                 llvm::raw_string_ostream errorStream(error);

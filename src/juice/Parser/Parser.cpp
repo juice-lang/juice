@@ -72,7 +72,7 @@ namespace juice {
                 auto token = std::move(_previousToken);
                 auto right = parseNumberExpression();
                 node = std::make_unique<ast::BinaryOperatorExpressionAST>(std::move(token), std::move(node),
-                                                                     std::move(right));
+                                                                          std::move(right));
             }
 
             return node;
@@ -85,27 +85,46 @@ namespace juice {
                 auto token = std::move(_previousToken);
                 auto right = parseMultiplicationPrecedenceExpression();
                 node = std::make_unique<ast::BinaryOperatorExpressionAST>(std::move(token), std::move(node),
-                                                                     std::move(right));
+                                                                          std::move(right));
             }
 
             return node;
         }
+
+        std::unique_ptr<ast::ExpressionStatementAST> Parser::parseExpression() {
+            auto expression = parseAdditionPrecedenceExpression();
+
+            if (!match(LexerToken::Type::delimiterNewline) && !isAtEnd()) {
+                consume(LexerToken::Type::delimiterSemicolon, diag::DiagnosticID::expression_statement_expected_newline_or_semicolon);
+            }
+
+            return std::make_unique<ast::ExpressionStatementAST>(std::move(expression));
+        }
+
+        std::unique_ptr<ast::StatementAST> Parser::parseStatement() {
+            return parseExpression();
+        }
+
+        std::unique_ptr<ast::ModuleAST> Parser::parseModule() {
+            auto module = std::make_unique<ast::ModuleAST>();
+
+            advance();
+            while (!isAtEnd()) {
+                module->appendStatement(parseStatement());
+            }
+
+            return module;
+        }
+
 
         Parser::Parser(std::shared_ptr<diag::DiagnosticEngine> diagnostics):
                 _diagnostics(std::move(diagnostics)), _previousToken(nullptr), _currentToken(nullptr) {
             _lexer = std::make_unique<Lexer>(_diagnostics->getBuffer());
         }
 
-        std::unique_ptr<ast::ExpressionAST> Parser::parseProgram() {
+        std::unique_ptr<ast::ModuleAST> Parser::parseProgram() {
             try {
-                advance();
-                auto expression = parseAdditionPrecedenceExpression();
-
-                consume(LexerToken::Type::delimiterNewline, diag::DiagnosticID::expected_newline);
-
-                if (!isAtEnd()) throw Error(diag::DiagnosticID::expected_end_of_file);
-
-                return expression;
+                return parseModule();
             } catch (Error & error) {
                 basic::SourceLocation location(_currentToken->string.begin());
                 _diagnostics->diagnose(location, error.id);

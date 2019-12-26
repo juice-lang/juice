@@ -20,24 +20,19 @@
 
 namespace juice {
     namespace ast {
-        Codegen::Codegen(std::unique_ptr<ExpressionAST> expression):
-                _expression(std::move(expression)), _builder(_context) {
+        Codegen::Codegen(std::unique_ptr<ModuleAST> ast):
+                _ast(std::move(ast)), _builder(_context) {
             _module = std::make_unique<llvm::Module>("expression", _context);
         }
 
         bool Codegen::generate(llvm::raw_string_ostream & os) {
             std::string string = "%f\n";
 
-            auto * global = new llvm::GlobalVariable(*_module, llvm::ArrayType::get(llvm::Type::getInt8Ty(_context),
-                                                                                    string.size() + 1), true,
-                                                     llvm::GlobalValue::PrivateLinkage,
-                                                     llvm::ConstantDataArray::getString(_context, string), ".str");
-
             llvm::Function * expressionFunction = createFunction(llvm::Type::getDoubleTy(_context), {}, false, "expression");
             llvm::BasicBlock * expressionEntryBlock = llvm::BasicBlock::Create(_context, "entry", expressionFunction);
             _builder.SetInsertPoint(expressionEntryBlock);
 
-            if (llvm::Value * value = _expression->codegen(_context, _builder)) {
+            if (llvm::Value * value = _ast->codegen(_context, _builder)) {
                 _builder.CreateRet(value);
 
                 if (llvm::verifyFunction(*expressionFunction, &os)) return false;
@@ -47,6 +42,8 @@ namespace juice {
                 llvm::Function * mainFunction = createFunction(llvm::Type::getInt32Ty(_context), {}, false, "main");
                 llvm::BasicBlock * mainEntryBlock = llvm::BasicBlock::Create(_context, "entry", mainFunction);
                 _builder.SetInsertPoint(mainEntryBlock);
+
+                auto * global = _builder.CreateGlobalString(string, ".str");
 
                 llvm::Value * expressionValue = _builder.CreateCall(expressionFunction, {}, "expressionCall");
                 llvm::Value * stringValue = _builder.CreateBitCast(global, llvm::Type::getInt8PtrTy(_context), "cast");

@@ -14,8 +14,11 @@
 
 #include <exception>
 #include <memory>
+#include <tuple>
 
+#include "juice/AST/AST.h"
 #include "juice/AST/ExpressionAST.h"
+#include "juice/AST/StatementAST.h"
 #include "Lexer.h"
 #include "LexerToken.h"
 #include "juice/Diagnostics/Diagnostics.h"
@@ -50,6 +53,13 @@ namespace juice {
             std::unique_ptr<ast::ExpressionAST> parseMultiplicationPrecedenceExpression();
             std::unique_ptr<ast::ExpressionAST> parseAdditionPrecedenceExpression();
 
+            std::unique_ptr<ast::ExpressionStatementAST> parseExpression();
+
+
+            std::unique_ptr<ast::StatementAST> parseStatement();
+
+            std::unique_ptr<ast::ModuleAST> parseModule();
+
         public:
             Parser() = delete;
             Parser(const Parser &) = delete;
@@ -57,7 +67,7 @@ namespace juice {
 
             explicit Parser(std::shared_ptr<diag::DiagnosticEngine> diagnostics);
 
-            std::unique_ptr<ast::ExpressionAST> parseProgram();
+            std::unique_ptr<ast::ModuleAST> parseProgram();
         };
     }
 }

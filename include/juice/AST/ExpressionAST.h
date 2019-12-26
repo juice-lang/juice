@@ -14,6 +14,7 @@
 
 #include <memory>
 
+#include "AST.h"
 #include "juice/Parser/LexerToken.h"
 #include "juice/Diagnostics/Diagnostics.h"
 #include "llvm/IR/IRBuilder.h"
@@ -22,48 +23,57 @@
 
 namespace juice {
     namespace ast {
-        class ExpressionAST {
+        class ExpressionAST: public AST {
         protected:
             std::unique_ptr<parser::LexerToken> _token;
 
         public:
+            ExpressionAST() = delete;
+
             explicit ExpressionAST(std::unique_ptr<parser::LexerToken> token);
 
-            virtual ~ExpressionAST() = default;
-            virtual void diagnoseInto(diag::DiagnosticEngine & diagnostics, unsigned level = 0) = 0;
-            virtual llvm::Value * codegen(llvm::LLVMContext & context, llvm::IRBuilder<> & builder) = 0;
+            ~ExpressionAST() override = default;
+
+            void diagnoseInto(diag::DiagnosticEngine & diagnostics, unsigned level) const override = 0;
+            llvm::Value * codegen(llvm::LLVMContext & context, llvm::IRBuilder<> & builder) const override = 0;
         };
 
         class BinaryOperatorExpressionAST: public ExpressionAST {
             std::unique_ptr<ExpressionAST> _left, _right;
 
         public:
+            BinaryOperatorExpressionAST() = delete;
+
             BinaryOperatorExpressionAST(std::unique_ptr<parser::LexerToken> token, std::unique_ptr<ExpressionAST> left,
                                         std::unique_ptr<ExpressionAST> right);
 
-            void diagnoseInto(diag::DiagnosticEngine & diagnostics, unsigned level) override;
-            llvm::Value * codegen(llvm::LLVMContext & context, llvm::IRBuilder<> & builder) override;
+            void diagnoseInto(diag::DiagnosticEngine & diagnostics, unsigned level) const override;
+            llvm::Value * codegen(llvm::LLVMContext & context, llvm::IRBuilder<> & builder) const override;
         };
 
         class NumberExpressionAST: public ExpressionAST {
             double _value;
 
         public:
+            NumberExpressionAST() = delete;
+
             explicit NumberExpressionAST(std::unique_ptr<parser::LexerToken> token, double value);
 
-            void diagnoseInto(diag::DiagnosticEngine & diagnostics, unsigned level) override;
-            llvm::Value * codegen(llvm::LLVMContext & context, llvm::IRBuilder<> & builder) override;
+            void diagnoseInto(diag::DiagnosticEngine & diagnostics, unsigned level) const override;
+            llvm::Value * codegen(llvm::LLVMContext & context, llvm::IRBuilder<> & builder) const override;
         };
 
         class GroupingExpressionAST: public ExpressionAST {
             std::unique_ptr<ExpressionAST> _expression;
 
         public:
+            GroupingExpressionAST() = delete;
+
             explicit GroupingExpressionAST(std::unique_ptr<parser::LexerToken> token,
                                            std::unique_ptr<ExpressionAST> expression);
 
-            void diagnoseInto(diag::DiagnosticEngine & diagnostics, unsigned level) override;
-            llvm::Value * codegen(llvm::LLVMContext & context, llvm::IRBuilder<> & builder) override;
+            void diagnoseInto(diag::DiagnosticEngine & diagnostics, unsigned level) const override;
+            llvm::Value * codegen(llvm::LLVMContext & context, llvm::IRBuilder<> & builder) const override;
         };
     }
 }
