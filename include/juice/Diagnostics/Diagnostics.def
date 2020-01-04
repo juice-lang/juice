@@ -49,10 +49,17 @@ ERROR(expected_expression, "expected expression", true)
 ERROR(expression_statement_expected_newline_or_semicolon, "expected newline or ';' after expression.", true)
 ERROR(expected_right_paren, "expected closing parenthesis after expression", true)
 
+ERROR(expected_variable_name, "expected variable name", true)
+ERROR(expected_variable_initialization, "expected initialization after variable declaration", true)
+ERROR(variable_declaration_expected_newline_or_semicolon, "expected newline or ';' after variable declaration.", true)
+
 OUTPUT(binary_operator_expression_ast_0, "%0BinaryOperatorExpressionAST(\n%1  token: %reset%2\n%0%1  left: ", false)
 OUTPUT(binary_operator_expression_ast_1, "%0%1  right: ", false)
 OUTPUT(binary_operator_expression_ast_2, "%0%1)", true)
 OUTPUT(number_expression_ast, "%0NumberExpressionAST(\n%01  token: %reset%2\n%0%1  number: %reset%3\n%0%1)", true)
+
+OUTPUT(variable_declaration_ast_0, "VariableDeclarationAST(\n%0  name: %1\n%0  initialization: ", false)
+OUTPUT(variable_declaration_ast_1, "%0)", true)
 
 //AST
 ERROR(codegen_error, "could not generate any code: %0", true)

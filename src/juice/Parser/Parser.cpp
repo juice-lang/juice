@@ -91,7 +91,7 @@ namespace juice {
             return node;
         }
 
-        std::unique_ptr<ast::ExpressionStatementAST> Parser::parseExpression() {
+        std::unique_ptr<ast::ExpressionStatementAST> Parser::parseExpressionStatement() {
             auto expression = parseAdditionPrecedenceExpression();
 
             if (!match(LexerToken::Type::delimiterNewline) && !isAtEnd()) {
@@ -101,8 +101,28 @@ namespace juice {
             return std::make_unique<ast::ExpressionStatementAST>(std::move(expression));
         }
 
+        std::unique_ptr<ast::VariableDeclarationAST> Parser::parseVariableDeclaration() {
+            consume(LexerToken::Type::identifier, diag::DiagnosticID::expected_variable_name);
+
+            auto name = std::move(_previousToken);
+
+            consume(LexerToken::Type::operatorEqual, diag::DiagnosticID::expected_variable_initialization);
+
+            auto initialization = parseAdditionPrecedenceExpression();
+
+            if (!match(LexerToken::Type::delimiterNewline) && !isAtEnd()) {
+                consume(LexerToken::Type::delimiterSemicolon, diag::DiagnosticID::variable_declaration_expected_newline_or_semicolon);
+            }
+
+            return std::make_unique<ast::VariableDeclarationAST>(std::move(name), std::move(initialization));
+        }
+
         std::unique_ptr<ast::StatementAST> Parser::parseStatement() {
-            return parseExpression();
+            if (match(LexerToken::Type::keywordVar)) {
+                return parseVariableDeclaration();
+            }
+
+            return parseExpressionStatement();
         }
 
         std::unique_ptr<ast::ModuleAST> Parser::parseModule() {

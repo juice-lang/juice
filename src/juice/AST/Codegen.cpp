@@ -28,27 +28,18 @@ namespace juice {
         bool Codegen::generate(llvm::raw_string_ostream & os) {
             std::string string = "%f\n";
 
-            llvm::Function * expressionFunction = createFunction(llvm::Type::getDoubleTy(_context), {}, false, "expression");
-            llvm::BasicBlock * expressionEntryBlock = llvm::BasicBlock::Create(_context, "entry", expressionFunction);
-            _builder.SetInsertPoint(expressionEntryBlock);
+            llvm::Function * printfFunction = createFunction(llvm::Type::getInt32Ty(_context), {llvm::Type::getInt8PtrTy(_context)}, true, "printf");
+
+            llvm::Function * mainFunction = createFunction(llvm::Type::getInt32Ty(_context), {}, false, "main");
+            llvm::BasicBlock * mainEntryBlock = llvm::BasicBlock::Create(_context, "entry", mainFunction);
+            _builder.SetInsertPoint(mainEntryBlock);
 
             if (llvm::Value * value = _ast->codegen(_context, _builder)) {
-                _builder.CreateRet(value);
-
-                if (llvm::verifyFunction(*expressionFunction, &os)) return false;
-
-                llvm::Function * printfFunction = createFunction(llvm::Type::getInt32Ty(_context), {llvm::Type::getInt8PtrTy(_context)}, true, "printf");
-
-                llvm::Function * mainFunction = createFunction(llvm::Type::getInt32Ty(_context), {}, false, "main");
-                llvm::BasicBlock * mainEntryBlock = llvm::BasicBlock::Create(_context, "entry", mainFunction);
-                _builder.SetInsertPoint(mainEntryBlock);
-
                 auto * global = _builder.CreateGlobalString(string, ".str");
 
-                llvm::Value * expressionValue = _builder.CreateCall(expressionFunction, {}, "expressionCall");
                 llvm::Value * stringValue = _builder.CreateBitCast(global, llvm::Type::getInt8PtrTy(_context), "cast");
 
-                _builder.CreateCall(printfFunction, {stringValue, expressionValue}, "printfCall");
+                _builder.CreateCall(printfFunction, {stringValue, value}, "printfCall");
 
                 llvm::Value * zero = llvm::ConstantInt::get(_context, llvm::APInt(32, 0, true));
 
