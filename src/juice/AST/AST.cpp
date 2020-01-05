@@ -12,6 +12,7 @@
 
 #include <utility>
 
+#include "juice/AST/Codegen.h"
 #include "juice/AST/StatementAST.h"
 
 namespace juice {
@@ -23,18 +24,21 @@ namespace juice {
         }
 
         void ModuleAST::diagnoseInto(diag::DiagnosticEngine & diagnostics, unsigned level) const {
-            for (const auto & statement: _statements) statement->diagnoseInto(diagnostics, level);
+            for (const auto & statement: _statements) { statement->diagnoseInto(diagnostics, level); }
         }
 
-        llvm::Value * ModuleAST::codegen(llvm::LLVMContext & context, llvm::IRBuilder<> & builder) const {
+        llvm::Value * ModuleAST::codegen(Codegen & state) const {
             switch (_statements.size()) {
-                case 0: return nullptr;
-                case 1: return _statements.front()->codegen(context, builder);
+                case 0:
+                    return nullptr;
+                case 1:
+                    return _statements.front()->codegen(state);
                 default: {
                     auto last = _statements.end() - 1;
-                    for (auto i = _statements.begin(); i < last; ++i)
-                        (*i)->codegen(context, builder);
-                    return (*last)->codegen(context, builder);
+                    for (auto i = _statements.begin(); i < last; ++i) {
+                        (*i)->codegen(state);
+                    }
+                    return (*last)->codegen(state);
                 }
             }
         }

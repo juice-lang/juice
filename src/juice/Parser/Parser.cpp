@@ -56,21 +56,24 @@ namespace juice {
             throw Error(diag::DiagnosticID::expected_expression);
         }
 
-        std::unique_ptr<ast::ExpressionAST> Parser::parseNumberExpression() {
+        std::unique_ptr<ast::ExpressionAST> Parser::parsePrimaryExpression() {
             if (match(LexerToken::Type::integerLiteral) || match(LexerToken::Type::decimalLiteral)) {
                 auto token = std::move(_previousToken);
                 double number = std::stod(token->string.str());
                 return std::make_unique<ast::NumberExpressionAST>(std::move(token), number);
+            } else if (match(LexerToken::Type::identifier)) {
+                auto token = std::move(_previousToken);
+                return std::make_unique<ast::VariableExpressionAST>(std::move(token));
             }
             return parseGroupedExpression();
         }
 
         std::unique_ptr<ast::ExpressionAST> Parser::parseMultiplicationPrecedenceExpression() {
-            auto node = parseNumberExpression();
+            auto node = parsePrimaryExpression();
 
             while (match(LexerToken::Type::operatorAsterisk) || match(LexerToken::Type::operatorSlash)) {
                 auto token = std::move(_previousToken);
-                auto right = parseNumberExpression();
+                auto right = parsePrimaryExpression();
                 node = std::make_unique<ast::BinaryOperatorExpressionAST>(std::move(token), std::move(node),
                                                                           std::move(right));
             }
@@ -145,10 +148,10 @@ namespace juice {
         std::unique_ptr<ast::ModuleAST> Parser::parseProgram() {
             try {
                 return parseModule();
-            } catch (Error & error) {
+            } catch (const Error & error) {
                 basic::SourceLocation location(_currentToken->string.begin());
                 _diagnostics->diagnose(location, error.id);
-            } catch (LexerError & error) {
+            } catch (const LexerError & error) {
                 _currentToken->diagnoseInto(*_diagnostics);
             }
 

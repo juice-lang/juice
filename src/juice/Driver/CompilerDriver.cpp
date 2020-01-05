@@ -42,17 +42,10 @@ namespace juice {
             if (ast != nullptr) {
                 ast->diagnoseInto(*diagnostics, 0);
 
-                ast::Codegen codegen(std::move(ast));
+                ast::Codegen codegen(std::move(ast), diagnostics);
 
-                std::string error;
-                llvm::raw_string_ostream errorStream(error);
-
-                if (codegen.generate(errorStream)) {
-                    codegen.dumpProgram(llvm::outs());
-                } else {
-                    errorStream.flush();
-
-                    diagnostics->diagnose(diag::DiagnosticID::codegen_error, error);
+                if (codegen.generate()) {
+                    codegen.dumpProgram();
                 }
             }
 

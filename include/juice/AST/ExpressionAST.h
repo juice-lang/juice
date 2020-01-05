@@ -35,7 +35,8 @@ namespace juice {
             ~ExpressionAST() override = default;
 
             void diagnoseInto(diag::DiagnosticEngine & diagnostics, unsigned level) const override = 0;
-            llvm::Value * codegen(llvm::LLVMContext & context, llvm::IRBuilder<> & builder) const override = 0;
+
+            llvm::Value * codegen(Codegen & state) const override = 0;
         };
 
         class BinaryOperatorExpressionAST: public ExpressionAST {
@@ -48,7 +49,8 @@ namespace juice {
                                         std::unique_ptr<ExpressionAST> right);
 
             void diagnoseInto(diag::DiagnosticEngine & diagnostics, unsigned level) const override;
-            llvm::Value * codegen(llvm::LLVMContext & context, llvm::IRBuilder<> & builder) const override;
+
+            llvm::Value * codegen(Codegen & state) const override;
         };
 
         class NumberExpressionAST: public ExpressionAST {
@@ -57,10 +59,22 @@ namespace juice {
         public:
             NumberExpressionAST() = delete;
 
-            explicit NumberExpressionAST(std::unique_ptr<parser::LexerToken> token, double value);
+            NumberExpressionAST(std::unique_ptr<parser::LexerToken> token, double value);
 
             void diagnoseInto(diag::DiagnosticEngine & diagnostics, unsigned level) const override;
-            llvm::Value * codegen(llvm::LLVMContext & context, llvm::IRBuilder<> & builder) const override;
+
+            llvm::Value * codegen(Codegen & state) const override;
+        };
+
+        class VariableExpressionAST: public ExpressionAST {
+        public:
+            VariableExpressionAST() = delete;
+
+            explicit VariableExpressionAST(std::unique_ptr<parser::LexerToken> token);
+
+            void diagnoseInto(diag::DiagnosticEngine &diagnostics, unsigned int level) const override;
+
+            llvm::Value * codegen(Codegen &state) const override;
         };
 
         class GroupingExpressionAST: public ExpressionAST {
@@ -73,7 +87,8 @@ namespace juice {
                                            std::unique_ptr<ExpressionAST> expression);
 
             void diagnoseInto(diag::DiagnosticEngine & diagnostics, unsigned level) const override;
-            llvm::Value * codegen(llvm::LLVMContext & context, llvm::IRBuilder<> & builder) const override;
+
+            llvm::Value * codegen(Codegen & state) const override;
         };
     }
 }

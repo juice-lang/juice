@@ -12,6 +12,8 @@
 
 #include <utility>
 
+#include "juice/AST/Codegen.h"
+
 namespace juice {
     namespace ast {
         ExpressionStatementAST::ExpressionStatementAST(std::unique_ptr<ExpressionAST> expression):
@@ -21,8 +23,8 @@ namespace juice {
             _expression->diagnoseInto(diagnostics, level);
         }
 
-        llvm::Value * ExpressionStatementAST::codegen(llvm::LLVMContext & context, llvm::IRBuilder<> & builder) const {
-            return _expression->codegen(context, builder);
+        llvm::Value * ExpressionStatementAST::codegen(Codegen & state) const {
+            return _expression->codegen(state);
         }
     }
 }

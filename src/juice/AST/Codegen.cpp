@@ -12,6 +12,8 @@
 
 #include <string>
 
+#include "juice/AST/CodegenException.h"
+#include "juice/Basic/RawStreamHelpers.h"
 #include "llvm/IR/BasicBlock.h"
 #include "llvm/IR/Type.h"
 #include "llvm/IR/Value.h"
@@ -20,24 +22,27 @@
 
 namespace juice {
     namespace ast {
-        Codegen::Codegen(std::unique_ptr<ModuleAST> ast):
-                _ast(std::move(ast)), _builder(_context) {
+        Codegen::Codegen(std::unique_ptr<ModuleAST> ast, std::shared_ptr<diag::DiagnosticEngine> diagnostics):
+                _ast(std::move(ast)), _diagnostics(std::move(diagnostics)), _builder(_context) {
             _module = std::make_unique<llvm::Module>("expression", _context);
         }
 
-        bool Codegen::generate(llvm::raw_string_ostream & os) {
+        bool Codegen::generate() {
             std::string string = "%f\n";
 
-            llvm::Function * printfFunction = createFunction(llvm::Type::getInt32Ty(_context), {llvm::Type::getInt8PtrTy(_context)}, true, "printf");
+            llvm::Function * printfFunction = createFunction(llvm::Type::getInt32Ty(_context),
+                                                             {llvm::Type::getInt8PtrTy(_context)}, true, "printf");
 
             llvm::Function * mainFunction = createFunction(llvm::Type::getInt32Ty(_context), {}, false, "main");
             llvm::BasicBlock * mainEntryBlock = llvm::BasicBlock::Create(_context, "entry", mainFunction);
             _builder.SetInsertPoint(mainEntryBlock);
 
-            if (llvm::Value * value = _ast->codegen(_context, _builder)) {
-                auto * global = _builder.CreateGlobalString(string, ".str");
+            try {
+                llvm::Value * value = _ast->codegen(*this);
 
-                llvm::Value * stringValue = _builder.CreateBitCast(global, llvm::Type::getInt8PtrTy(_context), "cast");
+                auto * globalString = _builder.CreateGlobalString(string, ".str");
+                llvm::Value * stringValue = _builder.CreateBitCast(globalString, llvm::Type::getInt8PtrTy(_context),
+                                                                   "cast");
 
                 _builder.CreateCall(printfFunction, {stringValue, value}, "printfCall");
 
@@ -45,16 +50,41 @@ namespace juice {
 
                 _builder.CreateRet(zero);
 
-                return !llvm::verifyFunction(*mainFunction, &os);
-            } else {
-                os << "could not generate expression code";
+                std::string error;
+                llvm::raw_string_ostream os(error);
 
-                return false;
+                if (llvm::verifyFunction(*mainFunction, &os)) {
+                    os.flush();
+                    _diagnostics->diagnose(diag::DiagnosticID::function_verification_error, error);
+                } else return true;
+            } catch (const CodegenException & e) {
+                e.diagnoseInto(_diagnostics);
             }
+
+            return false;
         }
 
-        void Codegen::dumpProgram(llvm::raw_ostream & os) {
+        void Codegen::dumpProgram() {
+            llvm::raw_ostream & os = llvm::outs();
+
+            os << basic::Color::bold;
             _module->print(os, nullptr);
+            os << basic::Color::reset;
+        }
+
+        bool Codegen::newNamedValue(llvm::StringRef name, llvm::AllocaInst * alloca) {
+            if (namedValueExists(name)) return false;
+
+            _namedValues[name] = alloca;
+            return true;
+        }
+
+        bool Codegen::namedValueExists(llvm::StringRef name) const {
+            return _namedValues.find(name) != _namedValues.end();
+        }
+
+        llvm::AllocaInst * Codegen::getNamedValue(llvm::StringRef name) const {
+            return _namedValues.find(name)->second;
         }
 
         llvm::Function *

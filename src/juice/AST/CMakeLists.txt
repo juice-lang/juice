@@ -11,6 +11,7 @@
 add_library(juiceAST STATIC
         AST.cpp
         Codegen.cpp
+        CodegenException.cpp
         DeclarationAST.cpp
         ExpressionAST.cpp
         StatementAST.cpp)

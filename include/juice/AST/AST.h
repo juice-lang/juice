@@ -22,12 +22,15 @@
 
 namespace juice {
     namespace ast {
+        class Codegen;
+
         class AST {
         public:
             virtual ~AST() = default;
 
             virtual void diagnoseInto(diag::DiagnosticEngine & diagnostics, unsigned level) const = 0;
-            virtual llvm::Value * codegen(llvm::LLVMContext & context, llvm::IRBuilder<> & builder) const = 0;
+
+            virtual llvm::Value * codegen(Codegen & state) const = 0;
 
             void diagnoseInto(diag::DiagnosticEngine & diagnostics) const { diagnoseInto(diagnostics, 0); }
         };
@@ -45,7 +48,8 @@ namespace juice {
             void appendStatement(std::unique_ptr<StatementAST> statement);
 
             void diagnoseInto(diag::DiagnosticEngine & diagnostics, unsigned level) const override;
-            llvm::Value * codegen(llvm::LLVMContext & context, llvm::IRBuilder<> & builder) const override;
+
+            llvm::Value * codegen(Codegen & state) const override;
         };
     }
 }

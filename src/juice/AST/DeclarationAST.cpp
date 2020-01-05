@@ -12,16 +12,18 @@
 
 #include <utility>
 
+#include "juice/AST/Codegen.h"
+#include "juice/AST/CodegenException.h"
 #include "llvm/ADT/APFloat.h"
 #include "llvm/IR/Instructions.h"
 
 namespace juice {
     namespace ast {
         VariableDeclarationAST::VariableDeclarationAST(std::unique_ptr<parser::LexerToken> name,
-                                                       std::unique_ptr<ExpressionAST> initialization) :
-            _name(std::move(name)), _initialization(std::move(initialization)) {}
+                                                       std::unique_ptr<ExpressionAST> initialization):
+                _name(std::move(name)), _initialization(std::move(initialization)) {}
 
-        void VariableDeclarationAST::diagnoseInto(diag::DiagnosticEngine &diagnostics, unsigned int level) const {
+        void VariableDeclarationAST::diagnoseInto(diag::DiagnosticEngine & diagnostics, unsigned int level) const {
             basic::SourceLocation location(_name->string.begin());
             std::string indentation;
             for (unsigned i = 0; i < level; ++i) {
@@ -34,13 +36,19 @@ namespace juice {
             diagnostics.diagnose(location, diag::DiagnosticID::variable_declaration_ast_1, indentationRef);
         }
 
-        llvm::Value * VariableDeclarationAST::codegen(llvm::LLVMContext &context, llvm::IRBuilder<> &builder) const {
-            llvm::Value * value = _initialization->codegen(context, builder);
+        llvm::Value * VariableDeclarationAST::codegen(Codegen & state) const {
+            llvm::Value * value = _initialization->codegen(state);
 
-            llvm::AllocaInst * alloca = builder.CreateAlloca(llvm::Type::getDoubleTy(context), nullptr, _name->string);
-            builder.CreateStore(value, alloca);
+            llvm::AllocaInst * alloca = state.getBuilder().CreateAlloca(llvm::Type::getDoubleTy(state.getContext()),
+                                                                         nullptr, _name->string);
+            state.getBuilder().CreateStore(value, alloca);
 
-            return alloca;
+            if (state.newNamedValue(_name->string, alloca)) {
+                return alloca;
+            } else {
+                basic::SourceLocation location(_name->string.begin());
+                throw VariableException(diag::DiagnosticID::invalid_redeclaration, location, _name->string);
+            }
         }
     }
 }

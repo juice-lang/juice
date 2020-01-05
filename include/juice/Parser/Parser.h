@@ -50,7 +50,7 @@ namespace juice {
             void consume(LexerToken::Type type, diag::DiagnosticID errorID);
 
             std::unique_ptr<ast::ExpressionAST> parseGroupedExpression();
-            std::unique_ptr<ast::ExpressionAST> parseNumberExpression();
+            std::unique_ptr<ast::ExpressionAST> parsePrimaryExpression();
             std::unique_ptr<ast::ExpressionAST> parseMultiplicationPrecedenceExpression();
             std::unique_ptr<ast::ExpressionAST> parseAdditionPrecedenceExpression();
 
