@@ -19,7 +19,7 @@
 namespace juice {
     namespace parser {
         bool Parser::isAtEnd() {
-            return _currentToken != nullptr && _currentToken->type == LexerToken::Type::eof;
+            return _currentToken == nullptr || _currentToken->type == LexerToken::Type::eof;
         }
 
         bool Parser::check(LexerToken::Type type) {
@@ -50,6 +50,9 @@ namespace juice {
             if (match(LexerToken::Type::delimiterLeftParen)) {
                 auto token = std::move(_previousToken);
                 auto expression = parseExpression();
+
+                while (match(LexerToken::Type::delimiterNewline)) continue;
+
                 consume(LexerToken::Type::delimiterRightParen, diag::DiagnosticID::expected_right_paren);
                 return std::make_unique<ast::GroupingExpressionAST>(std::move(token), std::move(expression));
             }
@@ -57,6 +60,8 @@ namespace juice {
         }
 
         std::unique_ptr<ast::ExpressionAST> Parser::parsePrimaryExpression() {
+            while (match(LexerToken::Type::delimiterNewline)) continue;
+
             if (match(LexerToken::Type::integerLiteral) || match(LexerToken::Type::decimalLiteral)) {
                 auto token = std::move(_previousToken);
                 double number = std::stod(token->string.str());
@@ -71,6 +76,8 @@ namespace juice {
         std::unique_ptr<ast::ExpressionAST> Parser::parseMultiplicationPrecedenceExpression() {
             auto node = parsePrimaryExpression();
 
+            while (match(LexerToken::Type::delimiterNewline)) continue;
+
             while (match(LexerToken::Type::operatorAsterisk) || match(LexerToken::Type::operatorSlash)) {
                 auto token = std::move(_previousToken);
                 auto right = parsePrimaryExpression();
@@ -84,6 +91,8 @@ namespace juice {
         std::unique_ptr<ast::ExpressionAST> Parser::parseAdditionPrecedenceExpression() {
             auto node = parseMultiplicationPrecedenceExpression();
 
+            while (match(LexerToken::Type::delimiterNewline)) continue;
+
             while (match(LexerToken::Type::operatorPlus) || match(LexerToken::Type::operatorMinus)) {
                 auto token = std::move(_previousToken);
                 auto right = parseMultiplicationPrecedenceExpression();
@@ -96,6 +105,8 @@ namespace juice {
 
         std::unique_ptr<ast::ExpressionAST> Parser::parseAssignmentPrecedenceExpression() {
             auto node = parseAdditionPrecedenceExpression();
+
+            while (match(LexerToken::Type::delimiterNewline)) continue;
 
             while (match(LexerToken::Type::operatorEqual) || match(LexerToken::Type::operatorPlusEqual) ||
                    match(LexerToken::Type::operatorMinusEqual) || match(LexerToken::Type::operatorAsteriskEqual) ||
@@ -116,7 +127,7 @@ namespace juice {
         std::unique_ptr<ast::ExpressionStatementAST> Parser::parseExpressionStatement() {
             auto expression = parseExpression();
 
-            if (!match(LexerToken::Type::delimiterNewline)) {
+            if (_previousToken->type != LexerToken::Type::delimiterNewline) {
                 consume(LexerToken::Type::delimiterSemicolon, diag::DiagnosticID::expression_statement_expected_newline_or_semicolon);
             }
 
@@ -132,7 +143,7 @@ namespace juice {
 
             auto initialization = parseExpression();
 
-            if (!match(LexerToken::Type::delimiterNewline)) {
+            if (_previousToken->type != LexerToken::Type::delimiterNewline) {
                 consume(LexerToken::Type::delimiterSemicolon, diag::DiagnosticID::variable_declaration_expected_newline_or_semicolon);
             }
 
@@ -151,8 +162,13 @@ namespace juice {
             auto module = std::make_unique<ast::ModuleAST>();
 
             advance();
+
+            while (match(LexerToken::Type::delimiterNewline)) continue;
+
             while (!isAtEnd()) {
                 module->appendStatement(parseStatement());
+
+                while (match(LexerToken::Type::delimiterNewline)) continue;
             }
 
             return module;
