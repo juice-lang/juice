@@ -67,6 +67,8 @@ OUTPUT(variable_declaration_ast_1, "%0)", true)
 ERROR(invalid_redeclaration, "invalid redeclaration of '%0'", true)
 ERROR(unresolved_identifer, "use of unresolved identifier '%0'", true)
 
+ERROR(expression_not_assignable, "expression is not assignable", true)
+
 ERROR(codegen_error, "could not generate any code: %0", true)
 ERROR(function_verification_error, "error while validating llvm-function: %0", true)
 

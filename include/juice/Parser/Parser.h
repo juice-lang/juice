@@ -53,6 +53,8 @@ namespace juice {
             std::unique_ptr<ast::ExpressionAST> parsePrimaryExpression();
             std::unique_ptr<ast::ExpressionAST> parseMultiplicationPrecedenceExpression();
             std::unique_ptr<ast::ExpressionAST> parseAdditionPrecedenceExpression();
+            std::unique_ptr<ast::ExpressionAST> parseAssignmentPrecedenceExpression();
+            std::unique_ptr<ast::ExpressionAST> parseExpression();
 
             std::unique_ptr<ast::ExpressionStatementAST> parseExpressionStatement();
 

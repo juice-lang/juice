@@ -49,7 +49,7 @@ namespace juice {
         std::unique_ptr<ast::ExpressionAST> Parser::parseGroupedExpression() {
             if (match(LexerToken::Type::delimiterLeftParen)) {
                 auto token = std::move(_previousToken);
-                auto expression = parseAdditionPrecedenceExpression();
+                auto expression = parseExpression();
                 consume(LexerToken::Type::delimiterRightParen, diag::DiagnosticID::expected_right_paren);
                 return std::make_unique<ast::GroupingExpressionAST>(std::move(token), std::move(expression));
             }
@@ -94,10 +94,29 @@ namespace juice {
             return node;
         }
 
-        std::unique_ptr<ast::ExpressionStatementAST> Parser::parseExpressionStatement() {
-            auto expression = parseAdditionPrecedenceExpression();
+        std::unique_ptr<ast::ExpressionAST> Parser::parseAssignmentPrecedenceExpression() {
+            auto node = parseAdditionPrecedenceExpression();
 
-            if (!match(LexerToken::Type::delimiterNewline) && !isAtEnd()) {
+            while (match(LexerToken::Type::operatorEqual) || match(LexerToken::Type::operatorPlusEqual) ||
+                   match(LexerToken::Type::operatorMinusEqual) || match(LexerToken::Type::operatorAsteriskEqual) ||
+                   match(LexerToken::Type::operatorSlashEqual)) {
+                auto token = std::move(_previousToken);
+                auto right = parseAssignmentPrecedenceExpression();
+                node = std::make_unique<ast::BinaryOperatorExpressionAST>(std::move(token), std::move(node),
+                                                                          std::move(right));
+            }
+
+            return node;
+        }
+
+        std::unique_ptr<ast::ExpressionAST> Parser::parseExpression() {
+            return parseAssignmentPrecedenceExpression();
+        }
+
+        std::unique_ptr<ast::ExpressionStatementAST> Parser::parseExpressionStatement() {
+            auto expression = parseExpression();
+
+            if (!match(LexerToken::Type::delimiterNewline)) {
                 consume(LexerToken::Type::delimiterSemicolon, diag::DiagnosticID::expression_statement_expected_newline_or_semicolon);
             }
 
@@ -111,9 +130,9 @@ namespace juice {
 
             consume(LexerToken::Type::operatorEqual, diag::DiagnosticID::expected_variable_initialization);
 
-            auto initialization = parseAdditionPrecedenceExpression();
+            auto initialization = parseExpression();
 
-            if (!match(LexerToken::Type::delimiterNewline) && !isAtEnd()) {
+            if (!match(LexerToken::Type::delimiterNewline)) {
                 consume(LexerToken::Type::delimiterSemicolon, diag::DiagnosticID::variable_declaration_expected_newline_or_semicolon);
             }
 

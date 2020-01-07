@@ -11,6 +11,8 @@
 
 #include "juice/AST/ExpressionAST.h"
 
+#include <functional>
+#include <map>
 #include <string>
 #include <utility>
 
@@ -22,6 +24,7 @@
 #include "llvm/ADT/StringRef.h"
 #include "llvm/IR/Constants.h"
 #include "llvm/IR/Instructions.h"
+#include "llvm/IR/Value.h"
 
 namespace juice {
     namespace ast {
@@ -60,12 +63,53 @@ namespace juice {
 
         llvm::Value *
         BinaryOperatorExpressionAST::codegen(Codegen & state) const {
+            using namespace std::placeholders;
+            using TokenType = parser::LexerToken::Type;
+            using Builder = llvm::IRBuilder<>;
+
+            Builder & builder = state.getBuilder();
+
+            std::map<TokenType, std::function<llvm::Value *(llvm::Value *, llvm::Value *)>> assignmentOperators {
+                {TokenType::operatorEqual, nullptr},
+                {TokenType::operatorPlusEqual, std::bind(&Builder::CreateFAdd, builder, _1, _2, "addtmp", nullptr)},
+                {TokenType::operatorMinusEqual, std::bind(&Builder::CreateFSub, builder, _1, _2, "subtmp", nullptr)},
+                {TokenType::operatorAsteriskEqual, std::bind(&Builder::CreateFMul, builder, _1, _2, "multmp", nullptr)},
+                {TokenType::operatorSlashEqual, std::bind(&Builder::CreateFDiv, builder, _1, _2, "divtmp", nullptr)}
+            };
+
+            auto function = assignmentOperators.find(_token->type);
+
+            if (function != assignmentOperators.end()) {
+                auto variable = dynamic_cast<VariableExpressionAST *>(_left.get());
+
+                if (variable == nullptr) {
+                    basic::SourceLocation location(_token->string.begin());
+                    throw CodegenException(diag::DiagnosticID::expression_not_assignable, location);
+                }
+
+                llvm::StringRef name = variable->name();
+
+                llvm::Value * right = _right->codegen(state);
+
+                if (right == nullptr) return nullptr;
+
+                llvm::AllocaInst * alloca = state.getNamedValue(name);
+
+                if (function->second != nullptr) {
+                    llvm::Value * variableValue = builder.CreateLoad(alloca, name);
+
+                    right = function->second(variableValue, right);
+                }
+
+                builder.CreateStore(right, alloca);
+
+                return right;
+            }
+
             llvm::Value * left = _left->codegen(state);
             llvm::Value * right = _right->codegen(state);
 
             if (left == nullptr || right == nullptr) return nullptr;
-
-            llvm::IRBuilder<> & builder = state.getBuilder();
 
             switch (_token->type) {
                 case parser::LexerToken::Type::operatorPlus:
@@ -109,14 +153,13 @@ namespace juice {
         }
 
         llvm::Value * VariableExpressionAST::codegen(Codegen & state) const {
-            llvm::StringRef name = _token->string;
-            if (state.namedValueExists(name)) {
-                llvm::AllocaInst * alloca = state.getNamedValue(name);
+            if (state.namedValueExists(name())) {
+                llvm::AllocaInst * alloca = state.getNamedValue(name());
 
-                return state.getBuilder().CreateLoad(alloca, name);
+                return state.getBuilder().CreateLoad(alloca, name());
             } else {
-                basic::SourceLocation location(name.begin());
-                throw VariableException(diag::DiagnosticID::unresolved_identifer, location, name);
+                basic::SourceLocation location(name().begin());
+                throw VariableException(diag::DiagnosticID::unresolved_identifer, location, name());
             }
         }
 

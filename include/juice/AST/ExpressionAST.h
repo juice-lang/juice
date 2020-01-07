@@ -72,6 +72,8 @@ namespace juice {
 
             explicit VariableExpressionAST(std::unique_ptr<parser::LexerToken> token);
 
+            llvm::StringRef name() const { return _token->string; }
+
             void diagnoseInto(diag::DiagnosticEngine &diagnostics, unsigned int level) const override;
 
             llvm::Value * codegen(Codegen &state) const override;
