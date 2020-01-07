@@ -12,31 +12,42 @@
 #include "juice/Driver/CompilerDriver.h"
 
 #include <memory>
-#include <juice/Parser/Parser.h>
+#include <string>
+#include <utility>
 
-#include "juice/Basic/SourceBuffer.h"
-#include "juice/Basic/StringRef.h"
+#include "juice/AST/Codegen.h"
+#include "juice/Basic/SourceManager.h"
 #include "juice/Diagnostics/Diagnostics.h"
-#include "juice/Parser/Lexer.h"
-#include "juice/Parser/LexerToken.h"
+#include "juice/Parser/Parser.h"
+#include "llvm/ADT/StringRef.h"
+#include "llvm/Support/raw_ostream.h"
 
 namespace juice {
     namespace driver {
         int CompilerDriver::execute() {
-            basic::StringRef filename(_filename);
-            auto buffer = basic::SourceBuffer::getFile(filename);
-            if (buffer == nullptr) {
+            llvm::StringRef filename(_filename);
+
+            auto manager = basic::SourceManager::mainFile(filename);
+            if (manager == nullptr) {
                 diag::DiagnosticEngine::diagnose(diag::DiagnosticID::file_not_found, filename);
                 return 1;
             }
 
-            auto diagnostics = std::make_shared<diag::DiagnosticEngine>(buffer);
+            auto diagnostics = std::make_shared<diag::DiagnosticEngine>(std::move(manager));
 
             parser::Parser juiceParser(diagnostics);
 
-            auto expression = juiceParser.parseProgram();
+            auto ast = juiceParser.parseProgram();
 
-            if (expression != nullptr) expression->diagnoseInto(*diagnostics);
+            if (ast != nullptr) {
+                ast->diagnoseInto(*diagnostics, 0);
+
+                ast::Codegen codegen(std::move(ast), diagnostics);
+
+                if (codegen.generate()) {
+                    codegen.dumpProgram();
+                }
+            }
 
             return diagnostics->hadError() ? 1 : 0;
         }

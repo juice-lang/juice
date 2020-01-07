@@ -1,4 +1,4 @@
-# src/juice/Parser/CMakeLists.txt - juice Parser sources CMake file
+# src/juice/AST/CMakeLists.txt - juice AST sources CMake file
 #
 # This file is part of the juice open source project
 #
@@ -8,10 +8,10 @@
 # See https://github.com/juice-lang/juice/blob/master/LICENSE for license information
 # See https://github.com/juice-lang/juice/blob/master/CONTRIBUTORS.txt for the list of juice project authors
 
-
-add_library(juiceParser STATIC
-        ../AST/ExpressionAST.cpp
-        FSM.cpp
-        Lexer.cpp
-        LexerToken.cpp
-        Parser.cpp)
+add_library(juiceAST STATIC
+        AST.cpp
+        Codegen.cpp
+        CodegenException.cpp
+        DeclarationAST.cpp
+        ExpressionAST.cpp
+        StatementAST.cpp)

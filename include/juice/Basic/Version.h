@@ -12,7 +12,7 @@
 #ifndef JUICE_VERSION_H
 #define JUICE_VERSION_H
 
-#include <iostream>
+#include "llvm/Support/raw_ostream.h"
 
 namespace juice {
     namespace basic {
@@ -27,7 +27,7 @@ namespace juice {
 
             friend bool operator>=(const Version & lhs, const Version & rhs);
             friend bool operator==(const Version & lhs, const Version & rhs);
-            friend std::ostream & operator<<(std::ostream & os, const Version & version);
+            friend llvm::raw_ostream & operator<<(llvm::raw_ostream & os, const Version & version);
         };
 
         bool operator>=(const Version & lhs, const Version & rhs);
@@ -37,7 +37,7 @@ namespace juice {
             return !(lhs == rhs);
         }
 
-        std::ostream & operator<<(std::ostream & os, const Version & version);
+        llvm::raw_ostream & operator<<(llvm::raw_ostream & os, const Version & version);
     }
 }
 

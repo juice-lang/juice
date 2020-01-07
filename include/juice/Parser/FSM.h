@@ -33,14 +33,14 @@ namespace juice {
                 State state;
             };
 
-            static Return run(const char * start, State initialState);
+            static Return run(const char * start, const char * end, State initialState);
 
             static StateReturn noNextState(const char *);
         };
 
         class NumberFSM: public FSM {
         public:
-            static Return run(const char * start);
+            static Return run(const char * start, const char * end);
 
             static StateReturn begin(const char * current);
             static StateReturn integer(const char * current);
@@ -53,7 +53,7 @@ namespace juice {
 
         class StringFSM: public FSM {
         public:
-            static Return run(const char * start);
+            static Return run(const char * start, const char * end);
 
             static StateReturn begin(const char * current);
             static StateReturn string(const char * current);

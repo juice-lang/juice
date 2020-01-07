@@ -12,6 +12,8 @@
 #ifndef JUICE_SOURCELOCATION_H
 #define JUICE_SOURCELOCATION_H
 
+#include "llvm/Support/SMLoc.h"
+
 namespace juice {
     namespace basic {
         class SourceLocation {
@@ -28,6 +30,8 @@ namespace juice {
             bool operator!=(const SourceLocation & rhs) const { return !operator==(rhs); }
 
             const char * getPointer() const { return _pointer; }
+
+            llvm::SMLoc llvm() const { return llvm::SMLoc::getFromPointer(_pointer); }
         };
 
         class SourceRange {

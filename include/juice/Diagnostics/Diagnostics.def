@@ -8,7 +8,7 @@
 // See https://github.com/juice-lang/juice/blob/master/LICENSE for license information
 // See https://github.com/juice-lang/juice/blob/master/CONTRIBUTORS.txt for the list of juice project authors
 
-#if !(defined(DIAG) || (defined(ERROR) && defined(WARNING)))
+#if !(defined(DIAG) || (defined(ERROR) && defined(WARNING) && defined(OUTPUT)))
 #error Must define either DIAG or the set {ERROR, WARNING, OUTPUT}
 #endif
 
@@ -46,13 +46,33 @@ OUTPUT(lexer_token, "%0", true)
 //Parser
 ERROR(expected_end_of_file, "expected end of file", true)
 ERROR(expected_expression, "expected expression", true)
-ERROR(expected_newline, "expected newline after expression", true)
+ERROR(expression_statement_expected_newline_or_semicolon, "expected newline or ';' after expression.", true)
 ERROR(expected_right_paren, "expected closing parenthesis after expression", true)
+
+ERROR(expected_variable_name, "expected variable name", true)
+ERROR(expected_variable_initialization, "expected initialization after variable declaration", true)
+ERROR(variable_declaration_expected_newline_or_semicolon, "expected newline or ';' after variable declaration.", true)
 
 OUTPUT(binary_operator_expression_ast_0, "%0BinaryOperatorExpressionAST(\n%1  token: %reset%2\n%0%1  left: ", false)
 OUTPUT(binary_operator_expression_ast_1, "%0%1  right: ", false)
 OUTPUT(binary_operator_expression_ast_2, "%0%1)", true)
+
 OUTPUT(number_expression_ast, "%0NumberExpressionAST(\n%01  token: %reset%2\n%0%1  number: %reset%3\n%0%1)", true)
+OUTPUT(variable_expression_ast, "%0VariableExpressionAST(token: %reset%1%0)", true)
+
+OUTPUT(variable_declaration_ast_0, "VariableDeclarationAST(\n%0  name: %1\n%0  initialization: ", false)
+OUTPUT(variable_declaration_ast_1, "%0)", true)
+
+//AST
+ERROR(invalid_redeclaration, "invalid redeclaration of '%0'", true)
+ERROR(unresolved_identifer, "use of unresolved identifier '%0'", true)
+
+ERROR(expression_not_assignable, "expression is not assignable", true)
+
+ERROR(codegen_error, "could not generate any code: %0", true)
+ERROR(function_verification_error, "error while validating llvm-function: %0", true)
+
+OUTPUT(output, "%0", true)
 
 #if defined(DIAG)
 #undef DIAG

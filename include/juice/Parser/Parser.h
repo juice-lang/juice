@@ -14,8 +14,12 @@
 
 #include <exception>
 #include <memory>
+#include <tuple>
 
-#include "ExpressionAST.h"
+#include "juice/AST/AST.h"
+#include "juice/AST/ExpressionAST.h"
+#include "juice/AST/StatementAST.h"
+#include "juice/AST/DeclarationAST.h"
 #include "Lexer.h"
 #include "LexerToken.h"
 #include "juice/Diagnostics/Diagnostics.h"
@@ -45,10 +49,20 @@ namespace juice {
 
             void consume(LexerToken::Type type, diag::DiagnosticID errorID);
 
-            std::unique_ptr<ExpressionAST> parseGroupedExpression();
-            std::unique_ptr<ExpressionAST> parseNumberExpression();
-            std::unique_ptr<ExpressionAST> parseMultiplicationPrecedenceExpression();
-            std::unique_ptr<ExpressionAST> parseAdditionPrecedenceExpression();
+            std::unique_ptr<ast::ExpressionAST> parseGroupedExpression();
+            std::unique_ptr<ast::ExpressionAST> parsePrimaryExpression();
+            std::unique_ptr<ast::ExpressionAST> parseMultiplicationPrecedenceExpression();
+            std::unique_ptr<ast::ExpressionAST> parseAdditionPrecedenceExpression();
+            std::unique_ptr<ast::ExpressionAST> parseAssignmentPrecedenceExpression();
+            std::unique_ptr<ast::ExpressionAST> parseExpression();
+
+            std::unique_ptr<ast::ExpressionStatementAST> parseExpressionStatement();
+
+            std::unique_ptr<ast::VariableDeclarationAST> parseVariableDeclaration();
+
+            std::unique_ptr<ast::StatementAST> parseStatement();
+
+            std::unique_ptr<ast::ModuleAST> parseModule();
 
         public:
             Parser() = delete;
@@ -57,7 +71,7 @@ namespace juice {
 
             explicit Parser(std::shared_ptr<diag::DiagnosticEngine> diagnostics);
 
-            std::unique_ptr<ExpressionAST> parseProgram();
+            std::unique_ptr<ast::ModuleAST> parseProgram();
         };
     }
 }

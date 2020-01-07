@@ -10,6 +10,7 @@
 
 
 add_executable(juice juice.cpp)
-target_link_libraries(juice juiceBasic juiceDiagnostics juiceDriver juiceParser)
+target_link_libraries(juice ncurses)
+target_link_libraries(juice juiceAST juiceBasic juiceDiagnostics juiceDriver juiceParser ${LLVM_LIBS})
 
 install(TARGETS juice DESTINATION bin)

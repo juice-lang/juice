@@ -19,7 +19,7 @@
 namespace juice {
     namespace parser {
         bool Parser::isAtEnd() {
-            return _currentToken != nullptr && _currentToken->type == LexerToken::Type::eof;
+            return _currentToken == nullptr || _currentToken->type == LexerToken::Type::eof;
         }
 
         bool Parser::check(LexerToken::Type type) {
@@ -46,71 +46,147 @@ namespace juice {
             else throw Error(errorID);
         }
 
-        std::unique_ptr<ExpressionAST> Parser::parseGroupedExpression() {
+        std::unique_ptr<ast::ExpressionAST> Parser::parseGroupedExpression() {
             if (match(LexerToken::Type::delimiterLeftParen)) {
                 auto token = std::move(_previousToken);
-                auto expression = parseAdditionPrecedenceExpression();
+                auto expression = parseExpression();
+
+                while (match(LexerToken::Type::delimiterNewline)) continue;
+
                 consume(LexerToken::Type::delimiterRightParen, diag::DiagnosticID::expected_right_paren);
-                return std::make_unique<GroupingExpressionAST>(std::move(token), std::move(expression));
+                return std::make_unique<ast::GroupingExpressionAST>(std::move(token), std::move(expression));
             }
             throw Error(diag::DiagnosticID::expected_expression);
         }
 
-        std::unique_ptr<ExpressionAST> Parser::parseNumberExpression() {
+        std::unique_ptr<ast::ExpressionAST> Parser::parsePrimaryExpression() {
+            while (match(LexerToken::Type::delimiterNewline)) continue;
+
             if (match(LexerToken::Type::integerLiteral) || match(LexerToken::Type::decimalLiteral)) {
                 auto token = std::move(_previousToken);
                 double number = std::stod(token->string.str());
-                return std::make_unique<NumberExpressionAST>(std::move(token), number);
+                return std::make_unique<ast::NumberExpressionAST>(std::move(token), number);
+            } else if (match(LexerToken::Type::identifier)) {
+                auto token = std::move(_previousToken);
+                return std::make_unique<ast::VariableExpressionAST>(std::move(token));
             }
             return parseGroupedExpression();
         }
 
-        std::unique_ptr<ExpressionAST> Parser::parseMultiplicationPrecedenceExpression() {
-            auto node = parseNumberExpression();
+        std::unique_ptr<ast::ExpressionAST> Parser::parseMultiplicationPrecedenceExpression() {
+            auto node = parsePrimaryExpression();
 
-            while (match(LexerToken::Type::operatorAsterisk) || match(LexerToken::Type::operatorSlash) ||
-                   match(LexerToken::Type::operatorPercent)) {
+            while (match(LexerToken::Type::delimiterNewline)) continue;
+
+            while (match(LexerToken::Type::operatorAsterisk) || match(LexerToken::Type::operatorSlash)) {
                 auto token = std::move(_previousToken);
-                auto right = parseNumberExpression();
-                node = std::make_unique<BinaryOperatorExpressionAST>(std::move(token), std::move(node),
-                                                                     std::move(right));
+                auto right = parsePrimaryExpression();
+                node = std::make_unique<ast::BinaryOperatorExpressionAST>(std::move(token), std::move(node),
+                                                                          std::move(right));
             }
 
             return node;
         }
 
-        std::unique_ptr<ExpressionAST> Parser::parseAdditionPrecedenceExpression() {
+        std::unique_ptr<ast::ExpressionAST> Parser::parseAdditionPrecedenceExpression() {
             auto node = parseMultiplicationPrecedenceExpression();
+
+            while (match(LexerToken::Type::delimiterNewline)) continue;
 
             while (match(LexerToken::Type::operatorPlus) || match(LexerToken::Type::operatorMinus)) {
                 auto token = std::move(_previousToken);
                 auto right = parseMultiplicationPrecedenceExpression();
-                node = std::make_unique<BinaryOperatorExpressionAST>(std::move(token), std::move(node),
-                                                                     std::move(right));
+                node = std::make_unique<ast::BinaryOperatorExpressionAST>(std::move(token), std::move(node),
+                                                                          std::move(right));
             }
 
             return node;
         }
+
+        std::unique_ptr<ast::ExpressionAST> Parser::parseAssignmentPrecedenceExpression() {
+            auto node = parseAdditionPrecedenceExpression();
+
+            while (match(LexerToken::Type::delimiterNewline)) continue;
+
+            while (match(LexerToken::Type::operatorEqual) || match(LexerToken::Type::operatorPlusEqual) ||
+                   match(LexerToken::Type::operatorMinusEqual) || match(LexerToken::Type::operatorAsteriskEqual) ||
+                   match(LexerToken::Type::operatorSlashEqual)) {
+                auto token = std::move(_previousToken);
+                auto right = parseAssignmentPrecedenceExpression();
+                node = std::make_unique<ast::BinaryOperatorExpressionAST>(std::move(token), std::move(node),
+                                                                          std::move(right));
+            }
+
+            return node;
+        }
+
+        std::unique_ptr<ast::ExpressionAST> Parser::parseExpression() {
+            return parseAssignmentPrecedenceExpression();
+        }
+
+        std::unique_ptr<ast::ExpressionStatementAST> Parser::parseExpressionStatement() {
+            auto expression = parseExpression();
+
+            if (_previousToken->type != LexerToken::Type::delimiterNewline) {
+                consume(LexerToken::Type::delimiterSemicolon, diag::DiagnosticID::expression_statement_expected_newline_or_semicolon);
+            }
+
+            return std::make_unique<ast::ExpressionStatementAST>(std::move(expression));
+        }
+
+        std::unique_ptr<ast::VariableDeclarationAST> Parser::parseVariableDeclaration() {
+            consume(LexerToken::Type::identifier, diag::DiagnosticID::expected_variable_name);
+
+            auto name = std::move(_previousToken);
+
+            consume(LexerToken::Type::operatorEqual, diag::DiagnosticID::expected_variable_initialization);
+
+            auto initialization = parseExpression();
+
+            if (_previousToken->type != LexerToken::Type::delimiterNewline) {
+                consume(LexerToken::Type::delimiterSemicolon, diag::DiagnosticID::variable_declaration_expected_newline_or_semicolon);
+            }
+
+            return std::make_unique<ast::VariableDeclarationAST>(std::move(name), std::move(initialization));
+        }
+
+        std::unique_ptr<ast::StatementAST> Parser::parseStatement() {
+            if (match(LexerToken::Type::keywordVar)) {
+                return parseVariableDeclaration();
+            }
+
+            return parseExpressionStatement();
+        }
+
+        std::unique_ptr<ast::ModuleAST> Parser::parseModule() {
+            auto module = std::make_unique<ast::ModuleAST>();
+
+            advance();
+
+            while (match(LexerToken::Type::delimiterNewline)) continue;
+
+            while (!isAtEnd()) {
+                module->appendStatement(parseStatement());
+
+                while (match(LexerToken::Type::delimiterNewline)) continue;
+            }
+
+            return module;
+        }
+
 
         Parser::Parser(std::shared_ptr<diag::DiagnosticEngine> diagnostics):
                 _diagnostics(std::move(diagnostics)), _previousToken(nullptr), _currentToken(nullptr) {
             _lexer = std::make_unique<Lexer>(_diagnostics->getBuffer());
         }
 
-        std::unique_ptr<ExpressionAST> Parser::parseProgram() {
+        std::unique_ptr<ast::ModuleAST> Parser::parseProgram() {
             try {
-                advance();
-                auto expression = parseAdditionPrecedenceExpression();
-
-                consume(LexerToken::Type::delimiterNewline, diag::DiagnosticID::expected_newline);
-
-                if (!isAtEnd()) throw Error(diag::DiagnosticID::expected_end_of_file);
-
-                return expression;
-            } catch (Error & error) {
+                return parseModule();
+            } catch (const Error & error) {
                 basic::SourceLocation location(_currentToken->string.begin());
                 _diagnostics->diagnose(location, error.id);
-            } catch (LexerError & error) {
+            } catch (const LexerError & error) {
                 _currentToken->diagnoseInto(*_diagnostics);
             }
 

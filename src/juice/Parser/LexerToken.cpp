@@ -99,22 +99,22 @@ namespace juice {
             diagnostics.diagnose(location, diag::DiagnosticID::lexer_token, this);
         }
 
-        std::unique_ptr<LexerTokenStream> operator<<(std::ostream & os, const LexerToken * token) {
+        std::unique_ptr<LexerTokenStream> operator<<(llvm::raw_ostream & os, const LexerToken * token) {
             return std::make_unique<LexerTokenStream>(os, token);
         }
 
-        std::ostream & operator<<(std::unique_ptr<LexerTokenStream> tokenStream,
-                                  const std::shared_ptr<basic::SourceBuffer> & sourceBuffer) {
-            std::ostream & os = tokenStream->getOS();
+        llvm::raw_ostream & operator<<(std::unique_ptr<LexerTokenStream> tokenStream,
+                                  const basic::SourceManager * sourceManager) {
+            llvm::raw_ostream & os = tokenStream->getOS();
             const LexerToken * token = tokenStream->getToken();
 
             os << "<" << tokenTypeName(token);
 
-            if (sourceBuffer != nullptr) {
+            if (sourceManager != nullptr) {
                 basic::SourceLocation location(token->string.begin());
 
                 unsigned line, column;
-                std::tie(line, column) = sourceBuffer->getLineAndColumn(location);
+                std::tie(line, column) = sourceManager->getLineAndColumn(location);
 
                 os << " " << line << ":" << column;
             }
