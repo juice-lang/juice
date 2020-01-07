@@ -20,13 +20,13 @@ namespace juice {
         static const FSM::StateReturn acceptedState = {false, FSM::noNextState};
         static const FSM::StateReturn errorState = {true, FSM::noNextState};
 
-        FSM::Return FSM::run(const char * start, FSM::State initialState) {
+        FSM::Return FSM::run(const char * start, const char * end, FSM::State initialState) {
             const char * current = start;
             const char * error = nullptr;
             State currentState = initialState;
 
-            while (*current != 0) {
-                StateReturn result = currentState(current);
+            while (!((current == end && current[-1] == '\n') || current > end)) {
+                StateReturn result = currentState((current == end && current[-1] != '\n') ? "\n" : current);
                 if (result.error && error == nullptr) error = current;
                 if (result.next == &FSM::noNextState) {
                     return {error, (size_t)(current - start), currentState};
@@ -44,8 +44,8 @@ namespace juice {
         }
 
 
-        FSM::Return NumberFSM::run(const char * start) {
-            return FSM::run(start, begin);
+        FSM::Return NumberFSM::run(const char * start, const char * end) {
+            return FSM::run(start, end, begin);
         }
 
         FSM::StateReturn NumberFSM::begin(const char * current) {
@@ -95,8 +95,8 @@ namespace juice {
         }
 
 
-        FSM::Return StringFSM::run(const char * start) {
-            return FSM::run(start, begin);
+        FSM::Return StringFSM::run(const char * start, const char * end) {
+            return FSM::run(start, end, begin);
         }
 
         FSM::StateReturn StringFSM::begin(const char * current) {

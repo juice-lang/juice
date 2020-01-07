@@ -20,16 +20,18 @@
 namespace juice {
     namespace parser {
         char Lexer::peek() {
+            if (_current == _sourceBuffer->getEnd() && _current[-1] != '\n') return '\n';
             return *_current;
         }
 
         char Lexer::peekNext() {
             if (isAtEnd()) return 0;
+            if (_current == _sourceBuffer->getEnd() - 1 && *_current != '\n') return '\n';
             return _current[1];
         }
 
         bool Lexer::isAtEnd() {
-            return _current == _sourceBuffer->getEnd();
+            return (_current == _sourceBuffer->getEnd() && _current[-1] == '\n') || _current > _sourceBuffer->getEnd();
         }
 
         char Lexer::advance() {
@@ -206,7 +208,7 @@ namespace juice {
         }
 
         std::unique_ptr<LexerToken> Lexer::stringLiteral() {
-            FSM::Return result = StringFSM::run(_start);
+            FSM::Return result = StringFSM::run(_start, _sourceBuffer->getEnd());
 
             advanceBy(result.length - 1);
 
@@ -224,7 +226,7 @@ namespace juice {
         }
 
         std::unique_ptr<LexerToken> Lexer::numberLiteral() {
-            FSM::Return result = NumberFSM::run(_start);
+            FSM::Return result = NumberFSM::run(_start, _sourceBuffer->getEnd());
 
             advanceBy(result.length - 1);
 
