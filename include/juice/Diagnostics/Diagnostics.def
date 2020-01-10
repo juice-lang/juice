@@ -44,6 +44,8 @@ ERROR(unterminated_string, "unterminated string literal", true)
 OUTPUT(lexer_token, "%0", true)
 
 //Parser
+ERROR(unexpected_parser_error, "unexpected error in parser", true)
+
 ERROR(expected_end_of_file, "expected end of file", true)
 ERROR(expected_expression, "expected expression", true)
 ERROR(expression_statement_expected_newline_or_semicolon, "expected newline or ';' after expression.", true)

@@ -27,31 +27,45 @@ namespace juice {
             return _currentToken->type == type;
         }
 
-        void Parser::advance() {
+        void Parser::advanceOne() {
+            if (isAtEnd()) throw Error(diag::DiagnosticID::unexpected_parser_error);
             _previousToken = std::move(_currentToken);
-            if (!isAtEnd()) _currentToken = _lexer->nextToken();
+            _currentToken = _lexer->nextToken();
             if (check(LexerToken::Type::error)) throw LexerError();
+        }
+
+        void Parser::skipNewlines() {
+            while (check(LexerToken::Type::delimiterNewline)) {
+                advanceOne();
+            }
+        }
+
+        std::unique_ptr<LexerToken> Parser::advance() {
+            advanceOne();
+            auto token = std::move(_previousToken);
+
+            skipNewlines();
+
+            return token;
         }
 
         bool Parser::match(LexerToken::Type type) {
             if (check(type)) {
-                advance();
+                _matchedToken = advance();
                 return true;
             }
             return false;
         }
 
         void Parser::consume(LexerToken::Type type, diag::DiagnosticID errorID) {
-            if (check(type)) advance();
+            if (check(type)) _matchedToken = advance();
             else throw Error(errorID);
         }
 
         std::unique_ptr<ast::ExpressionAST> Parser::parseGroupedExpression() {
             if (match(LexerToken::Type::delimiterLeftParen)) {
-                auto token = std::move(_previousToken);
+                auto token = std::move(_matchedToken);
                 auto expression = parseExpression();
-
-                while (match(LexerToken::Type::delimiterNewline)) continue;
 
                 consume(LexerToken::Type::delimiterRightParen, diag::DiagnosticID::expected_right_paren);
                 return std::make_unique<ast::GroupingExpressionAST>(std::move(token), std::move(expression));
@@ -60,14 +74,12 @@ namespace juice {
         }
 
         std::unique_ptr<ast::ExpressionAST> Parser::parsePrimaryExpression() {
-            while (match(LexerToken::Type::delimiterNewline)) continue;
-
             if (match(LexerToken::Type::integerLiteral) || match(LexerToken::Type::decimalLiteral)) {
-                auto token = std::move(_previousToken);
+                auto token = std::move(_matchedToken);
                 double number = std::stod(token->string.str());
                 return std::make_unique<ast::NumberExpressionAST>(std::move(token), number);
             } else if (match(LexerToken::Type::identifier)) {
-                auto token = std::move(_previousToken);
+                auto token = std::move(_matchedToken);
                 return std::make_unique<ast::VariableExpressionAST>(std::move(token));
             }
             return parseGroupedExpression();
@@ -76,10 +88,8 @@ namespace juice {
         std::unique_ptr<ast::ExpressionAST> Parser::parseMultiplicationPrecedenceExpression() {
             auto node = parsePrimaryExpression();
 
-            while (match(LexerToken::Type::delimiterNewline)) continue;
-
             while (match(LexerToken::Type::operatorAsterisk) || match(LexerToken::Type::operatorSlash)) {
-                auto token = std::move(_previousToken);
+                auto token = std::move(_matchedToken);
                 auto right = parsePrimaryExpression();
                 node = std::make_unique<ast::BinaryOperatorExpressionAST>(std::move(token), std::move(node),
                                                                           std::move(right));
@@ -91,10 +101,8 @@ namespace juice {
         std::unique_ptr<ast::ExpressionAST> Parser::parseAdditionPrecedenceExpression() {
             auto node = parseMultiplicationPrecedenceExpression();
 
-            while (match(LexerToken::Type::delimiterNewline)) continue;
-
             while (match(LexerToken::Type::operatorPlus) || match(LexerToken::Type::operatorMinus)) {
-                auto token = std::move(_previousToken);
+                auto token = std::move(_matchedToken);
                 auto right = parseMultiplicationPrecedenceExpression();
                 node = std::make_unique<ast::BinaryOperatorExpressionAST>(std::move(token), std::move(node),
                                                                           std::move(right));
@@ -106,12 +114,10 @@ namespace juice {
         std::unique_ptr<ast::ExpressionAST> Parser::parseAssignmentPrecedenceExpression() {
             auto node = parseAdditionPrecedenceExpression();
 
-            while (match(LexerToken::Type::delimiterNewline)) continue;
-
             while (match(LexerToken::Type::operatorEqual) || match(LexerToken::Type::operatorPlusEqual) ||
                    match(LexerToken::Type::operatorMinusEqual) || match(LexerToken::Type::operatorAsteriskEqual) ||
                    match(LexerToken::Type::operatorSlashEqual)) {
-                auto token = std::move(_previousToken);
+                auto token = std::move(_matchedToken);
                 auto right = parseAssignmentPrecedenceExpression();
                 node = std::make_unique<ast::BinaryOperatorExpressionAST>(std::move(token), std::move(node),
                                                                           std::move(right));
@@ -137,7 +143,7 @@ namespace juice {
         std::unique_ptr<ast::VariableDeclarationAST> Parser::parseVariableDeclaration() {
             consume(LexerToken::Type::identifier, diag::DiagnosticID::expected_variable_name);
 
-            auto name = std::move(_previousToken);
+            auto name = std::move(_matchedToken);
 
             consume(LexerToken::Type::operatorEqual, diag::DiagnosticID::expected_variable_initialization);
 
@@ -161,14 +167,10 @@ namespace juice {
         std::unique_ptr<ast::ModuleAST> Parser::parseModule() {
             auto module = std::make_unique<ast::ModuleAST>();
 
-            advance();
-
-            while (match(LexerToken::Type::delimiterNewline)) continue;
+            skipNewlines();
 
             while (!isAtEnd()) {
                 module->appendStatement(parseStatement());
-
-                while (match(LexerToken::Type::delimiterNewline)) continue;
             }
 
             return module;
@@ -176,8 +178,9 @@ namespace juice {
 
 
         Parser::Parser(std::shared_ptr<diag::DiagnosticEngine> diagnostics):
-                _diagnostics(std::move(diagnostics)), _previousToken(nullptr), _currentToken(nullptr) {
+                _diagnostics(std::move(diagnostics)), _previousToken(nullptr), _matchedToken(nullptr) {
             _lexer = std::make_unique<Lexer>(_diagnostics->getBuffer());
+            _currentToken = _lexer->nextToken();
         }
 
         std::unique_ptr<ast::ModuleAST> Parser::parseProgram() {

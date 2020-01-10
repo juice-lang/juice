@@ -40,11 +40,14 @@ namespace juice {
 
             std::unique_ptr<LexerToken> _previousToken;
             std::unique_ptr<LexerToken> _currentToken;
+            std::unique_ptr<LexerToken> _matchedToken;
 
             bool isAtEnd();
             bool check(LexerToken::Type type);
 
-            void advance();
+            void advanceOne();
+            void skipNewlines();
+            std::unique_ptr<LexerToken> advance();
             bool match(LexerToken::Type type);
 
             void consume(LexerToken::Type type, diag::DiagnosticID errorID);
