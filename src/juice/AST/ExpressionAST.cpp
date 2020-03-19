@@ -13,7 +13,6 @@
 
 #include <functional>
 #include <map>
-#include <string>
 #include <utility>
 
 #include "juice/AST/Codegen.h"
@@ -46,19 +45,15 @@ namespace juice {
 
         void BinaryOperatorExpressionAST::diagnoseInto(diag::DiagnosticEngine & diagnostics, unsigned int level) const {
             basic::SourceLocation location(_token->string.begin());
-            std::string indentation;
-            for (unsigned i = 0; i < level; ++i) {
-                indentation += "    ";
-            }
-            llvm::StringRef indentationRef(indentation);
+
             diagnostics.diagnose(location, diag::DiagnosticID::binary_operator_expression_ast_0, colors[level % 6],
-                                 indentationRef, _token.get());
+                                 level, _token.get());
             _left->diagnoseInto(diagnostics, level + 1);
             diagnostics.diagnose(location, diag::DiagnosticID::binary_operator_expression_ast_1, colors[level % 6],
-                                 indentationRef);
+                                 level);
             _right->diagnoseInto(diagnostics, level + 1);
             diagnostics.diagnose(location, diag::DiagnosticID::binary_operator_expression_ast_2, colors[level % 6],
-                                 indentationRef);
+                                 level);
         }
 
         llvm::Value *
@@ -130,12 +125,8 @@ namespace juice {
 
         void NumberExpressionAST::diagnoseInto(diag::DiagnosticEngine & diagnostics, unsigned int level) const {
             basic::SourceLocation location(_token->string.begin());
-            std::string indentation;
-            for (unsigned i = 0; i < level; ++i) {
-                indentation += "    ";
-            }
-            llvm::StringRef indentationRef(indentation);
-            diagnostics.diagnose(location, diag::DiagnosticID::number_expression_ast, colors[level % 6], indentationRef,
+
+            diagnostics.diagnose(location, diag::DiagnosticID::number_expression_ast, colors[level % 6], level,
                                  _token.get(), _value);
         }
 

@@ -57,9 +57,13 @@ namespace juice {
             return false;
         }
 
-        void Parser::consume(LexerToken::Type type, diag::DiagnosticID errorID) {
+        void Parser::consume(LexerToken::Type type, const Error & error) {
             if (check(type)) _matchedToken = advance();
-            else throw Error(errorID);
+            else throw error;
+        }
+
+        void Parser::consume(LexerToken::Type type, diag::DiagnosticID errorID) {
+            consume(type, Error(errorID));
         }
 
         std::unique_ptr<ast::ExpressionAST> Parser::parseGroupedExpression() {
@@ -134,7 +138,7 @@ namespace juice {
             auto expression = parseExpression();
 
             if (_previousToken->type != LexerToken::Type::delimiterNewline) {
-                consume(LexerToken::Type::delimiterSemicolon, diag::DiagnosticID::expression_statement_expected_newline_or_semicolon);
+                consume(LexerToken::Type::delimiterSemicolon, ErrorWithString(diag::DiagnosticID::expected_newline_or_semicolon, "expression"));
             }
 
             return std::make_unique<ast::ExpressionStatementAST>(std::move(expression));
@@ -150,7 +154,7 @@ namespace juice {
             auto initialization = parseExpression();
 
             if (_previousToken->type != LexerToken::Type::delimiterNewline) {
-                consume(LexerToken::Type::delimiterSemicolon, diag::DiagnosticID::variable_declaration_expected_newline_or_semicolon);
+                consume(LexerToken::Type::delimiterSemicolon, ErrorWithString(diag::DiagnosticID::expected_newline_or_semicolon, "variable declaration"));
             }
 
             return std::make_unique<ast::VariableDeclarationAST>(std::move(name), std::move(initialization));
@@ -186,6 +190,9 @@ namespace juice {
         std::unique_ptr<ast::ModuleAST> Parser::parseProgram() {
             try {
                 return parseModule();
+            } catch (const ErrorWithString & error) {
+                basic::SourceLocation location(_currentToken->string.begin());
+                _diagnostics->diagnose(location, error.id, error.name);
             } catch (const Error & error) {
                 basic::SourceLocation location(_currentToken->string.begin());
                 _diagnostics->diagnose(location, error.id);

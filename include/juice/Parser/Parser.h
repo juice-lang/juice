@@ -16,24 +16,35 @@
 #include <memory>
 #include <tuple>
 
+#include "Lexer.h"
+#include "LexerToken.h"
 #include "juice/AST/AST.h"
 #include "juice/AST/ExpressionAST.h"
 #include "juice/AST/StatementAST.h"
 #include "juice/AST/DeclarationAST.h"
-#include "Lexer.h"
-#include "LexerToken.h"
 #include "juice/Diagnostics/Diagnostics.h"
+#include "llvm/ADT/StringRef.h"
 
 namespace juice {
     namespace parser {
         class Parser {
+            struct LexerError: std::exception {};
+
             struct Error: std::exception {
                 diag::DiagnosticID id;
+
+                Error() = delete;
 
                 explicit Error(diag::DiagnosticID id): id(id) {}
             };
 
-            struct LexerError: std::exception {};
+            struct ErrorWithString: Error {
+                llvm::StringRef name;
+
+                ErrorWithString() = delete;
+
+                ErrorWithString(diag::DiagnosticID id, llvm::StringRef name): Error(id), name(name) {}
+            };
 
             std::shared_ptr<diag::DiagnosticEngine> _diagnostics;
             std::unique_ptr<Lexer> _lexer;
@@ -50,6 +61,7 @@ namespace juice {
             std::unique_ptr<LexerToken> advance();
             bool match(LexerToken::Type type);
 
+            void consume(LexerToken::Type type, const Error & error);
             void consume(LexerToken::Type type, diag::DiagnosticID errorID);
 
             std::unique_ptr<ast::ExpressionAST> parseGroupedExpression();

@@ -25,15 +25,10 @@ namespace juice {
 
         void VariableDeclarationAST::diagnoseInto(diag::DiagnosticEngine & diagnostics, unsigned int level) const {
             basic::SourceLocation location(_name->string.begin());
-            std::string indentation;
-            for (unsigned i = 0; i < level; ++i) {
-                indentation += "    ";
-            }
-            llvm::StringRef indentationRef(indentation);
 
-            diagnostics.diagnose(location, diag::DiagnosticID::variable_declaration_ast_0, indentationRef, _name.get());
+            diagnostics.diagnose(location, diag::DiagnosticID::variable_declaration_ast_0, level, _name.get());
             _initialization->diagnoseInto(diagnostics, level + 1);
-            diagnostics.diagnose(location, diag::DiagnosticID::variable_declaration_ast_1, indentationRef);
+            diagnostics.diagnose(location, diag::DiagnosticID::variable_declaration_ast_1, level);
         }
 
         llvm::Value * VariableDeclarationAST::codegen(Codegen & state) const {

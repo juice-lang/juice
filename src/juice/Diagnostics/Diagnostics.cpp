@@ -158,7 +158,11 @@ namespace juice {
             DiagnosticArg arg = args[argIndex];
             switch (arg.getKind()) {
                 case DiagnosticArg::Kind::integer: {
-                    if (modifier == "select") {
+                    if (modifier == "indent") {
+                        for (unsigned int i = 0; i < arg.getAsInteger(); ++i) {
+                            out << "    ";
+                        }
+                    } else if (modifier == "select") {
                         formatSelectionArgInto(out, modifierArguments, args, arg.getAsInteger());
                     } else if (modifier == "s") {
                         if (arg.getAsInteger() != 1)
