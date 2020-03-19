@@ -12,7 +12,6 @@
 #include "juice/Driver/CompilerDriver.h"
 
 #include <memory>
-#include <string>
 #include <utility>
 
 #include "juice/AST/Codegen.h"
@@ -20,7 +19,6 @@
 #include "juice/Diagnostics/Diagnostics.h"
 #include "juice/Parser/Parser.h"
 #include "llvm/ADT/StringRef.h"
-#include "llvm/Support/raw_ostream.h"
 
 namespace juice {
     namespace driver {

@@ -23,7 +23,7 @@ namespace juice {
             _statements.push_back(std::move(statement));
         }
 
-        void ModuleAST::diagnoseInto(diag::DiagnosticEngine & diagnostics, unsigned level) const {
+        void ModuleAST::diagnoseInto(diag::DiagnosticEngine & diagnostics, unsigned int level) const {
             for (const auto & statement: _statements) { statement->diagnoseInto(diagnostics, level); }
         }
 

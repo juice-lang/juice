@@ -53,11 +53,11 @@ namespace juice {
                 return _mainBuffer;
             }
 
-            unsigned getLineNumber(SourceLocation location) const {
+            unsigned int getLineNumber(SourceLocation location) const {
                 return _sourceMgr.FindLineNumber(location.llvm());
             }
 
-            std::pair<unsigned, unsigned> getLineAndColumn(SourceLocation location) const {
+            std::pair<unsigned int, unsigned int> getLineAndColumn(SourceLocation location) const {
                 return _sourceMgr.getLineAndColumn(location.llvm());
             }
 

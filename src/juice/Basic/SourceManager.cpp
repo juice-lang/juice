@@ -28,7 +28,7 @@ namespace juice {
 
             if (buffer.getError()) return nullptr;
 
-            unsigned index = mgr.AddNewSourceBuffer(std::move(buffer.get()), llvm::SMLoc());
+            unsigned int index = mgr.AddNewSourceBuffer(std::move(buffer.get()), llvm::SMLoc());
 
             manager->_mainBuffer = std::make_shared<SourceBuffer>(mgr.getMemoryBuffer(index)->getBufferStart(),
                                                                   mgr.getMemoryBuffer(index)->getBufferEnd(), filename,

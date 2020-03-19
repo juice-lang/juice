@@ -28,11 +28,11 @@ namespace juice {
         public:
             virtual ~AST() = default;
 
-            virtual void diagnoseInto(diag::DiagnosticEngine & diagnostics, unsigned level) const = 0;
+            virtual void diagnoseInto(diag::DiagnosticEngine & diagnostics, unsigned int level) const = 0;
 
             virtual llvm::Value * codegen(Codegen & state) const = 0;
 
-            void diagnoseInto(diag::DiagnosticEngine & diagnostics) const { diagnoseInto(diagnostics, 0); }
+            virtual void diagnoseInto(diag::DiagnosticEngine & diagnostics) const { diagnoseInto(diagnostics, 0); }
         };
 
         class StatementAST;
@@ -47,7 +47,7 @@ namespace juice {
 
             void appendStatement(std::unique_ptr<StatementAST> statement);
 
-            void diagnoseInto(diag::DiagnosticEngine & diagnostics, unsigned level) const override;
+            void diagnoseInto(diag::DiagnosticEngine & diagnostics, unsigned int level) const override;
 
             llvm::Value * codegen(Codegen & state) const override;
         };

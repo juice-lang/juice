@@ -34,7 +34,7 @@ namespace juice {
 
             ~ExpressionAST() override = default;
 
-            void diagnoseInto(diag::DiagnosticEngine & diagnostics, unsigned level) const override = 0;
+            void diagnoseInto(diag::DiagnosticEngine & diagnostics, unsigned int level) const override = 0;
 
             llvm::Value * codegen(Codegen & state) const override = 0;
         };
@@ -48,7 +48,7 @@ namespace juice {
             BinaryOperatorExpressionAST(std::unique_ptr<parser::LexerToken> token, std::unique_ptr<ExpressionAST> left,
                                         std::unique_ptr<ExpressionAST> right);
 
-            void diagnoseInto(diag::DiagnosticEngine & diagnostics, unsigned level) const override;
+            void diagnoseInto(diag::DiagnosticEngine & diagnostics, unsigned int level) const override;
 
             llvm::Value * codegen(Codegen & state) const override;
         };
@@ -61,7 +61,7 @@ namespace juice {
 
             NumberExpressionAST(std::unique_ptr<parser::LexerToken> token, double value);
 
-            void diagnoseInto(diag::DiagnosticEngine & diagnostics, unsigned level) const override;
+            void diagnoseInto(diag::DiagnosticEngine & diagnostics, unsigned int level) const override;
 
             llvm::Value * codegen(Codegen & state) const override;
         };
@@ -88,7 +88,7 @@ namespace juice {
             explicit GroupingExpressionAST(std::unique_ptr<parser::LexerToken> token,
                                            std::unique_ptr<ExpressionAST> expression);
 
-            void diagnoseInto(diag::DiagnosticEngine & diagnostics, unsigned level) const override;
+            void diagnoseInto(diag::DiagnosticEngine & diagnostics, unsigned int level) const override;
 
             llvm::Value * codegen(Codegen & state) const override;
         };

@@ -113,7 +113,7 @@ namespace juice {
             if (sourceManager != nullptr) {
                 basic::SourceLocation location(token->string.begin());
 
-                unsigned line, column;
+                unsigned int line, column;
                 std::tie(line, column) = sourceManager->getLineAndColumn(location);
 
                 os << " " << line << ":" << column;

@@ -105,11 +105,11 @@ namespace juice {
 
         llvm::StringRef
         DiagnosticEngine::skipToDelimiter(llvm::StringRef & text, char delimiter, bool * foundDelimiter) {
-            unsigned depth = 0;
+            unsigned int depth = 0;
             if (foundDelimiter) *foundDelimiter = false;
 
-            unsigned i = 0;
-            for (unsigned n = text.size(); i != n; ++i) {
+            unsigned int i = 0;
+            for (unsigned int n = text.size(); i != n; ++i) {
                 if (text[i] == '{') {
                     ++depth;
                     continue;
@@ -133,7 +133,8 @@ namespace juice {
         }
 
         void DiagnosticEngine::formatSelectionArgInto(llvm::raw_ostream & out, llvm::StringRef modifierArguments,
-                                                      const std::vector<DiagnosticArg> & args, int selectedIndex) {
+                                                      const std::vector<DiagnosticArg> & args,
+                                                      unsigned int selectedIndex) {
             bool foundPipe = false;
             do {
                 assert((!modifierArguments.empty() || foundPipe) && "Index beyond bounds in %select modifier");
@@ -148,7 +149,7 @@ namespace juice {
 
         void DiagnosticEngine::formatDiagnosticArgInto(llvm::raw_ostream & out, llvm::StringRef modifier,
                                                        llvm::StringRef modifierArguments,
-                                                       const std::vector<DiagnosticArg> & args, unsigned argIndex,
+                                                       const std::vector<DiagnosticArg> & args, unsigned int argIndex,
                                                        DiagnosticEngine * diagnostics) {
             if (modifier == "reset") {
                 out << basic::Color::reset << basic::Color::bold;
@@ -158,7 +159,6 @@ namespace juice {
             switch (arg.getKind()) {
                 case DiagnosticArg::Kind::integer: {
                     if (modifier == "select") {
-                        assert(arg.getAsInteger() >= 0 && "Negative selection index");
                         formatSelectionArgInto(out, modifierArguments, args, arg.getAsInteger());
                     } else if (modifier == "s") {
                         if (arg.getAsInteger() != 1)
@@ -236,7 +236,7 @@ namespace juice {
                     modifierArguments = skipToDelimiter(text, '}');
                 }
 
-                unsigned argIndex;
+                unsigned int argIndex;
 
                 if (modifier != "reset") {
                     size_t length = text.find_if_not(basic::isDigit);
@@ -253,15 +253,15 @@ namespace juice {
         }
 
         DiagnosticKind DiagnosticEngine::diagnosticKindFor(const DiagnosticID id) {
-            return diagnosticKinds[(unsigned)id];
+            return diagnosticKinds[(unsigned int)id];
         }
 
         const char * DiagnosticEngine::diagnosticStringFor(const DiagnosticID id) {
-            return diagnosticStrings[(unsigned)id];
+            return diagnosticStrings[(unsigned int)id];
         }
 
         bool DiagnosticEngine::diagnosticNewlineFor(DiagnosticID id) {
-            return diagnosticNewlines[(unsigned)id];
+            return diagnosticNewlines[(unsigned int)id];
         }
     }
 }

@@ -19,7 +19,7 @@ namespace juice {
         ExpressionStatementAST::ExpressionStatementAST(std::unique_ptr<ExpressionAST> expression):
                 _expression(std::move(expression)) {}
 
-        void ExpressionStatementAST::diagnoseInto(diag::DiagnosticEngine & diagnostics, unsigned level) const {
+        void ExpressionStatementAST::diagnoseInto(diag::DiagnosticEngine & diagnostics, unsigned int level) const {
             _expression->diagnoseInto(diagnostics, level);
         }
 

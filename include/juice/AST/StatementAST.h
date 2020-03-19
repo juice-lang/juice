@@ -21,7 +21,7 @@ namespace juice {
     namespace ast {
         class StatementAST: public AST {
         public:
-            void diagnoseInto(diag::DiagnosticEngine & diagnostics, unsigned level) const override = 0;
+            void diagnoseInto(diag::DiagnosticEngine & diagnostics, unsigned int level) const override = 0;
 
             llvm::Value * codegen(Codegen & state) const override = 0;
         };
@@ -36,7 +36,7 @@ namespace juice {
 
             ~ExpressionStatementAST() override = default;
 
-            void diagnoseInto(diag::DiagnosticEngine & diagnostics, unsigned level) const override;
+            void diagnoseInto(diag::DiagnosticEngine & diagnostics, unsigned int level) const override;
 
             llvm::Value * codegen(Codegen & state) const override;
         };

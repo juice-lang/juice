@@ -95,7 +95,7 @@ namespace juice {
         private:
             Kind _kind;
             union {
-                int _integer = 0;
+                unsigned int _integer = 0;
                 double _double;
                 bool _boolean;
                 llvm::StringRef _string;
@@ -106,7 +106,7 @@ namespace juice {
         public:
             DiagnosticArg() = delete;
 
-            explicit DiagnosticArg(int integer): _kind(Kind::integer), _integer(integer) {}
+            explicit DiagnosticArg(unsigned int integer): _kind(Kind::integer), _integer(integer) {}
             explicit DiagnosticArg(double doubleValue): _kind(Kind::doubleValue), _double(doubleValue) {}
             explicit DiagnosticArg(bool boolean): _kind(Kind::boolean), _boolean(boolean) {}
             explicit DiagnosticArg(llvm::StringRef string): _kind(Kind::string), _string(string) {}
@@ -128,7 +128,7 @@ namespace juice {
 
             Kind getKind() const { return _kind; }
 
-            int getAsInteger() const { return _integer; }
+            unsigned int getAsInteger() const { return _integer; }
             double getAsDouble() const { return _double; }
             bool getAsBoolean() const { return _boolean; }
             llvm::StringRef getAsString() const { return _string; }
@@ -172,11 +172,11 @@ namespace juice {
             skipToDelimiter(llvm::StringRef & text, char delimiter, bool * foundDelimiter = nullptr);
 
             static void formatSelectionArgInto(llvm::raw_ostream & out, llvm::StringRef modifierArguments,
-                                               const std::vector<DiagnosticArg> & args, int selectedIndex);
+                                               const std::vector<DiagnosticArg> & args, unsigned int selectedIndex);
 
             static void
             formatDiagnosticArgInto(llvm::raw_ostream & out, llvm::StringRef modifier, llvm::StringRef modifierArguments,
-                                    const std::vector<DiagnosticArg> & args, unsigned argIndex,
+                                    const std::vector<DiagnosticArg> & args, unsigned int argIndex,
                                     DiagnosticEngine * diagnostics = nullptr);
 
             static void
