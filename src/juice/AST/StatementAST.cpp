@@ -16,6 +16,16 @@
 
 namespace juice {
     namespace ast {
+        BlockStatementAST::BlockStatementAST(std::unique_ptr<BlockAST> block): _block(std::move(block)) {}
+
+        void BlockStatementAST::diagnoseInto(diag::DiagnosticEngine & diagnostics, unsigned int level) const {
+            _block->diagnoseInto(diagnostics, level);
+        }
+
+        llvm::Value * BlockStatementAST::codegen(Codegen & state) const {
+            return _block->codegen(state);
+        }
+
         ExpressionStatementAST::ExpressionStatementAST(std::unique_ptr<ExpressionAST> expression):
                 _expression(std::move(expression)) {}
 

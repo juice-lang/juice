@@ -37,15 +37,40 @@ namespace juice {
 
         class StatementAST;
 
-        class ModuleAST: public AST {
+        class ContainerAST: public AST {
+        protected:
             std::vector<std::unique_ptr<StatementAST>> _statements;
 
         public:
-            ModuleAST();
+            ContainerAST() = default;
+
+            void appendStatement(std::unique_ptr<StatementAST> statement);
+
+            void diagnoseInto(diag::DiagnosticEngine & diagnostics, unsigned int level) const override = 0;
+
+            llvm::Value * codegen(Codegen & state) const override = 0;
+        };
+
+        class ModuleAST: public ContainerAST {
+        public:
+            ModuleAST() = default;
 
             ~ModuleAST() override = default;
 
-            void appendStatement(std::unique_ptr<StatementAST> statement);
+            void diagnoseInto(diag::DiagnosticEngine & diagnostics, unsigned int level) const override;
+
+            llvm::Value * codegen(Codegen & state) const override;
+        };
+
+        class BlockAST: public ContainerAST {
+            std::unique_ptr<parser::LexerToken> _start;
+
+        public:
+            BlockAST() = delete;
+
+            BlockAST(std::unique_ptr<parser::LexerToken> start);
+
+            ~BlockAST() override = default;
 
             void diagnoseInto(diag::DiagnosticEngine & diagnostics, unsigned int level) const override;
 

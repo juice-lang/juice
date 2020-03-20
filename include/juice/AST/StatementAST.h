@@ -26,6 +26,21 @@ namespace juice {
             llvm::Value * codegen(Codegen & state) const override = 0;
         };
 
+        class BlockStatementAST: public StatementAST {
+            std::unique_ptr<BlockAST> _block;
+
+        public:
+            BlockStatementAST() = delete;
+
+            explicit BlockStatementAST(std::unique_ptr<BlockAST> block);
+
+            ~BlockStatementAST() override = default;
+
+            void diagnoseInto(diag::DiagnosticEngine & diagnostics, unsigned int level) const override;
+
+            llvm::Value * codegen(Codegen & state) const override;
+        };
+
         class ExpressionStatementAST: public StatementAST {
             std::unique_ptr<ExpressionAST> _expression;
 

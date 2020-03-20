@@ -17,9 +17,7 @@
 
 namespace juice {
     namespace ast {
-        ModuleAST::ModuleAST(): _statements() {}
-
-        void ModuleAST::appendStatement(std::unique_ptr<StatementAST> statement) {
+        void ContainerAST::appendStatement(std::unique_ptr<StatementAST> statement) {
             _statements.push_back(std::move(statement));
         }
 
@@ -41,6 +39,53 @@ namespace juice {
                     return (*last)->codegen(state);
                 }
             }
+        }
+
+        BlockAST::BlockAST(std::unique_ptr<parser::LexerToken> start): ContainerAST(), _start(std::move(start)) {}
+
+        void BlockAST::diagnoseInto(diag::DiagnosticEngine & diagnostics, unsigned int level) const {
+            basic::SourceLocation location(_start->string.begin());
+
+            if (_statements.empty()) {
+                diagnostics.diagnose(location, diag::DiagnosticID::block_ast_empty);
+            } else {
+                diagnostics.diagnose(location, diag::DiagnosticID::block_ast_0, level);
+
+                for (const auto & statement: _statements) {
+                    diagnostics.diagnose(location, diag::DiagnosticID::block_ast_1, level + 1);
+
+                    statement->diagnoseInto(diagnostics, level + 1);
+                }
+
+                diagnostics.diagnose(location, diag::DiagnosticID::block_ast_2, level);
+            }
+        }
+
+        llvm::Value * BlockAST::codegen(Codegen & state) const {
+            state.newScope();
+
+            llvm::Value * returnValue;
+
+            switch (_statements.size()) {
+                case 0:
+                    returnValue = nullptr;
+                    break;
+                case 1:
+                    returnValue = _statements.front()->codegen(state);
+                    break;
+                default: {
+                    auto last = _statements.end() - 1;
+                    for (auto i = _statements.begin(); i < last; ++i) {
+                        (*i)->codegen(state);
+                    }
+                    returnValue = (*last)->codegen(state);
+                    break;
+                }
+            }
+
+            state.endScope();
+
+            return returnValue;
         }
     }
 }

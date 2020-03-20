@@ -22,9 +22,29 @@
 
 namespace juice {
     namespace ast {
+        Scope::Scope(std::unique_ptr<Scope> parent): parent(std::move(parent)) {}
+
+        bool Scope::newNamedValue(llvm::StringRef name, llvm::AllocaInst * alloca) {
+            if (namedValues.find(name) != namedValues.end()) return false;
+
+            namedValues[name] = alloca;
+            return true;
+        }
+
+        bool Scope::namedValueExists(llvm::StringRef name) const {
+            return namedValues.find(name) != namedValues.end() ||
+                   (parent != nullptr ? parent->namedValueExists(name) : false);
+        }
+
+        llvm::AllocaInst * Scope::getNamedValue(llvm::StringRef name) const {
+            return namedValues.find(name) != namedValues.end() ? namedValues.find(name)->second :
+                   (parent != nullptr ? parent->getNamedValue(name) : nullptr);
+        }
+
         Codegen::Codegen(std::unique_ptr<ModuleAST> ast, std::shared_ptr<diag::DiagnosticEngine> diagnostics):
                 _ast(std::move(ast)), _diagnostics(std::move(diagnostics)), _builder(_context) {
             _module = std::make_unique<llvm::Module>("expression", _context);
+            _currentScope = std::make_unique<Scope>();
         }
 
         bool Codegen::generate() {
@@ -72,19 +92,24 @@ namespace juice {
             os << basic::Color::reset;
         }
 
-        bool Codegen::newNamedValue(llvm::StringRef name, llvm::AllocaInst * alloca) {
-            if (namedValueExists(name)) return false;
+        void Codegen::newScope() {
+            _currentScope = std::make_unique<Scope>(std::move(_currentScope));
+        }
 
-            _namedValues[name] = alloca;
-            return true;
+        void Codegen::endScope() {
+            _currentScope = std::move(_currentScope->parent);
+        }
+
+        bool Codegen::newNamedValue(llvm::StringRef name, llvm::AllocaInst * alloca) {
+            return _currentScope->newNamedValue(name, alloca);
         }
 
         bool Codegen::namedValueExists(llvm::StringRef name) const {
-            return _namedValues.find(name) != _namedValues.end();
+            return _currentScope->namedValueExists(name);
         }
 
         llvm::AllocaInst * Codegen::getNamedValue(llvm::StringRef name) const {
-            return _namedValues.find(name)->second;
+            return _currentScope->getNamedValue(name);
         }
 
         llvm::Function *

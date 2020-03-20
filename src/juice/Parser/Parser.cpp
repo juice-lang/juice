@@ -137,7 +137,8 @@ namespace juice {
         std::unique_ptr<ast::ExpressionStatementAST> Parser::parseExpressionStatement() {
             auto expression = parseExpression();
 
-            if (_previousToken->type != LexerToken::Type::delimiterNewline) {
+            if (_previousToken->type != LexerToken::Type::delimiterNewline &&
+                !(_inBlock && check(LexerToken::Type::delimiterRightBrace))) {
                 consume(LexerToken::Type::delimiterSemicolon, ErrorWithString(diag::DiagnosticID::expected_newline_or_semicolon, "expression"));
             }
 
@@ -153,43 +154,66 @@ namespace juice {
 
             auto initialization = parseExpression();
 
-            if (_previousToken->type != LexerToken::Type::delimiterNewline) {
+            bool wasNewline = _previousToken->type == LexerToken::Type::delimiterNewline;
+
+            if (!wasNewline && (!_inBlock || !check(LexerToken::Type::delimiterRightBrace))) {
                 consume(LexerToken::Type::delimiterSemicolon, ErrorWithString(diag::DiagnosticID::expected_newline_or_semicolon, "variable declaration"));
             }
 
             return std::make_unique<ast::VariableDeclarationAST>(std::move(name), std::move(initialization));
         }
 
+        std::unique_ptr<ast::BlockAST> Parser::parseBlock(llvm::StringRef name) {
+            consume(LexerToken::Type::delimiterLeftBrace, ErrorWithString(diag::DiagnosticID::expected_left_brace, name));
+
+            auto block = std::make_unique<ast::BlockAST>(std::move(_matchedToken));
+
+            bool wasInBlock = _inBlock;
+            _inBlock = true;
+
+            parseContainer(*block, [](Parser * parser) { return parser->isAtEnd() || parser->check(LexerToken::Type::delimiterRightBrace); });
+
+            consume(LexerToken::Type::delimiterRightBrace, ErrorWithString(diag::DiagnosticID::expected_right_brace, name));
+
+            _inBlock = wasInBlock;
+
+            return block;
+        }
+
         std::unique_ptr<ast::StatementAST> Parser::parseStatement() {
-            if (match(LexerToken::Type::keywordVar)) {
+            if (match(LexerToken::Type::keywordDo)) {
+                auto block = parseBlock("do");
+
+                return std::make_unique<ast::BlockStatementAST>(std::move(block));
+            } else if (match(LexerToken::Type::keywordVar)) {
                 return parseVariableDeclaration();
             }
 
             return parseExpressionStatement();
         }
 
-        std::unique_ptr<ast::ModuleAST> Parser::parseModule() {
-            auto module = std::make_unique<ast::ModuleAST>();
-
+        void Parser::parseContainer(ast::ContainerAST & container, const std::function<bool(Parser *)> & endCondition) {
             skipNewlines();
 
-            while (!isAtEnd()) {
-                module->appendStatement(parseStatement());
+            while (!endCondition(this)) {
+                container.appendStatement(parseStatement());
             }
-
-            return module;
         }
 
 
         Parser::Parser(std::shared_ptr<diag::DiagnosticEngine> diagnostics):
-                _diagnostics(std::move(diagnostics)), _previousToken(nullptr), _matchedToken(nullptr) {
+                _diagnostics(std::move(diagnostics)), _previousToken(nullptr), _matchedToken(nullptr), _inBlock(false) {
             _lexer = std::make_unique<Lexer>(_diagnostics->getBuffer());
             _currentToken = _lexer->nextToken();
         }
 
-        std::unique_ptr<ast::ModuleAST> Parser::parseProgram() {
+        std::unique_ptr<ast::ModuleAST> Parser::parseModule() {
             try {
-                return parseModule();
+                auto module = std::make_unique<ast::ModuleAST>();
+
+                parseContainer(*module);
+
+                return module;
             } catch (const ErrorWithString & error) {
                 basic::SourceLocation location(_currentToken->string.begin());
                 _diagnostics->diagnose(location, error.id, error.name);

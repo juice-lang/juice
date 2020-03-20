@@ -35,7 +35,7 @@ namespace juice {
 
             parser::Parser juiceParser(diagnostics);
 
-            auto ast = juiceParser.parseProgram();
+            auto ast = juiceParser.parseModule();
 
             if (ast != nullptr) {
                 ast->diagnoseInto(*diagnostics, 0);

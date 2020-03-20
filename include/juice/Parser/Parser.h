@@ -13,6 +13,7 @@
 #define JUICE_PARSER_H
 
 #include <exception>
+#include <functional>
 #include <memory>
 #include <tuple>
 
@@ -53,7 +54,10 @@ namespace juice {
             std::unique_ptr<LexerToken> _currentToken;
             std::unique_ptr<LexerToken> _matchedToken;
 
+            bool _inBlock;
+
             bool isAtEnd();
+
             bool check(LexerToken::Type type);
 
             void advanceOne();
@@ -75,9 +79,11 @@ namespace juice {
 
             std::unique_ptr<ast::VariableDeclarationAST> parseVariableDeclaration();
 
+            std::unique_ptr<ast::BlockAST> parseBlock(llvm::StringRef name);
+
             std::unique_ptr<ast::StatementAST> parseStatement();
 
-            std::unique_ptr<ast::ModuleAST> parseModule();
+            void parseContainer(ast::ContainerAST & container, const std::function<bool(Parser *)> & endCondition = &Parser::isAtEnd);
 
         public:
             Parser() = delete;
@@ -86,7 +92,7 @@ namespace juice {
 
             explicit Parser(std::shared_ptr<diag::DiagnosticEngine> diagnostics);
 
-            std::unique_ptr<ast::ModuleAST> parseProgram();
+            std::unique_ptr<ast::ModuleAST> parseModule();
         };
     }
 }

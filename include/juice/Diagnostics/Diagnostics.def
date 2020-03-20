@@ -67,6 +67,11 @@ OUTPUT(variable_expression_ast, "%0VariableExpressionAST(token: %reset%1%0)", tr
 OUTPUT(variable_declaration_ast_0, "VariableDeclarationAST(\n%indent0  name: %1\n%indent0  initialization: ", false)
 OUTPUT(variable_declaration_ast_1, "%indent0)", true)
 
+OUTPUT(block_ast_empty, "BlockAST(block: {})", true)
+OUTPUT(block_ast_0, "BlockAST(\n%indent0  block: {", true)
+OUTPUT(block_ast_1, "%indent0", false)
+OUTPUT(block_ast_2, "%indent0})", true)
+
 //AST
 ERROR(invalid_redeclaration, "invalid redeclaration of '%0'", true)
 ERROR(unresolved_identifer, "use of unresolved identifier '%0'", true)
