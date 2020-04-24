@@ -12,10 +12,11 @@
 #ifndef JUICE_PARSER_H
 #define JUICE_PARSER_H
 
-#include <exception>
+#include <array>
 #include <functional>
 #include <memory>
 #include <tuple>
+#include <type_traits>
 
 #include "Lexer.h"
 #include "LexerToken.h"
@@ -23,29 +24,73 @@
 #include "juice/AST/ExpressionAST.h"
 #include "juice/AST/StatementAST.h"
 #include "juice/AST/DeclarationAST.h"
+#include "juice/Basic/SFINAE.h"
 #include "juice/Diagnostics/Diagnostics.h"
 #include "llvm/ADT/StringRef.h"
+#include "llvm/Support/Error.h"
+#include "llvm/Support/raw_ostream.h"
 
 namespace juice {
     namespace parser {
         class Parser {
-            struct LexerError: std::exception {};
+            class LexerError: public llvm::ErrorInfo<LexerError> {
+            public:
+                static char ID;
 
-            struct Error: std::exception {
-                diag::DiagnosticID id;
+                void log(llvm::raw_ostream & os) const override {
+                    os << "LexerError";
+                }
+
+                std::error_code convertToErrorCode() const override {
+                    return llvm::inconvertibleErrorCode();
+                }
+            };
+
+            class Error: public llvm::ErrorInfo<Error> {
+                diag::DiagnosticID _diagnosticID;
+
+            public:
+                static char ID;
 
                 Error() = delete;
 
-                explicit Error(diag::DiagnosticID id): id(id) {}
+                explicit Error(diag::DiagnosticID diagnosticID): _diagnosticID(diagnosticID) {}
+
+                diag::DiagnosticID getDiagnosticID() const { return _diagnosticID; }
+
+                void log(llvm::raw_ostream & os) const override {
+                    os << "Error";
+                }
+
+                std::error_code convertToErrorCode() const override {
+                    return llvm::inconvertibleErrorCode();
+                }
             };
 
-            struct ErrorWithString: Error {
-                llvm::StringRef name;
+            class ErrorWithString: public llvm::ErrorInfo<ErrorWithString> {
+                diag::DiagnosticID _diagnosticID;
+                llvm::StringRef _name;
+
+            public:
+                static char ID;
 
                 ErrorWithString() = delete;
 
-                ErrorWithString(diag::DiagnosticID id, llvm::StringRef name): Error(id), name(name) {}
+                ErrorWithString(diag::DiagnosticID diagnosticID, llvm::StringRef name):
+                    _diagnosticID(diagnosticID), _name(name) {}
+
+                diag::DiagnosticID getDiagnosticID() const { return _diagnosticID; }
+                llvm::StringRef getName() const { return _name; }
+
+                void log(llvm::raw_ostream & os) const override {
+                    os << "ErrorWithString";
+                }
+
+                std::error_code convertToErrorCode() const override {
+                    return llvm::inconvertibleErrorCode();
+                }
             };
+
 
             std::shared_ptr<diag::DiagnosticEngine> _diagnostics;
             std::unique_ptr<Lexer> _lexer;
@@ -55,35 +100,50 @@ namespace juice {
             std::unique_ptr<LexerToken> _matchedToken;
 
             bool _inBlock;
+            bool _wasNewline;
 
             bool isAtEnd();
 
+            const std::unique_ptr<LexerToken> & getPreviousToken();
+
             bool check(LexerToken::Type type);
+            bool checkPrevious(LexerToken::Type type);
 
-            void advanceOne();
-            void skipNewlines();
-            std::unique_ptr<LexerToken> advance();
-            bool match(LexerToken::Type type);
+            llvm::Error advanceOne();
+            llvm::Error skipNewlines();
+            llvm::Expected<std::unique_ptr<LexerToken>> advance();
 
-            void consume(LexerToken::Type type, const Error & error);
-            void consume(LexerToken::Type type, diag::DiagnosticID errorID);
+            llvm::Expected<bool> match(LexerToken::Type type);
 
-            std::unique_ptr<ast::ExpressionAST> parseGroupedExpression();
-            std::unique_ptr<ast::ExpressionAST> parsePrimaryExpression();
-            std::unique_ptr<ast::ExpressionAST> parseMultiplicationPrecedenceExpression();
-            std::unique_ptr<ast::ExpressionAST> parseAdditionPrecedenceExpression();
-            std::unique_ptr<ast::ExpressionAST> parseAssignmentPrecedenceExpression();
-            std::unique_ptr<ast::ExpressionAST> parseExpression();
+            template <typename... T, std::enable_if_t<basic::all_same<LexerToken::Type, T...>::value> * = nullptr>
+            llvm::Expected<bool> match(LexerToken::Type type, T... types);
 
-            std::unique_ptr<ast::ExpressionStatementAST> parseExpressionStatement();
+            template <size_t size>
+            llvm::Expected<bool> match(const std::array<LexerToken::Type, size> & types);
 
-            std::unique_ptr<ast::VariableDeclarationAST> parseVariableDeclaration();
+            llvm::Error consume(LexerToken::Type type, llvm::Error errorToReturn);
+            llvm::Error consume(LexerToken::Type type, diag::DiagnosticID errorID);
+            llvm::Error consume(LexerToken::Type type, diag::DiagnosticID errorID, llvm::StringRef name);
 
-            std::unique_ptr<ast::BlockAST> parseBlock(llvm::StringRef name);
 
-            std::unique_ptr<ast::StatementAST> parseStatement();
+            llvm::Expected<std::unique_ptr<ast::ExpressionAST>> parseGroupedExpression();
 
-            void parseContainer(ast::ContainerAST & container, const std::function<bool(Parser *)> & endCondition = &Parser::isAtEnd);
+            llvm::Expected<std::unique_ptr<ast::ExpressionAST>> parsePrimaryExpression();
+            llvm::Expected<std::unique_ptr<ast::ExpressionAST>> parseMultiplicationPrecedenceExpression();
+            llvm::Expected<std::unique_ptr<ast::ExpressionAST>> parseAdditionPrecedenceExpression();
+            llvm::Expected<std::unique_ptr<ast::ExpressionAST>> parseAssignmentPrecedenceExpression();
+            llvm::Expected<std::unique_ptr<ast::ExpressionAST>> parseExpression();
+
+            llvm::Expected<std::unique_ptr<ast::ExpressionStatementAST>> parseExpressionStatement();
+
+            llvm::Expected<std::unique_ptr<ast::VariableDeclarationAST>> parseVariableDeclaration();
+
+            llvm::Expected<std::unique_ptr<ast::BlockAST>> parseBlock(llvm::StringRef name);
+
+            llvm::Expected<std::unique_ptr<ast::StatementAST>> parseStatement();
+
+            llvm::Error parseContainer(ast::ContainerAST & container,
+                                       const std::function<bool(Parser *)> & endCondition = &Parser::isAtEnd);
 
         public:
             Parser() = delete;

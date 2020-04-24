@@ -12,6 +12,7 @@
 add_compile_options(${LLVM_COMPILE_FLAGS})
 
 add_library(juiceBasic STATIC
+        Error.cpp
         RawStreamHelpers.cpp
         SourceBuffer.cpp
         SourceManager.cpp

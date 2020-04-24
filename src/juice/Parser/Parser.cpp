@@ -11,15 +11,26 @@
 
 #include "juice/Parser/Parser.h"
 
+#include <optional>
 #include <string>
 #include <utility>
 
+#include "juice/Basic/Error.h"
 #include "juice/Basic/SourceLocation.h"
 
 namespace juice {
     namespace parser {
+        char Parser::LexerError::ID = 0;
+        char Parser::Error::ID = 0;
+        char Parser::ErrorWithString::ID = 0;
+
         bool Parser::isAtEnd() {
             return _currentToken == nullptr || _currentToken->type == LexerToken::Type::eof;
+        }
+
+        const std::unique_ptr<LexerToken> & Parser::getPreviousToken() {
+            if (_previousToken) return _previousToken;
+            return _matchedToken;
         }
 
         bool Parser::check(LexerToken::Type type) {
@@ -27,204 +38,332 @@ namespace juice {
             return _currentToken->type == type;
         }
 
-        void Parser::advanceOne() {
-            if (isAtEnd()) throw Error(diag::DiagnosticID::unexpected_parser_error);
+        bool Parser::checkPrevious(LexerToken::Type type) {
+            return getPreviousToken()->type == type;
+        }
+
+        llvm::Error Parser::advanceOne() {
+            if (isAtEnd()) return llvm::make_error<Error>(diag::DiagnosticID::unexpected_parser_error);
             _previousToken = std::move(_currentToken);
+            if (_previousToken) _wasNewline = (_previousToken->type == LexerToken::Type::delimiterNewline);
             _currentToken = _lexer->nextToken();
-            if (check(LexerToken::Type::error)) throw LexerError();
+            if (check(LexerToken::Type::error)) return llvm::make_error<LexerError>();
+
+            return llvm::Error::success();
         }
 
-        void Parser::skipNewlines() {
+        llvm::Error Parser::skipNewlines() {
             while (check(LexerToken::Type::delimiterNewline)) {
-                advanceOne();
+                if (auto error = advanceOne()) return error;
             }
+
+            return llvm::Error::success();
         }
 
-        std::unique_ptr<LexerToken> Parser::advance() {
-            advanceOne();
+        llvm::Expected<std::unique_ptr<LexerToken>> Parser::advance() {
+            if (auto error = advanceOne()) return std::move(error);
             auto token = std::move(_previousToken);
 
-            skipNewlines();
+            if (auto error = skipNewlines()) return std::move(error);
 
             return token;
         }
 
-        bool Parser::match(LexerToken::Type type) {
+        llvm::Expected<bool> Parser::match(LexerToken::Type type) {
             if (check(type)) {
-                _matchedToken = advance();
+                auto matchedToken = advance();
+                if (auto error = matchedToken.takeError()) return std::move(error);
+
+                _matchedToken = std::move(*matchedToken);
                 return true;
             }
             return false;
         }
 
-        void Parser::consume(LexerToken::Type type, const Error & error) {
-            if (check(type)) _matchedToken = advance();
-            else throw error;
+        template<typename... T, std::enable_if_t<basic::all_same<LexerToken::Type, T...>::value> *>
+        llvm::Expected<bool> Parser::match(LexerToken::Type type, T... types) {
+            auto matched = match(type);
+            if (auto error = matched.takeError()) return std::move(error);
+
+            if (*matched) return true;
+
+            return match(types...);
         }
 
-        void Parser::consume(LexerToken::Type type, diag::DiagnosticID errorID) {
-            consume(type, Error(errorID));
-        }
+        template<size_t size>
+        llvm::Expected<bool> Parser::match(const std::array<LexerToken::Type, size> & types) {
+            for (const auto & type: types) {
+                auto matched = match(LexerToken::Type::delimiterLeftParen);
+                if (auto error = matched.takeError()) return std::move(error);
 
-        std::unique_ptr<ast::ExpressionAST> Parser::parseGroupedExpression() {
-            if (match(LexerToken::Type::delimiterLeftParen)) {
-                auto token = std::move(_matchedToken);
-                auto expression = parseExpression();
-
-                consume(LexerToken::Type::delimiterRightParen, diag::DiagnosticID::expected_right_paren);
-                return std::make_unique<ast::GroupingExpressionAST>(std::move(token), std::move(expression));
+                if (*matched) return true;
             }
-            throw Error(diag::DiagnosticID::expected_expression);
+
+            return false;
         }
 
-        std::unique_ptr<ast::ExpressionAST> Parser::parsePrimaryExpression() {
-            if (match(LexerToken::Type::integerLiteral) || match(LexerToken::Type::decimalLiteral)) {
+        llvm::Error Parser::consume(LexerToken::Type type, llvm::Error errorToReturn) {
+            if (check(type)) {
+                auto matchedToken = advance();
+                if (auto error = matchedToken.takeError()) return error;
+
+                _matchedToken = std::move(*matchedToken);
+                
+                llvm::consumeError(std::move(errorToReturn));
+
+                return llvm::Error::success();
+            }
+
+            return std::move(errorToReturn);
+        }
+
+        llvm::Error Parser::consume(LexerToken::Type type, diag::DiagnosticID errorID) {
+            return consume(type, llvm::make_error<Error>(errorID));
+        }
+
+        llvm::Error Parser::consume(LexerToken::Type type, diag::DiagnosticID errorID, llvm::StringRef name) {
+            return consume(type, llvm::make_error<ErrorWithString>(errorID, name));
+        }
+
+
+        llvm::Expected<std::unique_ptr<ast::ExpressionAST>> Parser::parseGroupedExpression() {
+            auto matched = match(LexerToken::Type::delimiterLeftParen);
+            if (auto error = matched.takeError()) return std::move(error);
+
+            if (*matched) {
+                auto token = std::move(_matchedToken);
+
+                auto expression = parseExpression();
+                if (auto error = expression.takeError()) return std::move(error);
+
+                if (auto error = consume(LexerToken::Type::delimiterRightParen,
+                                         diag::DiagnosticID::expected_right_paren))
+                    return std::move(error);
+
+                return std::make_unique<ast::GroupingExpressionAST>(std::move(token), std::move(*expression));
+            }
+
+            return llvm::make_error<Error>(diag::DiagnosticID::expected_expression);
+        }
+
+        llvm::Expected<std::unique_ptr<ast::ExpressionAST>> Parser::parsePrimaryExpression() {
+            auto matchedNumber = match(LexerToken::Type::integerLiteral, LexerToken::Type::decimalLiteral);
+            if (auto error = matchedNumber.takeError()) return std::move(error);
+
+            if (*matchedNumber) {
                 auto token = std::move(_matchedToken);
                 double number = std::stod(token->string.str());
                 return std::make_unique<ast::NumberExpressionAST>(std::move(token), number);
-            } else if (match(LexerToken::Type::identifier)) {
+            }
+
+            auto matchedIdentifier = match(LexerToken::Type::identifier);
+            if (auto error = matchedIdentifier.takeError()) return std::move(error);
+
+            if (*matchedIdentifier) {
                 auto token = std::move(_matchedToken);
                 return std::make_unique<ast::VariableExpressionAST>(std::move(token));
             }
+
             return parseGroupedExpression();
         }
 
-        std::unique_ptr<ast::ExpressionAST> Parser::parseMultiplicationPrecedenceExpression() {
+        llvm::Expected<std::unique_ptr<ast::ExpressionAST>> Parser::parseMultiplicationPrecedenceExpression() {
             auto node = parsePrimaryExpression();
+            if (auto error = node.takeError()) return std::move(error);
 
-            while (match(LexerToken::Type::operatorAsterisk) || match(LexerToken::Type::operatorSlash)) {
+            auto matched = match(LexerToken::Type::operatorAsterisk, LexerToken::Type::operatorSlash);
+            if (auto error = matched.takeError()) return std::move(error);
+
+            while (*matched) {
                 auto token = std::move(_matchedToken);
+
                 auto right = parsePrimaryExpression();
-                node = std::make_unique<ast::BinaryOperatorExpressionAST>(std::move(token), std::move(node),
-                                                                          std::move(right));
+                if (auto error = right.takeError()) return std::move(error);
+
+                node = std::make_unique<ast::BinaryOperatorExpressionAST>(std::move(token), std::move(*node),
+                                                                          std::move(*right));
+
+                matched = match(LexerToken::Type::operatorAsterisk, LexerToken::Type::operatorSlash);
+                if (auto error = matched.takeError()) return std::move(error);
             }
 
             return node;
         }
 
-        std::unique_ptr<ast::ExpressionAST> Parser::parseAdditionPrecedenceExpression() {
+        llvm::Expected<std::unique_ptr<ast::ExpressionAST>> Parser::parseAdditionPrecedenceExpression() {
             auto node = parseMultiplicationPrecedenceExpression();
+            if (auto error = node.takeError()) return std::move(error);
 
-            while (match(LexerToken::Type::operatorPlus) || match(LexerToken::Type::operatorMinus)) {
+            auto matched = match(LexerToken::Type::operatorPlus, LexerToken::Type::operatorMinus);
+            if (auto error = matched.takeError()) return std::move(error);
+
+            while (*matched) {
                 auto token = std::move(_matchedToken);
+
                 auto right = parseMultiplicationPrecedenceExpression();
-                node = std::make_unique<ast::BinaryOperatorExpressionAST>(std::move(token), std::move(node),
-                                                                          std::move(right));
+                if (auto error = right.takeError()) return std::move(error);
+
+                node = std::make_unique<ast::BinaryOperatorExpressionAST>(std::move(token), std::move(*node),
+                                                                          std::move(*right));
+
+                matched = match(LexerToken::Type::operatorPlus, LexerToken::Type::operatorMinus);
+                if (auto error = matched.takeError()) return std::move(error);
             }
 
             return node;
         }
 
-        std::unique_ptr<ast::ExpressionAST> Parser::parseAssignmentPrecedenceExpression() {
+        llvm::Expected<std::unique_ptr<ast::ExpressionAST>> Parser::parseAssignmentPrecedenceExpression() {
             auto node = parseAdditionPrecedenceExpression();
+            if (auto error = node.takeError()) return std::move(error);
 
-            while (match(LexerToken::Type::operatorEqual) || match(LexerToken::Type::operatorPlusEqual) ||
-                   match(LexerToken::Type::operatorMinusEqual) || match(LexerToken::Type::operatorAsteriskEqual) ||
-                   match(LexerToken::Type::operatorSlashEqual)) {
+            auto matched = match(LexerToken::Type::operatorEqual, LexerToken::Type::operatorPlusEqual,
+                                 LexerToken::Type::operatorMinusEqual, LexerToken::Type::operatorAsteriskEqual,
+                                 LexerToken::Type::operatorSlashEqual);
+            if (auto error = matched.takeError()) return std::move(error);
+
+            while (*matched) {
                 auto token = std::move(_matchedToken);
+
                 auto right = parseAssignmentPrecedenceExpression();
-                node = std::make_unique<ast::BinaryOperatorExpressionAST>(std::move(token), std::move(node),
-                                                                          std::move(right));
+                if (auto error = right.takeError()) return std::move(error);
+
+                node = std::make_unique<ast::BinaryOperatorExpressionAST>(std::move(token), std::move(*node),
+                                                                          std::move(*right));
+
+                matched = match(LexerToken::Type::operatorEqual, LexerToken::Type::operatorPlusEqual,
+                                LexerToken::Type::operatorMinusEqual, LexerToken::Type::operatorAsteriskEqual,
+                                LexerToken::Type::operatorSlashEqual);
+                if (auto error = matched.takeError()) return std::move(error);
             }
 
             return node;
         }
 
-        std::unique_ptr<ast::ExpressionAST> Parser::parseExpression() {
+        llvm::Expected<std::unique_ptr<ast::ExpressionAST>> Parser::parseExpression() {
             return parseAssignmentPrecedenceExpression();
         }
 
-        std::unique_ptr<ast::ExpressionStatementAST> Parser::parseExpressionStatement() {
+        llvm::Expected<std::unique_ptr<ast::ExpressionStatementAST>> Parser::parseExpressionStatement() {
             auto expression = parseExpression();
+            if (auto error = expression.takeError()) return std::move(error);
 
-            if (_previousToken->type != LexerToken::Type::delimiterNewline &&
-                !(_inBlock && check(LexerToken::Type::delimiterRightBrace))) {
-                consume(LexerToken::Type::delimiterSemicolon, ErrorWithString(diag::DiagnosticID::expected_newline_or_semicolon, "expression"));
+            if (!_wasNewline && !(_inBlock && check(LexerToken::Type::delimiterRightBrace))) {
+                if (auto error = consume(LexerToken::Type::delimiterSemicolon,
+                                         diag::DiagnosticID::expected_newline_or_semicolon, "expression"))
+                    return std::move(error);
             }
 
-            return std::make_unique<ast::ExpressionStatementAST>(std::move(expression));
+            return std::make_unique<ast::ExpressionStatementAST>(std::move(*expression));
         }
 
-        std::unique_ptr<ast::VariableDeclarationAST> Parser::parseVariableDeclaration() {
-            consume(LexerToken::Type::identifier, diag::DiagnosticID::expected_variable_name);
+        llvm::Expected<std::unique_ptr<ast::VariableDeclarationAST>> Parser::parseVariableDeclaration() {
+            if (auto error = consume(LexerToken::Type::identifier, diag::DiagnosticID::expected_variable_name))
+                return std::move(error);
 
             auto name = std::move(_matchedToken);
 
-            consume(LexerToken::Type::operatorEqual, diag::DiagnosticID::expected_variable_initialization);
+            if (auto error =
+                consume(LexerToken::Type::operatorEqual, diag::DiagnosticID::expected_variable_initialization))
+                return std::move(error);
 
             auto initialization = parseExpression();
+            if (auto error = initialization.takeError()) return std::move(error);
 
-            bool wasNewline = _previousToken->type == LexerToken::Type::delimiterNewline;
-
-            if (!wasNewline && (!_inBlock || !check(LexerToken::Type::delimiterRightBrace))) {
-                consume(LexerToken::Type::delimiterSemicolon, ErrorWithString(diag::DiagnosticID::expected_newline_or_semicolon, "variable declaration"));
+            if (!_wasNewline && !(_inBlock && check(LexerToken::Type::delimiterRightBrace))) {
+                if (auto error =
+                    consume(LexerToken::Type::delimiterSemicolon,
+                            diag::DiagnosticID::expected_newline_or_semicolon, "variable declaration"))
+                    return std::move(error);
             }
 
-            return std::make_unique<ast::VariableDeclarationAST>(std::move(name), std::move(initialization));
+            return std::make_unique<ast::VariableDeclarationAST>(std::move(name), std::move(*initialization));
         }
 
-        std::unique_ptr<ast::BlockAST> Parser::parseBlock(llvm::StringRef name) {
-            consume(LexerToken::Type::delimiterLeftBrace, ErrorWithString(diag::DiagnosticID::expected_left_brace, name));
+        llvm::Expected<std::unique_ptr<ast::BlockAST>> Parser::parseBlock(llvm::StringRef name) {
+            if (auto error = consume(LexerToken::Type::delimiterLeftBrace,
+                                     diag::DiagnosticID::expected_left_brace, name))
+                return std::move(error);
 
             auto block = std::make_unique<ast::BlockAST>(std::move(_matchedToken));
 
             bool wasInBlock = _inBlock;
             _inBlock = true;
 
-            parseContainer(*block, [](Parser * parser) { return parser->isAtEnd() || parser->check(LexerToken::Type::delimiterRightBrace); });
+            if (auto error = parseContainer(*block, [](Parser * parser) {
+                return parser->isAtEnd() || parser->check(LexerToken::Type::delimiterRightBrace);
+            })) return std::move(error);
 
-            consume(LexerToken::Type::delimiterRightBrace, ErrorWithString(diag::DiagnosticID::expected_right_brace, name));
+            if (auto error =
+                consume(LexerToken::Type::delimiterRightBrace,
+                        llvm::make_error<ErrorWithString>(diag::DiagnosticID::expected_right_brace, name)))
+                return std::move(error);
 
             _inBlock = wasInBlock;
 
             return block;
         }
 
-        std::unique_ptr<ast::StatementAST> Parser::parseStatement() {
-            if (match(LexerToken::Type::keywordDo)) {
-                auto block = parseBlock("do");
+        llvm::Expected<std::unique_ptr<ast::StatementAST>> Parser::parseStatement() {
+            auto matchedDo = match(LexerToken::Type::keywordDo);
+            if (auto error = matchedDo.takeError()) return std::move(error);
 
-                return std::make_unique<ast::BlockStatementAST>(std::move(block));
-            } else if (match(LexerToken::Type::keywordVar)) {
-                return parseVariableDeclaration();
+            if (*matchedDo) {
+                auto block = parseBlock("do");
+                if (auto error = block.takeError()) return std::move(error);
+
+                return std::make_unique<ast::BlockStatementAST>(std::move(*block));
             }
+
+            auto matchedVar = match(LexerToken::Type::keywordVar);
+            if (auto error = matchedVar.takeError()) return std::move(error);
+
+            if (*matchedVar) return parseVariableDeclaration();
 
             return parseExpressionStatement();
         }
 
-        void Parser::parseContainer(ast::ContainerAST & container, const std::function<bool(Parser *)> & endCondition) {
-            skipNewlines();
+        llvm::Error Parser::parseContainer(ast::ContainerAST & container,
+                                           const std::function<bool(Parser *)> & endCondition) {
+            if (auto error = skipNewlines()) return error;
 
             while (!endCondition(this)) {
-                container.appendStatement(parseStatement());
+                auto statement = parseStatement();
+                if (auto error = statement.takeError()) return error;
+
+                container.appendStatement(std::move(*statement));
             }
+
+            return llvm::Error::success();
         }
 
-
         Parser::Parser(std::shared_ptr<diag::DiagnosticEngine> diagnostics):
-                _diagnostics(std::move(diagnostics)), _previousToken(nullptr), _matchedToken(nullptr), _inBlock(false) {
+            _diagnostics(std::move(diagnostics)), _previousToken(nullptr), _matchedToken(nullptr), _inBlock(false),
+            _wasNewline(false) {
             _lexer = std::make_unique<Lexer>(_diagnostics->getBuffer());
             _currentToken = _lexer->nextToken();
         }
 
         std::unique_ptr<ast::ModuleAST> Parser::parseModule() {
-            try {
-                auto module = std::make_unique<ast::ModuleAST>();
+            auto module = std::make_unique<ast::ModuleAST>();
 
-                parseContainer(*module);
-
-                return module;
-            } catch (const ErrorWithString & error) {
-                basic::SourceLocation location(_currentToken->string.begin());
-                _diagnostics->diagnose(location, error.id, error.name);
-            } catch (const Error & error) {
-                basic::SourceLocation location(_currentToken->string.begin());
-                _diagnostics->diagnose(location, error.id);
-            } catch (const LexerError & error) {
-                _currentToken->diagnoseInto(*_diagnostics);
+            if (auto error = llvm::handleErrors(parseContainer(*module), [this](const ErrorWithString & error) {
+                    basic::SourceLocation location(_currentToken->string.begin());
+                    _diagnostics->diagnose(location, error.getDiagnosticID(), error.getName());
+                    return llvm::make_error<basic::ReturningError>();
+                }, [this](const Error & error) {
+                    basic::SourceLocation location(_currentToken->string.begin());
+                    _diagnostics->diagnose(location, error.getDiagnosticID());
+                    return llvm::make_error<basic::ReturningError>();
+                }, [this](const LexerError & error) {
+                    _currentToken->diagnoseInto(*_diagnostics);
+                    return llvm::make_error<basic::ReturningError>();
+                })) {
+                llvm::consumeError(std::move(error));
+                return nullptr;
             }
 
-            return nullptr;
+            return module;
         }
     }
 }
