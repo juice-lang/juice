@@ -19,12 +19,7 @@
 
 namespace juice {
     namespace ast {
-        class StatementAST: public AST {
-        public:
-            void diagnoseInto(diag::DiagnosticEngine & diagnostics, unsigned int level) const override = 0;
-
-            llvm::Value * codegen(Codegen & state) const override = 0;
-        };
+        class StatementAST: public AST {};
 
         class BlockStatementAST: public StatementAST {
             std::unique_ptr<BlockAST> _block;

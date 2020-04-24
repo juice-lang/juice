@@ -19,12 +19,7 @@
 
 namespace juice {
     namespace ast {
-        class DeclarationAST: public StatementAST {
-        public:
-            void diagnoseInto(diag::DiagnosticEngine & diagnostics, unsigned int level) const override = 0;
-
-            llvm::Value * codegen(Codegen & state) const override = 0;
-        };
+        class DeclarationAST: public StatementAST {};
 
         class VariableDeclarationAST: public DeclarationAST {
             std::unique_ptr<parser::LexerToken> _name;

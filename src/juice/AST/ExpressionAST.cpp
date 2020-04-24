@@ -24,10 +24,11 @@
 #include "llvm/IR/Constants.h"
 #include "llvm/IR/Instructions.h"
 #include "llvm/IR/Value.h"
+#include "llvm/Support/Casting.h"
 
 namespace juice {
     namespace ast {
-        static const basic::Color colors[] {
+        static constexpr basic::Color colors[] {
                 basic::Color::cyan,
                 basic::Color::blue,
                 basic::Color::magenta,
@@ -36,12 +37,13 @@ namespace juice {
                 basic::Color::green
         };
 
-        ExpressionAST::ExpressionAST(std::unique_ptr<juice::parser::LexerToken> token): _token(std::move(token)) {}
+        ExpressionAST::ExpressionAST(Kind kind, std::unique_ptr<juice::parser::LexerToken> token):
+            _kind(kind), _token(std::move(token)) {}
 
         BinaryOperatorExpressionAST::BinaryOperatorExpressionAST(std::unique_ptr<parser::LexerToken> token,
                                                                  std::unique_ptr<ExpressionAST> left,
                                                                  std::unique_ptr<ExpressionAST> right):
-                ExpressionAST(std::move(token)), _left(std::move(left)), _right(std::move(right)) {}
+            ExpressionAST(Kind::binaryOperator, std::move(token)), _left(std::move(left)), _right(std::move(right)) {}
 
         void BinaryOperatorExpressionAST::diagnoseInto(diag::DiagnosticEngine & diagnostics, unsigned int level) const {
             basic::SourceLocation location(_token->string.begin());
@@ -75,7 +77,7 @@ namespace juice {
             auto function = assignmentOperators.find(_token->type);
 
             if (function != assignmentOperators.end()) {
-                auto variable = dynamic_cast<VariableExpressionAST *>(_left.get());
+                auto variable = llvm::dyn_cast_or_null<VariableExpressionAST>(_left.get());
 
                 if (variable == nullptr) {
                     basic::SourceLocation location(_token->string.begin());
@@ -121,7 +123,7 @@ namespace juice {
         }
 
         NumberExpressionAST::NumberExpressionAST(std::unique_ptr<parser::LexerToken> token, double value):
-                ExpressionAST(std::move(token)), _value(value) {}
+                ExpressionAST(Kind::number, std::move(token)), _value(value) {}
 
         void NumberExpressionAST::diagnoseInto(diag::DiagnosticEngine & diagnostics, unsigned int level) const {
             basic::SourceLocation location(_token->string.begin());
@@ -135,7 +137,7 @@ namespace juice {
         }
 
         VariableExpressionAST::VariableExpressionAST(std::unique_ptr<parser::LexerToken> token):
-                ExpressionAST(std::move(token)) {}
+                ExpressionAST(Kind::variable, std::move(token)) {}
 
         void VariableExpressionAST::diagnoseInto(diag::DiagnosticEngine & diagnostics, unsigned int level) const {
             basic::SourceLocation location(_token->string.begin());
@@ -156,7 +158,7 @@ namespace juice {
 
         GroupingExpressionAST::GroupingExpressionAST(std::unique_ptr<parser::LexerToken> token,
                                                      std::unique_ptr<ExpressionAST> expression):
-                ExpressionAST(std::move(token)), _expression(std::move(expression)) {}
+                ExpressionAST(Kind::grouping, std::move(token)), _expression(std::move(expression)) {}
 
         void GroupingExpressionAST::diagnoseInto(diag::DiagnosticEngine & diagnostics, unsigned int level) const {
             _expression->diagnoseInto(diagnostics, level);

@@ -24,19 +24,28 @@
 namespace juice {
     namespace ast {
         class ExpressionAST: public AST {
+        public:
+            enum class Kind {
+                binaryOperator,
+                number,
+                variable,
+                grouping,
+            };
+
+        private:
+            const Kind _kind;
+
         protected:
             std::unique_ptr<parser::LexerToken> _token;
 
         public:
             ExpressionAST() = delete;
 
-            explicit ExpressionAST(std::unique_ptr<parser::LexerToken> token);
+            explicit ExpressionAST(Kind kind, std::unique_ptr<parser::LexerToken> token);
 
             ~ExpressionAST() override = default;
 
-            void diagnoseInto(diag::DiagnosticEngine & diagnostics, unsigned int level) const override = 0;
-
-            llvm::Value * codegen(Codegen & state) const override = 0;
+            Kind getKind() const { return _kind; }
         };
 
         class BinaryOperatorExpressionAST: public ExpressionAST {
@@ -51,6 +60,11 @@ namespace juice {
             void diagnoseInto(diag::DiagnosticEngine & diagnostics, unsigned int level) const override;
 
             llvm::Value * codegen(Codegen & state) const override;
+
+
+            static bool classof(const ExpressionAST * ast) {
+                return ast->getKind() == Kind::binaryOperator;
+            }
         };
 
         class NumberExpressionAST: public ExpressionAST {
@@ -64,6 +78,11 @@ namespace juice {
             void diagnoseInto(diag::DiagnosticEngine & diagnostics, unsigned int level) const override;
 
             llvm::Value * codegen(Codegen & state) const override;
+
+
+            static bool classof(const ExpressionAST * ast) {
+                return ast->getKind() == Kind::number;
+            }
         };
 
         class VariableExpressionAST: public ExpressionAST {
@@ -77,6 +96,11 @@ namespace juice {
             void diagnoseInto(diag::DiagnosticEngine &diagnostics, unsigned int level) const override;
 
             llvm::Value * codegen(Codegen &state) const override;
+
+
+            static bool classof(const ExpressionAST * ast) {
+                return ast->getKind() == Kind::variable;
+            }
         };
 
         class GroupingExpressionAST: public ExpressionAST {
@@ -91,6 +115,11 @@ namespace juice {
             void diagnoseInto(diag::DiagnosticEngine & diagnostics, unsigned int level) const override;
 
             llvm::Value * codegen(Codegen & state) const override;
+
+
+            static bool classof(const ExpressionAST * ast) {
+                return ast->getKind() == Kind::grouping;
+            }
         };
     }
 }
