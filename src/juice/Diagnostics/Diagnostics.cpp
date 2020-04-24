@@ -15,6 +15,8 @@
 #include <utility>
 
 #include "juice/Basic/StringHelpers.h"
+#include "llvm/Support/FormatVariadic.h"
+#include "llvm/Support/FormatAdapters.h"
 
 namespace juice {
     namespace diag {
@@ -159,9 +161,7 @@ namespace juice {
             switch (arg.getKind()) {
                 case DiagnosticArg::Kind::integer: {
                     if (modifier == "indent") {
-                        for (unsigned int i = 0; i < arg.getAsInteger(); ++i) {
-                            out << "    ";
-                        }
+                        out << llvm::formatv("{0}", llvm::fmt_repeat("    ", arg.getAsInteger()));
                     } else if (modifier == "select") {
                         formatSelectionArgInto(out, modifierArguments, args, arg.getAsInteger());
                     } else if (modifier == "s") {
@@ -175,7 +175,7 @@ namespace juice {
                 }
                 case DiagnosticArg::Kind::doubleValue: {
                     assert(modifier.empty() && "Improper modifier for double argument");
-                    out << arg.getAsDouble();
+                    out << llvm::formatv("{0}", arg.getAsDouble());
                     break;
                 }
                 case DiagnosticArg::Kind::boolean: {
