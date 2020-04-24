@@ -125,6 +125,8 @@ namespace juice {
             llvm::Error consume(LexerToken::Type type, diag::DiagnosticID errorID);
             llvm::Error consume(LexerToken::Type type, diag::DiagnosticID errorID, llvm::StringRef name);
 
+            llvm::Expected<std::unique_ptr<ast::AST>> parseIfBody(llvm::StringRef name);
+            llvm::Expected<std::unique_ptr<ast::ExpressionAST>> parseIfExpression();
 
             llvm::Expected<std::unique_ptr<ast::ExpressionAST>> parseGroupedExpression();
 

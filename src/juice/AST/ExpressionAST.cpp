@@ -21,8 +21,12 @@
 #include "juice/Basic/SourceLocation.h"
 #include "llvm/ADT/APFloat.h"
 #include "llvm/ADT/StringRef.h"
+#include "llvm/IR/BasicBlock.h"
 #include "llvm/IR/Constants.h"
+#include "llvm/IR/Function.h"
 #include "llvm/IR/Instructions.h"
+#include "llvm/IR/IRBuilder.h"
+#include "llvm/IR/Type.h"
 #include "llvm/IR/Value.h"
 #include "llvm/Support/Casting.h"
 
@@ -50,12 +54,15 @@ namespace juice {
 
             diagnostics.diagnose(location, diag::DiagnosticID::binary_operator_expression_ast_0, colors[level % 6],
                                  level, _token.get());
+
             _left->diagnoseInto(diagnostics, level + 1);
-            diagnostics.diagnose(location, diag::DiagnosticID::binary_operator_expression_ast_1, colors[level % 6],
-                                 level);
+
+            diagnostics
+                .diagnose(location, diag::DiagnosticID::binary_operator_expression_ast_1, colors[level % 6], level);
+
             _right->diagnoseInto(diagnostics, level + 1);
-            diagnostics.diagnose(location, diag::DiagnosticID::binary_operator_expression_ast_2, colors[level % 6],
-                                 level);
+
+            diagnostics.diagnose(location, diag::DiagnosticID::expression_ast_end, colors[level % 6], level);
         }
 
         llvm::Expected<llvm::Value *> BinaryOperatorExpressionAST::codegen(Codegen & state) const {
@@ -172,6 +179,94 @@ namespace juice {
 
         llvm::Expected<llvm::Value *> GroupingExpressionAST::codegen(Codegen & state) const {
             return _expression->codegen(state);
+        }
+
+        IfExpressionAST::IfExpressionAST(std::unique_ptr<parser::LexerToken> token,
+                                         std::unique_ptr<ExpressionAST> expression, std::unique_ptr<AST> thenBody,
+                                         std::unique_ptr<AST> elseBody):
+            ExpressionAST(Kind::_if, std::move(token)), _expression(std::move(expression)),
+            _thenBody(std::move(thenBody)), _elseBody(std::move(elseBody)) {}
+
+        void IfExpressionAST::diagnoseInto(diag::DiagnosticEngine & diagnostics, unsigned int level) const {
+            basic::SourceLocation location(_token->string.begin());
+
+            diagnostics
+                .diagnose(location, diag::DiagnosticID::if_expression_ast_0, colors[level % 6], level, _token.get());
+
+            _expression->diagnoseInto(diagnostics, level + 1);
+
+            diagnostics.diagnose(location, diag::DiagnosticID::if_expression_ast_1, colors[level % 6], level);
+
+            _thenBody->diagnoseInto(diagnostics, level + 1);
+
+            diagnostics.diagnose(location, diag::DiagnosticID::if_expression_ast_2, colors[level % 6], level);
+
+            _elseBody->diagnoseInto(diagnostics, level + 1);
+
+            diagnostics.diagnose(location, diag::DiagnosticID::expression_ast_end, colors[level % 6], level);
+        }
+
+        llvm::Expected<llvm::Value *> IfExpressionAST::codegen(Codegen & state) const {
+            llvm::IRBuilder<> & builder = state.getBuilder();
+
+            auto condition = _expression->codegen(state);
+            if (auto error = condition.takeError()) return std::move(error);
+
+            auto conditionValue = *condition;
+
+            if (!conditionValue) return nullptr;
+
+            conditionValue = builder.CreateFCmpONE(conditionValue,
+                                                   llvm::ConstantFP::get(state.getContext(), llvm::APFloat(0.0)),
+                                                   "ifcond");
+
+            llvm::Function * function = builder.GetInsertBlock()->getParent();
+
+            llvm::BasicBlock * thenBlock = llvm::BasicBlock::Create(state.getContext(), "then", function);
+            llvm::BasicBlock * elseBlock = llvm::BasicBlock::Create(state.getContext(), "else");
+            llvm::BasicBlock * mergeBlock = llvm::BasicBlock::Create(state.getContext(), "ifcont");
+
+            builder.CreateCondBr(conditionValue, thenBlock, elseBlock);
+
+            builder.SetInsertPoint(thenBlock);
+
+            auto thenValue = _thenBody->codegen(state);
+            if (auto error = thenValue.takeError()) return std::move(error);
+
+            if (!*thenValue) {
+                basic::SourceLocation location(_token->string.begin());
+                return llvm::make_error<CodegenErrorWithString>(diag::DiagnosticID::expected_block_yield,
+                                                                location, "then");
+            }
+
+            builder.CreateBr(mergeBlock);
+
+            thenBlock = builder.GetInsertBlock();
+
+            function->getBasicBlockList().push_back(elseBlock);
+            builder.SetInsertPoint(elseBlock);
+
+            auto elseValue = _elseBody->codegen(state);
+            if (auto error = elseValue.takeError()) return std::move(error);
+
+            if (!*elseValue) {
+                basic::SourceLocation location(_token->string.begin());
+                return llvm::make_error<CodegenErrorWithString>(diag::DiagnosticID::expected_block_yield,
+                                                                location, "else");
+            }
+
+            builder.CreateBr(mergeBlock);
+
+            elseBlock = builder.GetInsertBlock();
+
+            function->getBasicBlockList().push_back(mergeBlock);
+            builder.SetInsertPoint(mergeBlock);
+
+            llvm::PHINode * phi = builder.CreatePHI(llvm::Type::getDoubleTy(state.getContext()), 2, "iftmp");
+            phi->addIncoming(*thenValue, thenBlock);
+            phi->addIncoming(*elseValue, elseBlock);
+
+            return phi;
         }
     }
 }

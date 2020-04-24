@@ -30,6 +30,7 @@ namespace juice {
                 number,
                 variable,
                 grouping,
+                _if
             };
 
         private:
@@ -119,6 +120,21 @@ namespace juice {
             static bool classof(const ExpressionAST * ast) {
                 return ast->getKind() == Kind::grouping;
             }
+        };
+
+        class IfExpressionAST: public ExpressionAST {
+            std::unique_ptr<ExpressionAST> _expression;
+            std::unique_ptr<AST> _thenBody, _elseBody;
+
+        public:
+            IfExpressionAST() = delete;
+
+            IfExpressionAST(std::unique_ptr<parser::LexerToken> token, std::unique_ptr<ExpressionAST> expression,
+                            std::unique_ptr<AST> thenBody, std::unique_ptr<AST> elseBody);
+
+            void diagnoseInto(diag::DiagnosticEngine & diagnostics, unsigned int level) const override;
+
+            llvm::Expected<llvm::Value *> codegen(Codegen & state) const override;
         };
     }
 }
