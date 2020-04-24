@@ -14,7 +14,7 @@ add_compile_options(${LLVM_COMPILE_FLAGS})
 add_library(juiceAST STATIC
         AST.cpp
         Codegen.cpp
-        CodegenException.cpp
+        CodegenError.cpp
         DeclarationAST.cpp
         ExpressionAST.cpp
         StatementAST.cpp)

@@ -1,4 +1,4 @@
-// src/juice/AST/CodegenException.cpp - Exceptions for exiting the codegen process
+// src/juice/AST/CodegenError.cpp - Errors for exiting the codegen process
 //
 // This source file is part of the juice open source project
 //
@@ -8,7 +8,7 @@
 // See https://github.com/juice-lang/juice/blob/master/LICENSE for license information
 // See https://github.com/juice-lang/juice/blob/master/CONTRIBUTORS.txt for the list of juice project authors
 
-#include "juice/AST/CodegenException.h"
+#include "juice/AST/CodegenError.h"
 
 namespace juice {
     namespace ast {

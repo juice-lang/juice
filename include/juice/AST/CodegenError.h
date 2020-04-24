@@ -1,4 +1,4 @@
-// include/juice/AST/CodegenException.h - Exceptions for exiting the codegen process
+// include/juice/AST/CodegenError.h - Errors for exiting the codegen process
 //
 // This source file is part of the juice open source project
 //
@@ -9,8 +9,8 @@
 // See https://github.com/juice-lang/juice/blob/master/CONTRIBUTORS.txt for the list of juice project authors
 
 
-#ifndef JUICE_CODEGENEXCEPTION_H
-#define JUICE_CODEGENEXCEPTION_H
+#ifndef JUICE_CODEGENERROR_H
+#define JUICE_CODEGENERROR_H
 
 #include "juice/Basic/SourceLocation.h"
 #include "juice/Diagnostics/Diagnostics.h"
@@ -60,4 +60,4 @@ namespace juice {
     }
 }
 
-#endif //JUICE_CODEGENEXCEPTION_H
+#endif //JUICE_CODEGENERROR_H

@@ -12,7 +12,7 @@
 
 #include <string>
 
-#include "juice/AST/CodegenException.h"
+#include "juice/AST/CodegenError.h"
 #include "juice/Basic/Error.h"
 #include "juice/Basic/RawStreamHelpers.h"
 #include "llvm/IR/BasicBlock.h"

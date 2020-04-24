@@ -16,7 +16,7 @@
 #include <utility>
 
 #include "juice/AST/Codegen.h"
-#include "juice/AST/CodegenException.h"
+#include "juice/AST/CodegenError.h"
 #include "juice/Basic/RawStreamHelpers.h"
 #include "juice/Basic/SourceLocation.h"
 #include "llvm/ADT/APFloat.h"

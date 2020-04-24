@@ -13,7 +13,7 @@
 #include <utility>
 
 #include "juice/AST/Codegen.h"
-#include "juice/AST/CodegenException.h"
+#include "juice/AST/CodegenError.h"
 #include "llvm/ADT/APFloat.h"
 #include "llvm/IR/Instructions.h"
 
