@@ -22,7 +22,7 @@ namespace juice {
             _block->diagnoseInto(diagnostics, level);
         }
 
-        llvm::Value * BlockStatementAST::codegen(Codegen & state) const {
+        llvm::Expected<llvm::Value *> BlockStatementAST::codegen(Codegen & state) const {
             return _block->codegen(state);
         }
 
@@ -33,7 +33,7 @@ namespace juice {
             _expression->diagnoseInto(diagnostics, level);
         }
 
-        llvm::Value * ExpressionStatementAST::codegen(Codegen & state) const {
+        llvm::Expected<llvm::Value *> ExpressionStatementAST::codegen(Codegen & state) const {
             return _expression->codegen(state);
         }
     }

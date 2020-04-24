@@ -12,32 +12,50 @@
 #ifndef JUICE_CODEGENEXCEPTION_H
 #define JUICE_CODEGENEXCEPTION_H
 
-#include <exception>
-
 #include "juice/Basic/SourceLocation.h"
 #include "juice/Diagnostics/Diagnostics.h"
 #include "llvm/ADT/StringRef.h"
+#include "llvm/Support/Error.h"
+#include "llvm/Support/raw_ostream.h"
 
 namespace juice {
     namespace ast {
-        struct CodegenException: std::exception {
-            diag::DiagnosticID id;
-            basic::SourceLocation location;
+        class CodegenError: public llvm::ErrorInfo<CodegenError> {
+        protected:
+            diag::DiagnosticID _diagnosticID;
+            basic::SourceLocation _location;
 
-            CodegenException() = delete;
+        public:
+            static char ID;
 
-            CodegenException(diag::DiagnosticID id, basic::SourceLocation location): id(id), location(location) {}
+            CodegenError() = delete;
+
+            CodegenError(diag::DiagnosticID diagnosticID, basic::SourceLocation location):
+                _diagnosticID(diagnosticID), _location(location) {}
 
             virtual void diagnoseInto(const std::shared_ptr<diag::DiagnosticEngine> & diagnostics) const;
+
+            void log(llvm::raw_ostream & os) const override {
+                os << "CodegenError";
+            }
+
+            std::error_code convertToErrorCode() const override {
+                return llvm::inconvertibleErrorCode();
+            }
         };
 
-        struct VariableException: CodegenException {
-            llvm::StringRef name;
+        class CodegenErrorWithString: public CodegenError {
+            llvm::StringRef _name;
 
-            VariableException(diag::DiagnosticID id, basic::SourceLocation location, llvm::StringRef name):
-                    CodegenException(id, location), name(name) {}
+        public:
+            CodegenErrorWithString(diag::DiagnosticID diagnosticID, basic::SourceLocation location, llvm::StringRef name):
+                CodegenError(diagnosticID, location), _name(name) {}
 
             void diagnoseInto(const std::shared_ptr<diag::DiagnosticEngine> &diagnostics) const override;
+
+            void log(llvm::raw_ostream & os) const override {
+                os << "CodegenErrorWithString";
+            }
         };
     }
 }

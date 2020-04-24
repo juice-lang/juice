@@ -35,7 +35,7 @@ namespace juice {
 
             void diagnoseInto(diag::DiagnosticEngine & diagnostics, unsigned int level) const override;
 
-            llvm::Value * codegen(Codegen & state) const override;
+            llvm::Expected<llvm::Value *> codegen(Codegen & state) const override;
         };
     }
 }

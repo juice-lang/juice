@@ -12,13 +12,15 @@
 
 namespace juice {
     namespace ast {
-        void CodegenException::diagnoseInto(const std::shared_ptr<diag::DiagnosticEngine> & diagnostics) const {
-            diagnostics->diagnose(location, id);
+        char CodegenError::ID = 0;
+
+        void CodegenError::diagnoseInto(const std::shared_ptr<diag::DiagnosticEngine> & diagnostics) const {
+            diagnostics->diagnose(_location, _diagnosticID);
         }
 
         void
-        VariableException::diagnoseInto(const std::shared_ptr<diag::DiagnosticEngine> & diagnostics) const {
-            diagnostics->diagnose(location, id, name);
+        CodegenErrorWithString::diagnoseInto(const std::shared_ptr<diag::DiagnosticEngine> & diagnostics) const {
+            diagnostics->diagnose(_location, _diagnosticID, _name);
         }
     }
 }

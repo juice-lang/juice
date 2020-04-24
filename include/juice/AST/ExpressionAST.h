@@ -59,7 +59,7 @@ namespace juice {
 
             void diagnoseInto(diag::DiagnosticEngine & diagnostics, unsigned int level) const override;
 
-            llvm::Value * codegen(Codegen & state) const override;
+            llvm::Expected<llvm::Value *> codegen(Codegen & state) const override;
 
 
             static bool classof(const ExpressionAST * ast) {
@@ -77,7 +77,7 @@ namespace juice {
 
             void diagnoseInto(diag::DiagnosticEngine & diagnostics, unsigned int level) const override;
 
-            llvm::Value * codegen(Codegen & state) const override;
+            llvm::Expected<llvm::Value *> codegen(Codegen & state) const override;
 
 
             static bool classof(const ExpressionAST * ast) {
@@ -95,7 +95,7 @@ namespace juice {
 
             void diagnoseInto(diag::DiagnosticEngine &diagnostics, unsigned int level) const override;
 
-            llvm::Value * codegen(Codegen &state) const override;
+            llvm::Expected<llvm::Value *> codegen(Codegen &state) const override;
 
 
             static bool classof(const ExpressionAST * ast) {
@@ -109,12 +109,11 @@ namespace juice {
         public:
             GroupingExpressionAST() = delete;
 
-            explicit GroupingExpressionAST(std::unique_ptr<parser::LexerToken> token,
-                                           std::unique_ptr<ExpressionAST> expression);
+            GroupingExpressionAST(std::unique_ptr<parser::LexerToken> token, std::unique_ptr<ExpressionAST> expression);
 
             void diagnoseInto(diag::DiagnosticEngine & diagnostics, unsigned int level) const override;
 
-            llvm::Value * codegen(Codegen & state) const override;
+            llvm::Expected<llvm::Value *> codegen(Codegen & state) const override;
 
 
             static bool classof(const ExpressionAST * ast) {

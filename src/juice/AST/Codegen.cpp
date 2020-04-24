@@ -13,6 +13,7 @@
 #include <string>
 
 #include "juice/AST/CodegenException.h"
+#include "juice/Basic/Error.h"
 #include "juice/Basic/RawStreamHelpers.h"
 #include "llvm/IR/BasicBlock.h"
 #include "llvm/IR/Type.h"
@@ -57,31 +58,36 @@ namespace juice {
             llvm::BasicBlock * mainEntryBlock = llvm::BasicBlock::Create(_context, "entry", mainFunction);
             _builder.SetInsertPoint(mainEntryBlock);
 
-            try {
-                llvm::Value * value = _ast->codegen(*this);
+            auto value = _ast->codegen(*this);
 
-                auto * globalString = _builder.CreateGlobalString(string, ".str");
-                llvm::Value * stringValue = _builder.CreateBitCast(globalString, llvm::Type::getInt8PtrTy(_context),
-                                                                   "cast");
-
-                _builder.CreateCall(printfFunction, {stringValue, value}, "printfCall");
-
-                llvm::Value * zero = llvm::ConstantInt::get(_context, llvm::APInt(32, 0, true));
-
-                _builder.CreateRet(zero);
-
-                std::string error;
-                llvm::raw_string_ostream os(error);
-
-                if (llvm::verifyFunction(*mainFunction, &os)) {
-                    os.flush();
-                    _diagnostics->diagnose(diag::DiagnosticID::function_verification_error, error);
-                } else return true;
-            } catch (const CodegenException & e) {
-                e.diagnoseInto(_diagnostics);
+            if (auto error = llvm::handleErrors(value.takeError(), [this](const CodegenError & error) {
+                    error.diagnoseInto(_diagnostics);
+                    return llvm::make_error<basic::ReturningError>();
+                })) {
+                llvm::consumeError(std::move(error));
+                return false;
             }
 
-            return false;
+            auto * globalString = _builder.CreateGlobalString(string, ".str");
+            llvm::Value * stringValue = _builder.CreateBitCast(globalString, llvm::Type::getInt8PtrTy(_context),
+                                                               "cast");
+
+            _builder.CreateCall(printfFunction, {stringValue, *value}, "printfCall");
+
+            llvm::Value * zero = llvm::ConstantInt::get(_context, llvm::APInt(32, 0, true));
+
+            _builder.CreateRet(zero);
+
+            std::string error;
+            llvm::raw_string_ostream os(error);
+
+            if (llvm::verifyFunction(*mainFunction, &os)) {
+                os.flush();
+                _diagnostics->diagnose(diag::DiagnosticID::function_verification_error, error);
+                return false;
+            }
+
+            return true;
         }
 
         void Codegen::dumpProgram() {

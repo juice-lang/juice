@@ -19,6 +19,7 @@
 #include "llvm/IR/IRBuilder.h"
 #include "llvm/IR/LLVMContext.h"
 #include "llvm/IR/Value.h"
+#include "llvm/Support/Error.h"
 
 namespace juice {
     namespace ast {
@@ -30,7 +31,7 @@ namespace juice {
 
             virtual void diagnoseInto(diag::DiagnosticEngine & diagnostics, unsigned int level) const = 0;
 
-            virtual llvm::Value * codegen(Codegen & state) const = 0;
+            virtual llvm::Expected<llvm::Value *> codegen(Codegen & state) const = 0;
         };
 
         class StatementAST;
@@ -53,7 +54,7 @@ namespace juice {
 
             void diagnoseInto(diag::DiagnosticEngine & diagnostics, unsigned int level) const override;
 
-            llvm::Value * codegen(Codegen & state) const override;
+            llvm::Expected<llvm::Value *> codegen(Codegen & state) const override;
         };
 
         class BlockAST: public ContainerAST {
@@ -62,13 +63,13 @@ namespace juice {
         public:
             BlockAST() = delete;
 
-            BlockAST(std::unique_ptr<parser::LexerToken> start);
+            explicit BlockAST(std::unique_ptr<parser::LexerToken> start);
 
             ~BlockAST() override = default;
 
             void diagnoseInto(diag::DiagnosticEngine & diagnostics, unsigned int level) const override;
 
-            llvm::Value * codegen(Codegen & state) const override;
+            llvm::Expected<llvm::Value *> codegen(Codegen & state) const override;
         };
     }
 }

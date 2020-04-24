@@ -25,7 +25,7 @@ namespace juice {
             for (const auto & statement: _statements) { statement->diagnoseInto(diagnostics, level); }
         }
 
-        llvm::Value * ModuleAST::codegen(Codegen & state) const {
+        llvm::Expected<llvm::Value *> ModuleAST::codegen(Codegen & state) const {
             switch (_statements.size()) {
                 case 0:
                     return nullptr;
@@ -34,7 +34,7 @@ namespace juice {
                 default: {
                     auto last = _statements.end() - 1;
                     for (auto i = _statements.begin(); i < last; ++i) {
-                        (*i)->codegen(state);
+                        if (auto error = (*i)->codegen(state).takeError()) return std::move(error);
                     }
                     return (*last)->codegen(state);
                 }
@@ -61,7 +61,7 @@ namespace juice {
             }
         }
 
-        llvm::Value * BlockAST::codegen(Codegen & state) const {
+        llvm::Expected<llvm::Value *> BlockAST::codegen(Codegen & state) const {
             state.newScope();
 
             llvm::Value * returnValue;
@@ -70,15 +70,23 @@ namespace juice {
                 case 0:
                     returnValue = nullptr;
                     break;
-                case 1:
-                    returnValue = _statements.front()->codegen(state);
+                case 1: {
+                    auto value = _statements.front()->codegen(state);
+                    if (auto error = value.takeError()) return std::move(error);
+
+                    returnValue = *value;
                     break;
+                }
                 default: {
                     auto last = _statements.end() - 1;
                     for (auto i = _statements.begin(); i < last; ++i) {
-                        (*i)->codegen(state);
+                        if (auto error = (*i)->codegen(state).takeError()) return std::move(error);
                     }
-                    returnValue = (*last)->codegen(state);
+
+                    auto value = (*last)->codegen(state);
+                    if (auto error = value.takeError()) return std::move(error);
+
+                    returnValue = *value;
                     break;
                 }
             }
