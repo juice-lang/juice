@@ -9,6 +9,8 @@
 # See https://github.com/juice-lang/juice/blob/master/CONTRIBUTORS.txt for the list of juice project authors
 
 
+add_compile_options(${OTHER_COMPILE_FLAGS})
+
 add_library(juiceDriver STATIC
         CompilerDriver.cpp
         Driver.cpp
