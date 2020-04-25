@@ -50,7 +50,7 @@ namespace juice {
             ExpressionAST(Kind::binaryOperator, std::move(token)), _left(std::move(left)), _right(std::move(right)) {}
 
         void BinaryOperatorExpressionAST::diagnoseInto(diag::DiagnosticEngine & diagnostics, unsigned int level) const {
-            basic::SourceLocation location(_token->string.begin());
+            basic::SourceLocation location(getLocation());
 
             diagnostics.diagnose(location, diag::DiagnosticID::binary_operator_expression_ast_0, colors[level % 6],
                                  level, _token.get());
@@ -86,8 +86,8 @@ namespace juice {
                 auto variable = llvm::dyn_cast_or_null<VariableExpressionAST>(_left.get());
 
                 if (variable == nullptr) {
-                    basic::SourceLocation location(_token->string.begin());
-                    return llvm::make_error<CodegenError>(diag::DiagnosticID::expression_not_assignable, location);
+                    return llvm::make_error<CodegenError>(diag::DiagnosticID::expression_not_assignable,
+                                                          getLocation());
                 }
 
                 llvm::StringRef name = variable->name();
@@ -138,9 +138,7 @@ namespace juice {
                 ExpressionAST(Kind::number, std::move(token)), _value(value) {}
 
         void NumberExpressionAST::diagnoseInto(diag::DiagnosticEngine & diagnostics, unsigned int level) const {
-            basic::SourceLocation location(_token->string.begin());
-
-            diagnostics.diagnose(location, diag::DiagnosticID::number_expression_ast, colors[level % 6], level,
+            diagnostics.diagnose(getLocation(), diag::DiagnosticID::number_expression_ast, colors[level % 6], level,
                                  _token.get(), _value);
         }
 
@@ -152,8 +150,7 @@ namespace juice {
                 ExpressionAST(Kind::variable, std::move(token)) {}
 
         void VariableExpressionAST::diagnoseInto(diag::DiagnosticEngine & diagnostics, unsigned int level) const {
-            basic::SourceLocation location(_token->string.begin());
-            diagnostics.diagnose(location, diag::DiagnosticID::variable_expression_ast, colors[level % 6],
+            diagnostics.diagnose(getLocation(), diag::DiagnosticID::variable_expression_ast, colors[level % 6],
                                  _token.get());
         }
 
@@ -163,9 +160,8 @@ namespace juice {
 
                 return state.getBuilder().CreateLoad(alloca, name());
             } else {
-                basic::SourceLocation location(name().begin());
                 return llvm::make_error<CodegenErrorWithString>(diag::DiagnosticID::unresolved_identifer,
-                                                                location, name());
+                                                                getLocation(), name());
             }
         }
 
@@ -181,23 +177,22 @@ namespace juice {
             return _expression->codegen(state);
         }
 
-        IfExpressionAST::IfExpressionAST(std::unique_ptr<parser::LexerToken> token,
-                                         std::unique_ptr<ExpressionAST> expression, std::unique_ptr<AST> thenBody,
-                                         std::unique_ptr<AST> elseBody):
-            ExpressionAST(Kind::_if, std::move(token)), _expression(std::move(expression)),
-            _thenBody(std::move(thenBody)), _elseBody(std::move(elseBody)) {}
+        IfExpressionAST::IfExpressionAST(std::unique_ptr<ExpressionAST> expression, std::unique_ptr<IfBodyAST> ifBody,
+                                         std::unique_ptr<IfBodyAST> elseBody):
+            ExpressionAST(Kind::_if, nullptr), _expression(std::move(expression)), _ifBody(std::move(ifBody)),
+            _elseBody(std::move(elseBody)) {}
 
         void IfExpressionAST::diagnoseInto(diag::DiagnosticEngine & diagnostics, unsigned int level) const {
-            basic::SourceLocation location(_token->string.begin());
+            basic::SourceLocation location(getLocation());
 
-            diagnostics
-                .diagnose(location, diag::DiagnosticID::if_expression_ast_0, colors[level % 6], level, _token.get());
+            diagnostics.diagnose(location, diag::DiagnosticID::if_expression_ast_0, colors[level % 6], level,
+                                 _ifBody->getKeyword().get());
 
             _expression->diagnoseInto(diagnostics, level + 1);
 
             diagnostics.diagnose(location, diag::DiagnosticID::if_expression_ast_1, colors[level % 6], level);
 
-            _thenBody->diagnoseInto(diagnostics, level + 1);
+            _ifBody->diagnoseInto(diagnostics, level + 1);
 
             diagnostics.diagnose(location, diag::DiagnosticID::if_expression_ast_2, colors[level % 6], level);
 
@@ -230,13 +225,12 @@ namespace juice {
 
             builder.SetInsertPoint(thenBlock);
 
-            auto thenValue = _thenBody->codegen(state);
+            auto thenValue = _ifBody->codegen(state);
             if (auto error = thenValue.takeError()) return std::move(error);
 
             if (!*thenValue) {
-                basic::SourceLocation location(_token->string.begin());
                 return llvm::make_error<CodegenErrorWithString>(diag::DiagnosticID::expected_block_yield,
-                                                                location, "then");
+                                                                _ifBody->getLocation(), "then");
             }
 
             builder.CreateBr(mergeBlock);
@@ -250,9 +244,8 @@ namespace juice {
             if (auto error = elseValue.takeError()) return std::move(error);
 
             if (!*elseValue) {
-                basic::SourceLocation location(_token->string.begin());
                 return llvm::make_error<CodegenErrorWithString>(diag::DiagnosticID::expected_block_yield,
-                                                                location, "else");
+                                                                _elseBody->getLocation(), "else");
             }
 
             builder.CreateBr(mergeBlock);

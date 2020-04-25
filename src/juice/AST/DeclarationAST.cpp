@@ -24,11 +24,11 @@ namespace juice {
                 _name(std::move(name)), _initialization(std::move(initialization)) {}
 
         void VariableDeclarationAST::diagnoseInto(diag::DiagnosticEngine & diagnostics, unsigned int level) const {
-            basic::SourceLocation location(_name->string.begin());
+            basic::SourceLocation location(getLocation());
 
-            diagnostics.diagnose(location, diag::DiagnosticID::variable_declaration_ast_0, level, _name.get());
+            diagnostics.diagnose(location, diag::DiagnosticID::variable_declaration_ast, level, _name.get());
             _initialization->diagnoseInto(diagnostics, level + 1);
-            diagnostics.diagnose(location, diag::DiagnosticID::variable_declaration_ast_1, level);
+            diagnostics.diagnose(location, diag::DiagnosticID::ast_end, level);
         }
 
         llvm::Expected<llvm::Value *> VariableDeclarationAST::codegen(Codegen & state) const {
@@ -43,8 +43,8 @@ namespace juice {
                 return alloca;
             }
 
-            basic::SourceLocation location(_name->string.begin());
-            return llvm::make_error<CodegenErrorWithString>(diag::DiagnosticID::invalid_redeclaration, location, _name->string);
+            return llvm::make_error<CodegenErrorWithString>(diag::DiagnosticID::invalid_redeclaration,
+                                                            getLocation(), _name->string);
         }
     }
 }

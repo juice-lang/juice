@@ -33,6 +33,10 @@ namespace juice {
 
             ~VariableDeclarationAST() override = default;
 
+            basic::SourceLocation getLocation() const override {
+                return basic::SourceLocation(_name->string.begin());
+            }
+
             void diagnoseInto(diag::DiagnosticEngine & diagnostics, unsigned int level) const override;
 
             llvm::Expected<llvm::Value *> codegen(Codegen & state) const override;

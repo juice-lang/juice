@@ -46,6 +46,10 @@ namespace juice {
 
             ~ExpressionAST() override = default;
 
+            basic::SourceLocation getLocation() const override {
+                return basic::SourceLocation(_token->string.begin());
+            }
+
             Kind getKind() const { return _kind; }
         };
 
@@ -124,13 +128,17 @@ namespace juice {
 
         class IfExpressionAST: public ExpressionAST {
             std::unique_ptr<ExpressionAST> _expression;
-            std::unique_ptr<AST> _thenBody, _elseBody;
+            std::unique_ptr<IfBodyAST> _ifBody, _elseBody;
 
         public:
             IfExpressionAST() = delete;
 
-            IfExpressionAST(std::unique_ptr<parser::LexerToken> token, std::unique_ptr<ExpressionAST> expression,
-                            std::unique_ptr<AST> thenBody, std::unique_ptr<AST> elseBody);
+            IfExpressionAST(std::unique_ptr<ExpressionAST> expression, std::unique_ptr<IfBodyAST> ifBody,
+                            std::unique_ptr<IfBodyAST> elseBody);
+
+            basic::SourceLocation getLocation() const override {
+                return _ifBody->getLocation();
+            }
 
             void diagnoseInto(diag::DiagnosticEngine & diagnostics, unsigned int level) const override;
 

@@ -126,35 +126,43 @@ namespace juice {
         }
 
 
-        llvm::Expected<std::unique_ptr<ast::AST>> Parser::parseIfBody(llvm::StringRef name) {
+        llvm::Expected<std::unique_ptr<ast::IfBodyAST>> Parser::parseIfBody(std::unique_ptr<LexerToken> keyword) {
             if (check(LexerToken::Type::delimiterLeftBrace)) {
-                return parseBlock(name);
-            } else {
-                if (auto error = consume(LexerToken::Type::delimiterColon,
-                                         diag::DiagnosticID::expected_left_brace_or_colon, name))
-                    return std::move(error);
+                auto block = parseBlock(keyword->string);
+                if (auto error = block.takeError()) return std::move(error);
 
-                return parseExpression();
+                return std::make_unique<ast::IfBodyAST>(std::move(keyword), std::move(*block));
             }
+
+            if (auto error = consume(LexerToken::Type::delimiterColon,
+                                     diag::DiagnosticID::expected_left_brace_or_colon, keyword->string))
+                return std::move(error);
+
+            auto expression = parseExpression();
+            if (auto error = expression.takeError()) return std::move(error);
+
+            return std::make_unique<ast::IfBodyAST>(std::move(keyword), std::move(*expression));
         }
 
         llvm::Expected<std::unique_ptr<ast::ExpressionAST>> Parser::parseIfExpression() {
-            auto token = std::move(_matchedToken);
+            auto ifKeyword = std::move(_matchedToken);
 
             auto ifExpression = parseExpression();
             if (auto error = ifExpression.takeError()) return std::move(error);
 
-            auto thenBody = parseIfBody("if");
-            if (auto error = thenBody.takeError()) return std::move(error);
+            auto ifBody = parseIfBody(std::move(ifKeyword));
+            if (auto error = ifBody.takeError()) return std::move(error);
 
             if (auto error = consume(LexerToken::Type::keywordElse, diag::DiagnosticID::expected_else))
                 return std::move(error);
 
-            auto elseBody = parseIfBody("else");
+            auto elseKeyword = std::move(_matchedToken);
+
+            auto elseBody = parseIfBody(std::move(elseKeyword));
             if (auto error = elseBody.takeError()) return std::move(error);
 
-            return std::make_unique<ast::IfExpressionAST>(std::move(token), std::move(*ifExpression),
-                                                          std::move(*thenBody), std::move(*elseBody));
+            return std::make_unique<ast::IfExpressionAST>(std::move(*ifExpression), std::move(*ifBody),
+                                                          std::move(*elseBody));
         }
 
         llvm::Expected<std::unique_ptr<ast::ExpressionAST>> Parser::parseGroupedExpression() {

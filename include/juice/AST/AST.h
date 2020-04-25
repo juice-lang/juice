@@ -15,7 +15,9 @@
 #include <memory>
 #include <vector>
 
+#include "juice/Basic/SourceLocation.h"
 #include "juice/Diagnostics/Diagnostics.h"
+#include "juice/Parser/LexerToken.h"
 #include "llvm/IR/IRBuilder.h"
 #include "llvm/IR/LLVMContext.h"
 #include "llvm/IR/Value.h"
@@ -24,17 +26,21 @@
 namespace juice {
     namespace ast {
         class Codegen;
+        class StatementAST;
+        class ExpressionAST;
+
 
         class AST {
         public:
             virtual ~AST() = default;
+
+            virtual basic::SourceLocation getLocation() const = 0;
 
             virtual void diagnoseInto(diag::DiagnosticEngine & diagnostics, unsigned int level) const = 0;
 
             virtual llvm::Expected<llvm::Value *> codegen(Codegen & state) const = 0;
         };
 
-        class StatementAST;
 
         class ContainerAST: public AST {
         protected:
@@ -42,6 +48,8 @@ namespace juice {
 
         public:
             ContainerAST() = default;
+
+            basic::SourceLocation getLocation() const override;
 
             void appendStatement(std::unique_ptr<StatementAST> statement);
         };
@@ -67,9 +75,48 @@ namespace juice {
 
             ~BlockAST() override = default;
 
+            basic::SourceLocation getLocation() const override {
+                return basic::SourceLocation(_start->string.begin());
+            }
+
             void diagnoseInto(diag::DiagnosticEngine & diagnostics, unsigned int level) const override;
 
             llvm::Expected<llvm::Value *> codegen(Codegen & state) const override;
+        };
+
+
+        class IfBodyAST: public AST {
+            enum class Kind {
+                block,
+                expression
+            };
+
+            std::unique_ptr<parser::LexerToken> _keyword;
+
+            Kind _kind;
+            union {
+                std::unique_ptr<BlockAST> _block;
+                std::unique_ptr<ExpressionAST> _expression;
+            };
+
+        public:
+            IfBodyAST() = delete;
+
+            IfBodyAST(std::unique_ptr<parser::LexerToken> keyword, std::unique_ptr<BlockAST> block);
+            IfBodyAST(std::unique_ptr<parser::LexerToken> keyword, std::unique_ptr<ExpressionAST> expression);
+
+            ~IfBodyAST() override;
+
+            basic::SourceLocation getLocation() const override {
+                return basic::SourceLocation(_keyword->string.begin());
+            }
+
+            void diagnoseInto(diag::DiagnosticEngine & diagnostics, unsigned int level) const override;
+
+            llvm::Expected<llvm::Value *> codegen(Codegen & state) const override;
+
+
+            const std::unique_ptr<parser::LexerToken> & getKeyword() const { return _keyword; }
         };
     }
 }

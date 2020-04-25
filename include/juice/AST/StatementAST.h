@@ -31,6 +31,10 @@ namespace juice {
 
             ~BlockStatementAST() override = default;
 
+            basic::SourceLocation getLocation() const override {
+                return _block->getLocation();
+            }
+
             void diagnoseInto(diag::DiagnosticEngine & diagnostics, unsigned int level) const override;
 
             llvm::Expected<llvm::Value *> codegen(Codegen & state) const override;
@@ -45,6 +49,10 @@ namespace juice {
             explicit ExpressionStatementAST(std::unique_ptr<ExpressionAST> expression);
 
             ~ExpressionStatementAST() override = default;
+
+            basic::SourceLocation getLocation() const override {
+                return _expression->getLocation();
+            }
 
             void diagnoseInto(diag::DiagnosticEngine & diagnostics, unsigned int level) const override;
 

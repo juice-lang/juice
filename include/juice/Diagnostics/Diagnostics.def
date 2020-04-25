@@ -72,13 +72,17 @@ OUTPUT(if_expression_ast_0, "%0IfExpressionAST(\n%indent1  token: %reset%2\n%0%i
 OUTPUT(if_expression_ast_1, "%0%indent1  then: ", false)
 OUTPUT(if_expression_ast_2, "%0%indent1  else: ", false)
 
-OUTPUT(variable_declaration_ast_0, "VariableDeclarationAST(\n%indent0  name: %1\n%indent0  initialization: ", false)
-OUTPUT(variable_declaration_ast_1, "%indent0)", true)
+OUTPUT(ast_end, "%indent0)", true)
+
+OUTPUT(variable_declaration_ast, "VariableDeclarationAST(\n%indent0  name: %1\n%indent0  initialization: ", false)
 
 OUTPUT(block_ast_empty, "BlockAST(block: {})", true)
 OUTPUT(block_ast_0, "BlockAST(\n%indent0  block: {", true)
 OUTPUT(block_ast_1, "%indent0", false)
 OUTPUT(block_ast_2, "%indent0})", true)
+
+OUTPUT(if_body_ast_block, "IfBodyAST(\n%indent0  keyword: %1\n%indent0  block: ", false)
+OUTPUT(if_body_ast_expression, "IfBodyAST(\n%indent0  keyword: %1\n%indent0  expression: ", false)
 
 //AST
 ERROR(invalid_redeclaration, "invalid redeclaration of '%0'", true)

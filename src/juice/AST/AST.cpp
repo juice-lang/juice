@@ -17,6 +17,11 @@
 
 namespace juice {
     namespace ast {
+        basic::SourceLocation ContainerAST::getLocation() const {
+            if (!_statements.empty()) return _statements.front()->getLocation();
+            return {};
+        }
+
         void ContainerAST::appendStatement(std::unique_ptr<StatementAST> statement) {
             _statements.push_back(std::move(statement));
         }
@@ -44,7 +49,7 @@ namespace juice {
         BlockAST::BlockAST(std::unique_ptr<parser::LexerToken> start): ContainerAST(), _start(std::move(start)) {}
 
         void BlockAST::diagnoseInto(diag::DiagnosticEngine & diagnostics, unsigned int level) const {
-            basic::SourceLocation location(_start->string.begin());
+            basic::SourceLocation location(getLocation());
 
             if (_statements.empty()) {
                 diagnostics.diagnose(location, diag::DiagnosticID::block_ast_empty);
@@ -94,6 +99,48 @@ namespace juice {
             state.endScope();
 
             return returnValue;
+        }
+
+        IfBodyAST::IfBodyAST(std::unique_ptr<parser::LexerToken> keyword, std::unique_ptr<BlockAST> block):
+            _keyword(std::move(keyword)), _kind(Kind::block) {
+            new (&_block) std::unique_ptr<BlockAST>(std::move(block));
+        }
+
+        IfBodyAST::IfBodyAST(std::unique_ptr<parser::LexerToken> keyword,
+                             std::unique_ptr<ExpressionAST> expression):
+            _keyword(std::move(keyword)), _kind(Kind::expression) {
+            new (&_expression) std::unique_ptr<ExpressionAST>(std::move(expression));
+        }
+
+        IfBodyAST::~IfBodyAST() {
+            switch (_kind) {
+                case Kind::block: _block.~unique_ptr<BlockAST>(); break;
+                case Kind::expression: _expression.~unique_ptr<ExpressionAST>(); break;
+            }
+        }
+
+        void IfBodyAST::diagnoseInto(diag::DiagnosticEngine & diagnostics, unsigned int level) const {
+            basic::SourceLocation location(getLocation());
+
+            switch (_kind) {
+                case Kind::block:
+                    diagnostics.diagnose(location, diag::DiagnosticID::if_body_ast_block, level, _keyword.get());
+                    _block->diagnoseInto(diagnostics, level + 1);
+                    break;
+                case Kind::expression:
+                    diagnostics.diagnose(location, diag::DiagnosticID::if_body_ast_expression, level, _keyword.get());
+                    _expression->diagnoseInto(diagnostics, level + 1);
+                    break;
+            }
+
+            diagnostics.diagnose(location, diag::DiagnosticID::ast_end, level);
+        }
+
+        llvm::Expected<llvm::Value *> IfBodyAST::codegen(Codegen & state) const {
+            switch (_kind) {
+                case Kind::block: return _block->codegen(state);
+                case Kind::expression: return _expression->codegen(state);
+            }
         }
     }
 }
