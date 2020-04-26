@@ -145,7 +145,7 @@ namespace juice {
             return std::make_unique<ast::IfBodyAST>(std::move(keyword), std::move(*expression));
         }
 
-        llvm::Expected<std::unique_ptr<ast::ExpressionAST>> Parser::parseIfExpression() {
+        llvm::Expected<std::unique_ptr<ast::IfExpressionAST>> Parser::parseIfExpression(bool isStatement) {
             auto ifKeyword = std::move(_matchedToken);
 
             auto ifCondition = parseExpression();
@@ -169,10 +169,31 @@ namespace juice {
                 auto elifBody = parseIfBody(std::move(elifKeyword));
                 if (auto error = elifBody.takeError()) return std::move(error);
 
-                elifConditionsAndBodies.push_back({ std::move(*elifCondition), std::move(*elifBody) });
+                elifConditionsAndBodies.emplace_back(std::move(*elifCondition), std::move(*elifBody));
 
                 matchedElif = match(LexerToken::Type::keywordElif);
                 if (auto error = matchedElif.takeError()) return std::move(error);
+            }
+
+
+            if (isStatement) {
+                auto matchedElse = match(LexerToken::Type::keywordElse);
+                if (auto error = matchedElse.takeError()) return std::move(error);
+
+                std::unique_ptr<ast::IfBodyAST> elseBody = nullptr;
+
+                if (*matchedElse) {
+                    auto elseKeyword = std::move(_matchedToken);
+
+                    auto expectedElseBody = parseIfBody(std::move(elseKeyword));
+                    if (auto error = expectedElseBody.takeError()) return std::move(error);
+
+                    elseBody = std::move(*expectedElseBody);
+                }
+
+                return std::make_unique<ast::IfExpressionAST>(std::move(*ifCondition), std::move(*ifBody),
+                                                              std::move(elifConditionsAndBodies), std::move(elseBody),
+                                                              true);
             }
 
 
@@ -185,7 +206,8 @@ namespace juice {
             if (auto error = elseBody.takeError()) return std::move(error);
 
             return std::make_unique<ast::IfExpressionAST>(std::move(*ifCondition), std::move(*ifBody),
-                                                          std::move(*elseBody), std::move(elifConditionsAndBodies));
+                                                          std::move(elifConditionsAndBodies), std::move(*elseBody),
+                                                          false);
         }
 
         llvm::Expected<std::unique_ptr<ast::ExpressionAST>> Parser::parseGroupedExpression() {
@@ -229,7 +251,7 @@ namespace juice {
             auto matchedIf = match(LexerToken::Type::keywordIf);
             if (auto error = matchedIf.takeError()) return std::move(error);
 
-            if (*matchedIf) return parseIfExpression();
+            if (*matchedIf) return parseIfExpression(false);
 
             return parseGroupedExpression();
         }
@@ -347,6 +369,13 @@ namespace juice {
             return std::make_unique<ast::VariableDeclarationAST>(std::move(name), std::move(*initialization));
         }
 
+        llvm::Expected<std::unique_ptr<ast::IfStatementAST>> Parser::parseIfStatement() {
+            auto ifExpression = parseIfExpression(true);
+            if (auto error = ifExpression.takeError()) return std::move(error);
+
+            return std::make_unique<ast::IfStatementAST>(std::move(*ifExpression));
+        }
+
         llvm::Expected<std::unique_ptr<ast::BlockAST>> Parser::parseBlock(llvm::StringRef name) {
             if (auto error = consume(LexerToken::Type::delimiterLeftBrace,
                                      diag::DiagnosticID::expected_left_brace, name))
@@ -381,6 +410,11 @@ namespace juice {
 
                 return std::make_unique<ast::BlockStatementAST>(std::move(*block));
             }
+
+            auto matchedIf = match(LexerToken::Type::keywordIf);
+            if (auto error = matchedIf.takeError()) return std::move(error);
+
+            if (*matchedIf) return parseIfStatement();
 
             auto matchedVar = match(LexerToken::Type::keywordVar);
             if (auto error = matchedVar.takeError()) return std::move(error);

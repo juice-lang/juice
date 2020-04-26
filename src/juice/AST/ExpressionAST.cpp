@@ -11,7 +11,6 @@
 
 #include "juice/AST/ExpressionAST.h"
 
-#include <algorithm>
 #include <functional>
 #include <map>
 
@@ -164,36 +163,42 @@ namespace juice {
             return _expression->codegen(state);
         }
 
-        IfExpressionAST::IfExpressionAST(std::unique_ptr<ExpressionAST> ifCondition, std::unique_ptr<IfBodyAST> ifBody,
-                                         std::unique_ptr<IfBodyAST> elseBody,
+        IfExpressionAST::IfExpressionAST(std::unique_ptr<ExpressionAST> ifCondition,
+                                         std::unique_ptr<IfBodyAST> ifBody,
                                          std::vector<std::pair<std::unique_ptr<ExpressionAST>,
-                                                               std::unique_ptr<IfBodyAST>>> && elifConditionsAndBodies):
+                                                               std::unique_ptr<IfBodyAST>>> && elifConditionsAndBodies,
+                                         std::unique_ptr<IfBodyAST> elseBody, bool isStatement):
             ExpressionAST(Kind::_if, nullptr), _ifCondition(std::move(ifCondition)), _ifBody(std::move(ifBody)),
-            _elseBody(std::move(elseBody)), _elifConditionsAndBodies(std::move(elifConditionsAndBodies)) {}
+            _elifConditionsAndBodies(std::move(elifConditionsAndBodies)), _elseBody(std::move(elseBody)),
+            _isStatement(isStatement) {}
 
         void IfExpressionAST::diagnoseInto(diag::DiagnosticEngine & diagnostics, unsigned int level) const {
             basic::SourceLocation location(getLocation());
 
-            diagnostics.diagnose(location, diag::DiagnosticID::if_expression_ast_0, getColor(level), level,
+            if (_isStatement) diagnostics.diagnose(location, diag::DiagnosticID::if_statement_ast_0, getColor(level),
+                                                   level, _ifBody->getKeyword().get());
+            else diagnostics.diagnose(location, diag::DiagnosticID::if_expression_ast_0, getColor(level), level,
                                  _ifBody->getKeyword().get());
             _ifCondition->diagnoseInto(diagnostics, level + 1);
 
-            diagnostics.diagnose(location, diag::DiagnosticID::if_expression_ast_1, getColor(level), level);
+            diagnostics.diagnose(location, diag::DiagnosticID::if_ast_1, getColor(level), level);
             _ifBody->diagnoseInto(diagnostics, level + 1);
 
             for (const auto & conditionAndBody: _elifConditionsAndBodies) {
                 const auto & condition = std::get<0>(conditionAndBody);
                 const auto & body = std::get<1>(conditionAndBody);
 
-                diagnostics.diagnose(location, diag::DiagnosticID::if_expression_ast_2, getColor(level), level);
+                diagnostics.diagnose(location, diag::DiagnosticID::if_ast_2, getColor(level), level);
                 condition->diagnoseInto(diagnostics, level + 1);
 
-                diagnostics.diagnose(location, diag::DiagnosticID::if_expression_ast_3, getColor(level), level);
+                diagnostics.diagnose(location, diag::DiagnosticID::if_ast_3, getColor(level), level);
                 body->diagnoseInto(diagnostics, level + 1);
             }
 
-            diagnostics.diagnose(location, diag::DiagnosticID::if_expression_ast_4, getColor(level), level);
-            _elseBody->diagnoseInto(diagnostics, level + 1);
+            if (!_isStatement || _elseBody) {
+                diagnostics.diagnose(location, diag::DiagnosticID::if_ast_4, getColor(level), level);
+                _elseBody->diagnoseInto(diagnostics, level + 1);
+            }
 
             diagnostics.diagnose(location, diag::DiagnosticID::ast_end, getColor(level), level);
         }
@@ -268,8 +273,9 @@ namespace juice {
                 if (!elifConditionValue) return nullptr;
 
                 elifConditionValue = builder.CreateFCmpONE(elifConditionValue,
-                                                         llvm::ConstantFP::get(state.getContext(), llvm::APFloat(0.0)),
-                                                         "elifcond");
+                                                           llvm::ConstantFP::get(state.getContext(),
+                                                                                 llvm::APFloat(0.0)),
+                                                           "elifcond");
 
                 if (nextBlockIt != elifBlocks.end()) builder.CreateCondBr(elifConditionValue, block, *(nextBlockIt));
                 else builder.CreateCondBr(elifConditionValue, block, elseBlock);

@@ -58,6 +58,25 @@ namespace juice {
 
             llvm::Expected<llvm::Value *> codegen(Codegen & state) const override;
         };
+
+        class IfStatementAST: public StatementAST {
+            std::unique_ptr<IfExpressionAST> _ifExpression;
+
+        public:
+            IfStatementAST() = delete;
+
+            explicit IfStatementAST(std::unique_ptr<IfExpressionAST> ifExpression);
+
+            ~IfStatementAST() override = default;
+
+            basic::SourceLocation getLocation() const override {
+                return _ifExpression->getLocation();
+            }
+
+            void diagnoseInto(diag::DiagnosticEngine & diagnostics, unsigned int level) const override;
+
+            llvm::Expected<llvm::Value *> codegen(Codegen & state) const override;
+        };
     }
 }
 

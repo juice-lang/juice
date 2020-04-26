@@ -130,16 +130,20 @@ namespace juice {
 
         class IfExpressionAST: public ExpressionAST {
             std::unique_ptr<ExpressionAST> _ifCondition;
-            std::unique_ptr<IfBodyAST> _ifBody, _elseBody;
+            std::unique_ptr<IfBodyAST> _ifBody;
             std::vector<std::pair<std::unique_ptr<ExpressionAST>, std::unique_ptr<IfBodyAST>>> _elifConditionsAndBodies;
+            std::unique_ptr<IfBodyAST> _elseBody;
+            bool _isStatement;
+
+            friend class IfStatementAST;
 
         public:
             IfExpressionAST() = delete;
 
             IfExpressionAST(std::unique_ptr<ExpressionAST> ifCondition, std::unique_ptr<IfBodyAST> ifBody,
-                            std::unique_ptr<IfBodyAST> elseBody,
                             std::vector<std::pair<std::unique_ptr<ExpressionAST>,
-                                                  std::unique_ptr<IfBodyAST>>> && elifConditionsAndBodies);
+                                                  std::unique_ptr<IfBodyAST>>> && elifConditionsAndBodies,
+                            std::unique_ptr<IfBodyAST> elseBody, bool isStatement);
 
             basic::SourceLocation getLocation() const override {
                 return _ifBody->getLocation();
