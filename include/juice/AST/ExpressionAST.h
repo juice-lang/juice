@@ -13,6 +13,8 @@
 #define JUICE_EXPRESSIONAST_H
 
 #include <memory>
+#include <utility>
+#include <vector>
 
 #include "AST.h"
 #include "juice/Parser/LexerToken.h"
@@ -127,14 +129,17 @@ namespace juice {
         };
 
         class IfExpressionAST: public ExpressionAST {
-            std::unique_ptr<ExpressionAST> _expression;
+            std::unique_ptr<ExpressionAST> _ifCondition;
             std::unique_ptr<IfBodyAST> _ifBody, _elseBody;
+            std::vector<std::pair<std::unique_ptr<ExpressionAST>, std::unique_ptr<IfBodyAST>>> _elifConditionsAndBodies;
 
         public:
             IfExpressionAST() = delete;
 
-            IfExpressionAST(std::unique_ptr<ExpressionAST> expression, std::unique_ptr<IfBodyAST> ifBody,
-                            std::unique_ptr<IfBodyAST> elseBody);
+            IfExpressionAST(std::unique_ptr<ExpressionAST> ifCondition, std::unique_ptr<IfBodyAST> ifBody,
+                            std::unique_ptr<IfBodyAST> elseBody,
+                            std::vector<std::pair<std::unique_ptr<ExpressionAST>,
+                                                  std::unique_ptr<IfBodyAST>>> && elifConditionsAndBodies);
 
             basic::SourceLocation getLocation() const override {
                 return _ifBody->getLocation();

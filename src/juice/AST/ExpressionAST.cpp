@@ -13,7 +13,6 @@
 
 #include <functional>
 #include <map>
-#include <utility>
 
 #include "juice/AST/Codegen.h"
 #include "juice/AST/CodegenError.h"
@@ -164,22 +163,35 @@ namespace juice {
             return _expression->codegen(state);
         }
 
-        IfExpressionAST::IfExpressionAST(std::unique_ptr<ExpressionAST> expression, std::unique_ptr<IfBodyAST> ifBody,
-                                         std::unique_ptr<IfBodyAST> elseBody):
-            ExpressionAST(Kind::_if, nullptr), _expression(std::move(expression)), _ifBody(std::move(ifBody)),
-            _elseBody(std::move(elseBody)) {}
+        IfExpressionAST::IfExpressionAST(std::unique_ptr<ExpressionAST> ifCondition, std::unique_ptr<IfBodyAST> ifBody,
+                                         std::unique_ptr<IfBodyAST> elseBody,
+                                         std::vector<std::pair<std::unique_ptr<ExpressionAST>,
+                                                               std::unique_ptr<IfBodyAST>>> && elifConditionsAndBodies):
+            ExpressionAST(Kind::_if, nullptr), _ifCondition(std::move(ifCondition)), _ifBody(std::move(ifBody)),
+            _elseBody(std::move(elseBody)), _elifConditionsAndBodies(std::move(elifConditionsAndBodies)) {}
 
         void IfExpressionAST::diagnoseInto(diag::DiagnosticEngine & diagnostics, unsigned int level) const {
             basic::SourceLocation location(getLocation());
 
             diagnostics.diagnose(location, diag::DiagnosticID::if_expression_ast_0, getColor(level), level,
                                  _ifBody->getKeyword().get());
-            _expression->diagnoseInto(diagnostics, level + 1);
+            _ifCondition->diagnoseInto(diagnostics, level + 1);
 
             diagnostics.diagnose(location, diag::DiagnosticID::if_expression_ast_1, getColor(level), level);
             _ifBody->diagnoseInto(diagnostics, level + 1);
 
-            diagnostics.diagnose(location, diag::DiagnosticID::if_expression_ast_2, getColor(level), level);
+            for (const auto & conditionAndBody: _elifConditionsAndBodies) {
+                const auto & condition = std::get<0>(conditionAndBody);
+                const auto & body = std::get<1>(conditionAndBody);
+
+                diagnostics.diagnose(location, diag::DiagnosticID::if_expression_ast_2, getColor(level), level);
+                condition->diagnoseInto(diagnostics, level + 1);
+
+                diagnostics.diagnose(location, diag::DiagnosticID::if_expression_ast_3, getColor(level), level);
+                body->diagnoseInto(diagnostics, level + 1);
+            }
+
+            diagnostics.diagnose(location, diag::DiagnosticID::if_expression_ast_4, getColor(level), level);
             _elseBody->diagnoseInto(diagnostics, level + 1);
 
             diagnostics.diagnose(location, diag::DiagnosticID::ast_end, getColor(level), level);
@@ -188,7 +200,7 @@ namespace juice {
         llvm::Expected<llvm::Value *> IfExpressionAST::codegen(Codegen & state) const {
             llvm::IRBuilder<> & builder = state.getBuilder();
 
-            auto condition = _expression->codegen(state);
+            auto condition = _ifCondition->codegen(state);
             if (auto error = condition.takeError()) return std::move(error);
 
             auto conditionValue = *condition;

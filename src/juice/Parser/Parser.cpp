@@ -14,6 +14,7 @@
 #include <optional>
 #include <string>
 #include <utility>
+#include <vector>
 
 #include "juice/Basic/Error.h"
 #include "juice/Basic/SourceLocation.h"
@@ -147,11 +148,33 @@ namespace juice {
         llvm::Expected<std::unique_ptr<ast::ExpressionAST>> Parser::parseIfExpression() {
             auto ifKeyword = std::move(_matchedToken);
 
-            auto ifExpression = parseExpression();
-            if (auto error = ifExpression.takeError()) return std::move(error);
+            auto ifCondition = parseExpression();
+            if (auto error = ifCondition.takeError()) return std::move(error);
 
             auto ifBody = parseIfBody(std::move(ifKeyword));
             if (auto error = ifBody.takeError()) return std::move(error);
+
+            std::vector<std::pair<std::unique_ptr<ast::ExpressionAST>, std::unique_ptr<ast::IfBodyAST>>>
+                elifConditionsAndBodies;
+
+            auto matchedElif = match(LexerToken::Type::keywordElif);
+            if (auto error = matchedElif.takeError()) return std::move(error);
+
+            while (*matchedElif) {
+                auto elifKeyword = std::move(_matchedToken);
+
+                auto elifCondition = parseExpression();
+                if (auto error = elifCondition.takeError()) return std::move(error);
+
+                auto elifBody = parseIfBody(std::move(elifKeyword));
+                if (auto error = elifBody.takeError()) return std::move(error);
+
+                elifConditionsAndBodies.push_back({ std::move(*elifCondition), std::move(*elifBody) });
+
+                matchedElif = match(LexerToken::Type::keywordElif);
+                if (auto error = matchedElif.takeError()) return std::move(error);
+            }
+
 
             if (auto error = consume(LexerToken::Type::keywordElse, diag::DiagnosticID::expected_else))
                 return std::move(error);
@@ -161,8 +184,8 @@ namespace juice {
             auto elseBody = parseIfBody(std::move(elseKeyword));
             if (auto error = elseBody.takeError()) return std::move(error);
 
-            return std::make_unique<ast::IfExpressionAST>(std::move(*ifExpression), std::move(*ifBody),
-                                                          std::move(*elseBody));
+            return std::make_unique<ast::IfExpressionAST>(std::move(*ifCondition), std::move(*ifBody),
+                                                          std::move(*elseBody), std::move(elifConditionsAndBodies));
         }
 
         llvm::Expected<std::unique_ptr<ast::ExpressionAST>> Parser::parseGroupedExpression() {

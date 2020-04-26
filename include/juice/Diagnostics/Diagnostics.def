@@ -68,10 +68,11 @@ OUTPUT(binary_operator_expression_ast_1, "%0%indent1  right: ", false)
 OUTPUT(number_expression_ast, "%0NumberExpressionAST(\n%indent1  token: %reset%2\n%0%indent1  number: %reset%3\n%0%indent1)", true)
 OUTPUT(variable_expression_ast, "%0VariableExpressionAST(token: %reset%1%0)", true)
 
-OUTPUT(if_expression_ast_0, "%0IfExpressionAST(\n%indent1  token: %reset%2\n%0%indent1  expression: ", false)
-OUTPUT(if_expression_ast_1, "%0%indent1  if: ", false)
-OUTPUT(if_expression_ast_2, "%0%indent1  elif: ", false)
-OUTPUT(if_expression_ast_3, "%0%indent1  else: ", false)
+OUTPUT(if_expression_ast_0, "%0IfExpressionAST(\n%indent1  token: %reset%2\n%0%indent1  if condition: ", false)
+OUTPUT(if_expression_ast_1, "%0%indent1  if body: ", false)
+OUTPUT(if_expression_ast_2, "%0%indent1  elif condition: ", false)
+OUTPUT(if_expression_ast_3, "%0%indent1  elif body: ", false)
+OUTPUT(if_expression_ast_4, "%0%indent1  else body: ", false)
 
 OUTPUT(variable_declaration_ast, "%0VariableDeclarationAST(\n%indent1  name: %reset%2\n%0%indent1  initialization: ", false)
 
