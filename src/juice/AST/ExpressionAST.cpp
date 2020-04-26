@@ -11,6 +11,7 @@
 
 #include "juice/AST/ExpressionAST.h"
 
+#include <algorithm>
 #include <functional>
 #include <map>
 
@@ -200,38 +201,105 @@ namespace juice {
         llvm::Expected<llvm::Value *> IfExpressionAST::codegen(Codegen & state) const {
             llvm::IRBuilder<> & builder = state.getBuilder();
 
-            auto condition = _ifCondition->codegen(state);
-            if (auto error = condition.takeError()) return std::move(error);
+            auto ifCondition = _ifCondition->codegen(state);
+            if (auto error = ifCondition.takeError()) return std::move(error);
 
-            auto conditionValue = *condition;
+            auto ifConditionValue = *ifCondition;
 
-            if (!conditionValue) return nullptr;
+            if (!ifConditionValue) return nullptr;
 
-            conditionValue = builder.CreateFCmpONE(conditionValue,
-                                                   llvm::ConstantFP::get(state.getContext(), llvm::APFloat(0.0)),
-                                                   "ifcond");
+            ifConditionValue = builder.CreateFCmpONE(ifConditionValue,
+                                                     llvm::ConstantFP::get(state.getContext(), llvm::APFloat(0.0)),
+                                                     "ifcond");
 
             llvm::Function * function = builder.GetInsertBlock()->getParent();
 
-            llvm::BasicBlock * thenBlock = llvm::BasicBlock::Create(state.getContext(), "then", function);
+            llvm::BasicBlock * ifBlock = llvm::BasicBlock::Create(state.getContext(), "then", function);
+
+            std::vector<llvm::BasicBlock *> elifBlocks(_elifConditionsAndBodies.size() * 2);
+
+            for (int i = 0; i < elifBlocks.size(); ++i) {
+                elifBlocks[i] = llvm::BasicBlock::Create(state.getContext(), i % 2 == 0 ? "elifcmp" : "elif");
+            }
+
             llvm::BasicBlock * elseBlock = llvm::BasicBlock::Create(state.getContext(), "else");
             llvm::BasicBlock * mergeBlock = llvm::BasicBlock::Create(state.getContext(), "ifcont");
 
-            builder.CreateCondBr(conditionValue, thenBlock, elseBlock);
+            if (elifBlocks.empty()) builder.CreateCondBr(ifConditionValue, ifBlock, elseBlock);
+            else builder.CreateCondBr(ifConditionValue, ifBlock, elifBlocks.front());
 
-            builder.SetInsertPoint(thenBlock);
+            builder.SetInsertPoint(ifBlock);
 
-            auto thenValue = _ifBody->codegen(state);
-            if (auto error = thenValue.takeError()) return std::move(error);
+            auto ifValue = _ifBody->codegen(state);
+            if (auto error = ifValue.takeError()) return std::move(error);
 
-            if (!*thenValue) {
+            if (!*ifValue) {
                 return llvm::make_error<CodegenErrorWithString>(diag::DiagnosticID::expected_block_yield,
                                                                 _ifBody->getLocation(), "then");
             }
 
             builder.CreateBr(mergeBlock);
 
-            thenBlock = builder.GetInsertBlock();
+            ifBlock = builder.GetInsertBlock();
+
+
+            std::vector<llvm::Value *> elifValues(_elifConditionsAndBodies.size());
+
+            auto elifBlocksIt = elifBlocks.begin();
+            auto elifConditionsAndBodiesIt = _elifConditionsAndBodies.begin();
+            auto elifValuesIt = elifValues.begin();
+
+            while (elifBlocksIt != elifBlocks.end()) {
+                auto & compareBlock = *elifBlocksIt;
+                auto & block = *(elifBlocksIt + 1);
+                const auto & condition = std::get<0>(*elifConditionsAndBodiesIt);
+                const auto & body = std::get<1>(*elifConditionsAndBodiesIt);
+
+                auto nextBlockIt = elifBlocksIt + 2;
+
+                function->getBasicBlockList().push_back(compareBlock);
+                builder.SetInsertPoint(compareBlock);
+
+                auto elifCondition = condition->codegen(state);
+                if (auto error = elifCondition.takeError()) return std::move(error);
+
+                auto elifConditionValue = *elifCondition;
+
+                if (!elifConditionValue) return nullptr;
+
+                elifConditionValue = builder.CreateFCmpONE(elifConditionValue,
+                                                         llvm::ConstantFP::get(state.getContext(), llvm::APFloat(0.0)),
+                                                         "elifcond");
+
+                if (nextBlockIt != elifBlocks.end()) builder.CreateCondBr(elifConditionValue, block, *(nextBlockIt));
+                else builder.CreateCondBr(elifConditionValue, block, elseBlock);
+
+                compareBlock = builder.GetInsertBlock();
+
+
+                function->getBasicBlockList().push_back(block);
+                builder.SetInsertPoint(block);
+
+                auto elifValue = body->codegen(state);
+                if (auto error = elifValue.takeError()) return std::move(error);
+
+                if (!*elifValue) {
+                    return llvm::make_error<CodegenErrorWithString>(diag::DiagnosticID::expected_block_yield,
+                                                                    body->getLocation(), "elif");
+                }
+
+                *elifValuesIt = *elifValue;
+
+                builder.CreateBr(mergeBlock);
+
+                block = builder.GetInsertBlock();
+
+
+                elifBlocksIt += 2;
+                ++elifConditionsAndBodiesIt;
+                ++elifValuesIt;
+            }
+
 
             function->getBasicBlockList().push_back(elseBlock);
             builder.SetInsertPoint(elseBlock);
@@ -251,8 +319,22 @@ namespace juice {
             function->getBasicBlockList().push_back(mergeBlock);
             builder.SetInsertPoint(mergeBlock);
 
-            llvm::PHINode * phi = builder.CreatePHI(llvm::Type::getDoubleTy(state.getContext()), 2, "iftmp");
-            phi->addIncoming(*thenValue, thenBlock);
+            llvm::PHINode * phi = builder.CreatePHI(llvm::Type::getDoubleTy(state.getContext()),
+                                                    2 + _elifConditionsAndBodies.size(), "iftmp");
+            phi->addIncoming(*ifValue, ifBlock);
+
+            elifBlocksIt = elifBlocks.begin();
+            elifValuesIt = elifValues.begin();
+
+            while (elifBlocksIt != elifBlocks.end()) {
+                const auto & block = *(elifBlocksIt + 1);
+
+                phi->addIncoming(*elifValuesIt, block);
+
+                elifBlocksIt += 2;
+                ++elifValuesIt;
+            }
+
             phi->addIncoming(*elseValue, elseBlock);
 
             return phi;
