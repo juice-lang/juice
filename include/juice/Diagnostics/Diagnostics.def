@@ -2,11 +2,12 @@
 //
 // This source file is part of the juice open source project
 //
-// Copyright (c) 2019 juice project authors
+// Copyright (c) 2019 - 2020 juice project authors
 // Licensed under MIT License
 //
 // See https://github.com/juice-lang/juice/blob/master/LICENSE for license information
 // See https://github.com/juice-lang/juice/blob/master/CONTRIBUTORS.txt for the list of juice project authors
+
 
 #if !(defined(DIAG) || (defined(ERROR) && defined(WARNING) && defined(OUTPUT)))
 #error Must define either DIAG or the set {ERROR, WARNING, OUTPUT}
@@ -26,6 +27,7 @@
 #define OUTPUT(ID, Text, Newline) \
   DIAG(WARNING, ID, Text, Newline)
 #endif
+
 
 ERROR(invalid_diagnostic, "INTERNAL ERROR: this diagnostic should not be produced", true)
 

@@ -9,8 +9,8 @@
 // See https://github.com/juice-lang/juice/blob/master/CONTRIBUTORS.txt for the list of juice project authors
 
 
-#ifndef JUICE_CODEGENERROR_H
-#define JUICE_CODEGENERROR_H
+#ifndef JUICE_AST_CODEGENERROR_H
+#define JUICE_AST_CODEGENERROR_H
 
 #include "juice/Basic/SourceLocation.h"
 #include "juice/Diagnostics/Diagnostics.h"
@@ -60,4 +60,4 @@ namespace juice {
     }
 }
 
-#endif //JUICE_CODEGENERROR_H
+#endif //JUICE_AST_CODEGENERROR_H

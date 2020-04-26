@@ -1,4 +1,15 @@
 #!/usr/bin/env python3
+#
+# util/build_script.py - Python script for building the juice compiler
+#
+# This file is part of the juice open source project
+#
+# Copyright (c) 2019 - 2020 juice project authors
+# Licensed under MIT License
+#
+# See https://github.com/juice-lang/juice/blob/master/LICENSE for license information
+# See https://github.com/juice-lang/juice/blob/master/CONTRIBUTORS.txt for the list of juice project authors
+
 
 import argparse
 import os
@@ -134,7 +145,6 @@ def git_get_current_hash(cwd: str) -> bytes:
     if is_git_repo(cwd):
         return subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=cwd)
     return b''
-
 
 
 def cmake(source_dir: str, install_dir: str, cwd: str) -> bool:
