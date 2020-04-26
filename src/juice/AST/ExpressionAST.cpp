@@ -17,7 +17,6 @@
 
 #include "juice/AST/Codegen.h"
 #include "juice/AST/CodegenError.h"
-#include "juice/Basic/RawStreamHelpers.h"
 #include "juice/Basic/SourceLocation.h"
 #include "llvm/ADT/APFloat.h"
 #include "llvm/ADT/StringRef.h"
@@ -32,15 +31,6 @@
 
 namespace juice {
     namespace ast {
-        static constexpr basic::Color colors[] {
-                basic::Color::cyan,
-                basic::Color::blue,
-                basic::Color::magenta,
-                basic::Color::red,
-                basic::Color::yellow,
-                basic::Color::green
-        };
-
         ExpressionAST::ExpressionAST(Kind kind, std::unique_ptr<juice::parser::LexerToken> token):
             _kind(kind), _token(std::move(token)) {}
 
@@ -52,17 +42,15 @@ namespace juice {
         void BinaryOperatorExpressionAST::diagnoseInto(diag::DiagnosticEngine & diagnostics, unsigned int level) const {
             basic::SourceLocation location(getLocation());
 
-            diagnostics.diagnose(location, diag::DiagnosticID::binary_operator_expression_ast_0, colors[level % 6],
+            diagnostics.diagnose(location, diag::DiagnosticID::binary_operator_expression_ast_0, getColor(level),
                                  level, _token.get());
-
             _left->diagnoseInto(diagnostics, level + 1);
 
             diagnostics
-                .diagnose(location, diag::DiagnosticID::binary_operator_expression_ast_1, colors[level % 6], level);
-
+                .diagnose(location, diag::DiagnosticID::binary_operator_expression_ast_1, getColor(level), level);
             _right->diagnoseInto(diagnostics, level + 1);
 
-            diagnostics.diagnose(location, diag::DiagnosticID::expression_ast_end, colors[level % 6], level);
+            diagnostics.diagnose(location, diag::DiagnosticID::ast_end, getColor(level), level);
         }
 
         llvm::Expected<llvm::Value *> BinaryOperatorExpressionAST::codegen(Codegen & state) const {
@@ -86,8 +74,7 @@ namespace juice {
                 auto variable = llvm::dyn_cast_or_null<VariableExpressionAST>(_left.get());
 
                 if (variable == nullptr) {
-                    return llvm::make_error<CodegenError>(diag::DiagnosticID::expression_not_assignable,
-                                                          getLocation());
+                    return llvm::make_error<CodegenError>(diag::DiagnosticID::expression_not_assignable, getLocation());
                 }
 
                 llvm::StringRef name = variable->name();
@@ -138,7 +125,7 @@ namespace juice {
                 ExpressionAST(Kind::number, std::move(token)), _value(value) {}
 
         void NumberExpressionAST::diagnoseInto(diag::DiagnosticEngine & diagnostics, unsigned int level) const {
-            diagnostics.diagnose(getLocation(), diag::DiagnosticID::number_expression_ast, colors[level % 6], level,
+            diagnostics.diagnose(getLocation(), diag::DiagnosticID::number_expression_ast, getColor(level), level,
                                  _token.get(), _value);
         }
 
@@ -150,7 +137,7 @@ namespace juice {
                 ExpressionAST(Kind::variable, std::move(token)) {}
 
         void VariableExpressionAST::diagnoseInto(diag::DiagnosticEngine & diagnostics, unsigned int level) const {
-            diagnostics.diagnose(getLocation(), diag::DiagnosticID::variable_expression_ast, colors[level % 6],
+            diagnostics.diagnose(getLocation(), diag::DiagnosticID::variable_expression_ast, getColor(level),
                                  _token.get());
         }
 
@@ -185,20 +172,17 @@ namespace juice {
         void IfExpressionAST::diagnoseInto(diag::DiagnosticEngine & diagnostics, unsigned int level) const {
             basic::SourceLocation location(getLocation());
 
-            diagnostics.diagnose(location, diag::DiagnosticID::if_expression_ast_0, colors[level % 6], level,
+            diagnostics.diagnose(location, diag::DiagnosticID::if_expression_ast_0, getColor(level), level,
                                  _ifBody->getKeyword().get());
-
             _expression->diagnoseInto(diagnostics, level + 1);
 
-            diagnostics.diagnose(location, diag::DiagnosticID::if_expression_ast_1, colors[level % 6], level);
-
+            diagnostics.diagnose(location, diag::DiagnosticID::if_expression_ast_1, getColor(level), level);
             _ifBody->diagnoseInto(diagnostics, level + 1);
 
-            diagnostics.diagnose(location, diag::DiagnosticID::if_expression_ast_2, colors[level % 6], level);
-
+            diagnostics.diagnose(location, diag::DiagnosticID::if_expression_ast_2, getColor(level), level);
             _elseBody->diagnoseInto(diagnostics, level + 1);
 
-            diagnostics.diagnose(location, diag::DiagnosticID::expression_ast_end, colors[level % 6], level);
+            diagnostics.diagnose(location, diag::DiagnosticID::ast_end, getColor(level), level);
         }
 
         llvm::Expected<llvm::Value *> IfExpressionAST::codegen(Codegen & state) const {

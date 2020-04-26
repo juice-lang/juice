@@ -44,6 +44,8 @@ namespace juice {
             constexpr bool operator!=(Color other) const { return _value != other._value; }
             constexpr bool operator!=(Value other) const { return _value != other; }
 
+            static const Color rainbow[6];
+
         private:
             Value _value;
         };

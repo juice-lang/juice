@@ -15,6 +15,7 @@
 #include <memory>
 #include <vector>
 
+#include "juice/Basic/RawStreamHelpers.h"
 #include "juice/Basic/SourceLocation.h"
 #include "juice/Diagnostics/Diagnostics.h"
 #include "juice/Parser/LexerToken.h"
@@ -31,6 +32,11 @@ namespace juice {
 
 
         class AST {
+        protected:
+            static basic::Color getColor(unsigned int level) {
+                return basic::Color::rainbow[level % 6];
+            }
+
         public:
             virtual ~AST() = default;
 

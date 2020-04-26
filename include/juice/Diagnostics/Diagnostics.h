@@ -184,9 +184,9 @@ namespace juice {
                                      DiagnosticEngine * diagnostics = nullptr);
 
         public:
-            static DiagnosticKind diagnosticKindFor(DiagnosticID id);
-            static const char * diagnosticStringFor(DiagnosticID id);
-            static bool diagnosticNewlineFor(DiagnosticID id);
+            static constexpr DiagnosticKind diagnosticKindFor(DiagnosticID id);
+            static constexpr const char * diagnosticStringFor(DiagnosticID id);
+            static constexpr bool diagnosticNewlineFor(DiagnosticID id);
         };
     }
 }

@@ -256,15 +256,15 @@ namespace juice {
             }
         }
 
-        DiagnosticKind DiagnosticEngine::diagnosticKindFor(const DiagnosticID id) {
+        constexpr DiagnosticKind DiagnosticEngine::diagnosticKindFor(DiagnosticID id) {
             return diagnosticKinds[(unsigned int)id];
         }
 
-        const char * DiagnosticEngine::diagnosticStringFor(const DiagnosticID id) {
+        constexpr const char * DiagnosticEngine::diagnosticStringFor(const DiagnosticID id) {
             return diagnosticStrings[(unsigned int)id];
         }
 
-        bool DiagnosticEngine::diagnosticNewlineFor(DiagnosticID id) {
+        constexpr bool DiagnosticEngine::diagnosticNewlineFor(DiagnosticID id) {
             return diagnosticNewlines[(unsigned int)id];
         }
     }

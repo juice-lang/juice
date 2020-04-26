@@ -52,9 +52,9 @@ namespace juice {
             basic::SourceLocation location(getLocation());
 
             if (_statements.empty()) {
-                diagnostics.diagnose(location, diag::DiagnosticID::block_ast_empty);
+                diagnostics.diagnose(location, diag::DiagnosticID::block_ast_empty, getColor(level));
             } else {
-                diagnostics.diagnose(location, diag::DiagnosticID::block_ast_0, level);
+                diagnostics.diagnose(location, diag::DiagnosticID::block_ast_0, getColor(level), level);
 
                 for (const auto & statement: _statements) {
                     diagnostics.diagnose(location, diag::DiagnosticID::block_ast_1, level + 1);
@@ -62,7 +62,7 @@ namespace juice {
                     statement->diagnoseInto(diagnostics, level + 1);
                 }
 
-                diagnostics.diagnose(location, diag::DiagnosticID::block_ast_2, level);
+                diagnostics.diagnose(location, diag::DiagnosticID::block_ast_2, getColor(level), level);
             }
         }
 
@@ -124,16 +124,18 @@ namespace juice {
 
             switch (_kind) {
                 case Kind::block:
-                    diagnostics.diagnose(location, diag::DiagnosticID::if_body_ast_block, level, _keyword.get());
+                    diagnostics.diagnose(location, diag::DiagnosticID::if_body_ast_block, getColor(level), level,
+                                         _keyword.get());
                     _block->diagnoseInto(diagnostics, level + 1);
                     break;
                 case Kind::expression:
-                    diagnostics.diagnose(location, diag::DiagnosticID::if_body_ast_expression, level, _keyword.get());
+                    diagnostics.diagnose(location, diag::DiagnosticID::if_body_ast_expression, getColor(level), level,
+                                         _keyword.get());
                     _expression->diagnoseInto(diagnostics, level + 1);
                     break;
             }
 
-            diagnostics.diagnose(location, diag::DiagnosticID::ast_end, level);
+            diagnostics.diagnose(location, diag::DiagnosticID::ast_end, getColor(level), level);
         }
 
         llvm::Expected<llvm::Value *> IfBodyAST::codegen(Codegen & state) const {

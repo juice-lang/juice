@@ -12,6 +12,15 @@
 
 namespace juice {
     namespace basic {
+        const Color Color::rainbow[6] = {
+            basic::Color::cyan,
+            basic::Color::blue,
+            basic::Color::magenta,
+            basic::Color::red,
+            basic::Color::yellow,
+            basic::Color::green
+        };
+
         llvm::raw_ostream & operator<<(llvm::raw_ostream & os, Color::Value color) {
             switch (color) {
                 case Color::black: return os << "\033[30m";
