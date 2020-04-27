@@ -91,7 +91,7 @@ namespace juice {
         };
 
 
-        class IfBodyAST: public AST {
+        class ControlFlowBodyAST: public AST {
             enum class Kind {
                 block,
                 expression
@@ -106,12 +106,12 @@ namespace juice {
             };
 
         public:
-            IfBodyAST() = delete;
+            ControlFlowBodyAST() = delete;
 
-            IfBodyAST(std::unique_ptr<parser::LexerToken> keyword, std::unique_ptr<BlockAST> block);
-            IfBodyAST(std::unique_ptr<parser::LexerToken> keyword, std::unique_ptr<ExpressionAST> expression);
+            ControlFlowBodyAST(std::unique_ptr<parser::LexerToken> keyword, std::unique_ptr<BlockAST> block);
+            ControlFlowBodyAST(std::unique_ptr<parser::LexerToken> keyword, std::unique_ptr<ExpressionAST> expression);
 
-            ~IfBodyAST() override;
+            ~ControlFlowBodyAST() override;
 
             basic::SourceLocation getLocation() const override {
                 return basic::SourceLocation(_keyword->string.begin());

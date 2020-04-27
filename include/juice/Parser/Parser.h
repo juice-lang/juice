@@ -132,9 +132,13 @@ namespace juice {
             llvm::Error consume(LexerToken::Type type, diag::DiagnosticID errorID);
             llvm::Error consume(LexerToken::Type type, diag::DiagnosticID errorID, llvm::StringRef name);
 
-            llvm::Expected<std::unique_ptr<ast::IfBodyAST>> parseIfBody(std::unique_ptr<LexerToken> keyword);
-            llvm::Expected<std::unique_ptr<ast::IfExpressionAST>> parseIfExpression(bool isStatement);
+            llvm::Expected<std::unique_ptr<ast::BlockAST>> parseBlock(llvm::StringRef name);
 
+            llvm::Expected<std::unique_ptr<ast::ControlFlowBodyAST>>
+            parseControlFlowBody(std::unique_ptr<LexerToken> keyword);
+
+
+            llvm::Expected<std::unique_ptr<ast::IfExpressionAST>> parseIfExpression(bool isStatement);
             llvm::Expected<std::unique_ptr<ast::ExpressionAST>> parseGroupedExpression();
 
             llvm::Expected<std::unique_ptr<ast::ExpressionAST>> parsePrimaryExpression();
@@ -147,13 +151,13 @@ namespace juice {
             llvm::Expected<std::unique_ptr<ast::ExpressionAST>> parseAssignmentPrecedenceExpression();
             llvm::Expected<std::unique_ptr<ast::ExpressionAST>> parseExpression();
 
+
             llvm::Expected<std::unique_ptr<ast::ExpressionStatementAST>> parseExpressionStatement();
+            llvm::Expected<std::unique_ptr<ast::WhileStatementAST>> parseWhileStatement();
+            llvm::Expected<std::unique_ptr<ast::IfStatementAST>> parseIfStatement();
+            llvm::Expected<std::unique_ptr<ast::BlockStatementAST>> parseBlockStatement();
 
             llvm::Expected<std::unique_ptr<ast::VariableDeclarationAST>> parseVariableDeclaration();
-
-            llvm::Expected<std::unique_ptr<ast::IfStatementAST>> parseIfStatement();
-
-            llvm::Expected<std::unique_ptr<ast::BlockAST>> parseBlock(llvm::StringRef name);
 
             llvm::Expected<std::unique_ptr<ast::StatementAST>> parseStatement();
 

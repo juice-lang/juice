@@ -81,6 +81,9 @@ OUTPUT(if_ast_2, "%0%indent1  elif condition: ", false)
 OUTPUT(if_ast_3, "%0%indent1  elif body: ", false)
 OUTPUT(if_ast_4, "%0%indent1  else body: ", false)
 
+OUTPUT(while_statement_ast_0, "%0WhileStatementAST(\n%indent1  token: %reset%2\n%0%indent1  condition: ", false)
+OUTPUT(while_statement_ast_1, "%0%indent1  body: ", false)
+
 OUTPUT(block_ast_empty, "%0BlockAST(block: {})", true)
 OUTPUT(block_ast_0, "%0BlockAST(\n%indent1  block: {", true)
 OUTPUT(block_ast_1, "%indent0", false)

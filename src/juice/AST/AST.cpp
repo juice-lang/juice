@@ -101,25 +101,25 @@ namespace juice {
             return returnValue;
         }
 
-        IfBodyAST::IfBodyAST(std::unique_ptr<parser::LexerToken> keyword, std::unique_ptr<BlockAST> block):
+        ControlFlowBodyAST::ControlFlowBodyAST(std::unique_ptr<parser::LexerToken> keyword, std::unique_ptr<BlockAST> block):
             _keyword(std::move(keyword)), _kind(Kind::block) {
             new (&_block) std::unique_ptr<BlockAST>(std::move(block));
         }
 
-        IfBodyAST::IfBodyAST(std::unique_ptr<parser::LexerToken> keyword,
-                             std::unique_ptr<ExpressionAST> expression):
+        ControlFlowBodyAST::ControlFlowBodyAST(std::unique_ptr<parser::LexerToken> keyword,
+                                               std::unique_ptr<ExpressionAST> expression):
             _keyword(std::move(keyword)), _kind(Kind::expression) {
             new (&_expression) std::unique_ptr<ExpressionAST>(std::move(expression));
         }
 
-        IfBodyAST::~IfBodyAST() {
+        ControlFlowBodyAST::~ControlFlowBodyAST() {
             switch (_kind) {
                 case Kind::block: _block.~unique_ptr<BlockAST>(); break;
                 case Kind::expression: _expression.~unique_ptr<ExpressionAST>(); break;
             }
         }
 
-        void IfBodyAST::diagnoseInto(diag::DiagnosticEngine & diagnostics, unsigned int level) const {
+        void ControlFlowBodyAST::diagnoseInto(diag::DiagnosticEngine & diagnostics, unsigned int level) const {
             basic::SourceLocation location(getLocation());
 
             switch (_kind) {
@@ -138,7 +138,7 @@ namespace juice {
             diagnostics.diagnose(location, diag::DiagnosticID::ast_end, getColor(level), level);
         }
 
-        llvm::Expected<llvm::Value *> IfBodyAST::codegen(Codegen & state) const {
+        llvm::Expected<llvm::Value *> ControlFlowBodyAST::codegen(Codegen & state) const {
             switch (_kind) {
                 case Kind::block: return _block->codegen(state);
                 case Kind::expression: return _expression->codegen(state);

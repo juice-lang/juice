@@ -77,6 +77,26 @@ namespace juice {
 
             llvm::Expected<llvm::Value *> codegen(Codegen & state) const override;
         };
+
+        class WhileStatementAST: public StatementAST {
+            std::unique_ptr<ExpressionAST> _condition;
+            std::unique_ptr<ControlFlowBodyAST> _body;
+
+        public:
+            WhileStatementAST() = delete;
+
+            WhileStatementAST(std::unique_ptr<ExpressionAST> condition, std::unique_ptr<ControlFlowBodyAST> body);
+
+            ~WhileStatementAST() override = default;
+
+            basic::SourceLocation getLocation() const override {
+                return _body->getLocation();
+            }
+
+            void diagnoseInto(diag::DiagnosticEngine & diagnostics, unsigned int level) const override;
+
+            llvm::Expected<llvm::Value *> codegen(Codegen & state) const override;
+        };
     }
 }
 

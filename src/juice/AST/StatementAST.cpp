@@ -158,5 +158,68 @@ namespace juice {
 
             return nullptr;
         }
+
+        WhileStatementAST::WhileStatementAST(std::unique_ptr<ExpressionAST> condition,
+                                             std::unique_ptr<ControlFlowBodyAST> body):
+            _condition(std::move(condition)), _body(std::move(body)) {}
+
+        void WhileStatementAST::diagnoseInto(diag::DiagnosticEngine & diagnostics, unsigned int level) const {
+            basic::SourceLocation location(getLocation());
+
+            diagnostics.diagnose(location, diag::DiagnosticID::while_statement_ast_0, getColor(level), level,
+                                 _body->getKeyword().get());
+            _condition->diagnoseInto(diagnostics, level + 1);
+
+            diagnostics.diagnose(location, diag::DiagnosticID::while_statement_ast_1, getColor(level), level);
+            _body->diagnoseInto(diagnostics, level + 1);
+
+            diagnostics.diagnose(location, diag::DiagnosticID::ast_end, getColor(level), level);
+        }
+
+        llvm::Expected<llvm::Value *> WhileStatementAST::codegen(Codegen & state) const {
+            llvm::IRBuilder<> & builder = state.getBuilder();
+
+            llvm::Function * function = builder.GetInsertBlock()->getParent();
+
+            llvm::BasicBlock * conditionBlock = llvm::BasicBlock::Create(state.getContext(), "whilecmp", function);
+            llvm::BasicBlock * block = llvm::BasicBlock::Create(state.getContext(), "while");
+            llvm::BasicBlock * mergeBlock = llvm::BasicBlock::Create(state.getContext(), "whilecont");
+
+            builder.CreateBr(conditionBlock);
+
+
+            builder.SetInsertPoint(conditionBlock);
+
+            auto condition = _condition->codegen(state);
+            if (auto error = condition.takeError()) return std::move(error);
+
+            auto conditionValue = *condition;
+            assert(conditionValue && "The while condition should be a valid expression");
+
+            conditionValue = builder.CreateFCmpONE(conditionValue,
+                                                   llvm::ConstantFP::get(state.getContext(), llvm::APFloat(0.0)),
+                                                   "whilecond");
+
+            builder.CreateCondBr(conditionValue, block, mergeBlock);
+
+            conditionBlock = builder.GetInsertBlock();
+
+
+            function->getBasicBlockList().push_back(block);
+            builder.SetInsertPoint(block);
+
+            auto value = _body->codegen(state);
+            if (auto error = value.takeError()) return std::move(error);
+
+            builder.CreateBr(conditionBlock);
+
+            block = builder.GetInsertBlock();
+
+
+            function->getBasicBlockList().push_back(mergeBlock);
+            builder.SetInsertPoint(mergeBlock);
+
+            return nullptr;
+        }
     }
 }

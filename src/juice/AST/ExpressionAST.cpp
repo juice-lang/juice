@@ -240,10 +240,10 @@ namespace juice {
         }
 
         IfExpressionAST::IfExpressionAST(std::unique_ptr<ExpressionAST> ifCondition,
-                                         std::unique_ptr<IfBodyAST> ifBody,
+                                         std::unique_ptr<ControlFlowBodyAST> ifBody,
                                          std::vector<std::pair<std::unique_ptr<ExpressionAST>,
-                                                               std::unique_ptr<IfBodyAST>>> && elifConditionsAndBodies,
-                                         std::unique_ptr<IfBodyAST> elseBody, bool isStatement):
+                                                               std::unique_ptr<ControlFlowBodyAST>>> && elifConditionsAndBodies,
+                                         std::unique_ptr<ControlFlowBodyAST> elseBody, bool isStatement):
             ExpressionAST(Kind::_if, nullptr), _ifCondition(std::move(ifCondition)), _ifBody(std::move(ifBody)),
             _elifConditionsAndBodies(std::move(elifConditionsAndBodies)), _elseBody(std::move(elseBody)),
             _isStatement(isStatement) {}
