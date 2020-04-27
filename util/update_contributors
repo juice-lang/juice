@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+
+util_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+repo_dir="$(dirname "${util_dir}")"
+
+cd "${repo_dir}" || exit
+
+git log --pretty="%ae" | uniq | {
+    while read -r email
+    do
+        if ! grep -q "${email}" CONTRIBUTORS.txt; then
+            name=$(git log -1 --author="${email}" --pretty="%an")
+            echo "- ${name} <${email}>" >> CONTRIBUTORS.txt
+        fi
+    done
+}
