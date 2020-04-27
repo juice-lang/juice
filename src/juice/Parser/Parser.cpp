@@ -39,6 +39,22 @@ namespace juice {
             return _currentToken->type == type;
         }
 
+        template<typename... T, std::enable_if_t<basic::all_same<LexerToken::Type, T...>::value> *>
+        bool Parser::check(LexerToken::Type type, T... types) {
+            if (check(type)) return true;
+
+            return check(types...);
+        }
+
+        template<size_t size>
+        bool Parser::check(const std::array<LexerToken::Type, size> & types) {
+            for (const auto & type: types) {
+                if (check(type)) return true;
+            }
+
+            return false;
+        }
+
         bool Parser::checkPrevious(LexerToken::Type type) {
             return getPreviousToken()->type == type;
         }
@@ -271,6 +287,7 @@ namespace juice {
 
                 node = std::make_unique<ast::BinaryOperatorExpressionAST>(std::move(token), std::move(*node),
                                                                           std::move(*right));
+                if (auto error = node.takeError()) return std::move(error);
 
                 matched = match(LexerToken::Type::operatorAsterisk, LexerToken::Type::operatorSlash);
                 if (auto error = matched.takeError()) return std::move(error);
@@ -294,6 +311,7 @@ namespace juice {
 
                 node = std::make_unique<ast::BinaryOperatorExpressionAST>(std::move(token), std::move(*node),
                                                                           std::move(*right));
+                if (auto error = node.takeError()) return std::move(error);
 
                 matched = match(LexerToken::Type::operatorPlus, LexerToken::Type::operatorMinus);
                 if (auto error = matched.takeError()) return std::move(error);
@@ -302,8 +320,106 @@ namespace juice {
             return node;
         }
 
-        llvm::Expected<std::unique_ptr<ast::ExpressionAST>> Parser::parseAssignmentPrecedenceExpression() {
+        llvm::Expected<std::unique_ptr<ast::ExpressionAST>> Parser::parseComparisonPrecedenceExpression() {
             auto node = parseAdditionPrecedenceExpression();
+            if (auto error = node.takeError()) return std::move(error);
+
+            auto matched = match(LexerToken::Type::operatorLower, LexerToken::Type::operatorLowerEqual,
+                                 LexerToken::Type::operatorGreater, LexerToken::Type::operatorGreaterEqual);
+            if (auto error = matched.takeError()) return std::move(error);
+
+            if (*matched) {
+                auto token = std::move(_matchedToken);
+
+                auto right = parseAdditionPrecedenceExpression();
+                if (auto error = right.takeError()) return std::move(error);
+
+                node = std::make_unique<ast::BinaryOperatorExpressionAST>(std::move(token), std::move(*node),
+                                                                          std::move(*right));
+                if (auto error = node.takeError()) return std::move(error);
+
+                if (check(LexerToken::Type::operatorLower, LexerToken::Type::operatorLowerEqual,
+                          LexerToken::Type::operatorGreater, LexerToken::Type::operatorGreaterEqual))
+                    return llvm::make_error<ErrorWithString>(diag::DiagnosticID::unexpected_operator, "comparison");
+            }
+
+            return node;
+        }
+
+        llvm::Expected<std::unique_ptr<ast::ExpressionAST>> Parser::parseEqualityPrecedenceExpression() {
+            auto node = parseComparisonPrecedenceExpression();
+            if (auto error = node.takeError()) return std::move(error);
+
+            auto matched = match(LexerToken::Type::operatorEqualEqual, LexerToken::Type::operatorBangEqual);
+            if (auto error = matched.takeError()) return std::move(error);
+
+            if (*matched) {
+                auto token = std::move(_matchedToken);
+
+                auto right = parseComparisonPrecedenceExpression();
+                if (auto error = right.takeError()) return std::move(error);
+
+                node = std::make_unique<ast::BinaryOperatorExpressionAST>(std::move(token), std::move(*node),
+                                                                          std::move(*right));
+                if (auto error = node.takeError()) return std::move(error);
+
+                if (check(LexerToken::Type::operatorEqualEqual, LexerToken::Type::operatorBangEqual))
+                    return llvm::make_error<ErrorWithString>(diag::DiagnosticID::unexpected_operator, "equality");
+            }
+
+            return node;
+        }
+
+        llvm::Expected<std::unique_ptr<ast::ExpressionAST>> Parser::parseLogicalAndPrecedenceExpression() {
+            auto node = parseEqualityPrecedenceExpression();
+            if (auto error = node.takeError()) return std::move(error);
+
+            auto matched = match(LexerToken::Type::operatorAndAnd);
+            if (auto error = matched.takeError()) return std::move(error);
+
+            while (*matched) {
+                auto token = std::move(_matchedToken);
+
+                auto right = parseEqualityPrecedenceExpression();
+                if (auto error = right.takeError()) return std::move(error);
+
+                node = std::make_unique<ast::BinaryOperatorExpressionAST>(std::move(token), std::move(*node),
+                                                                          std::move(*right));
+                if (auto error = node.takeError()) return std::move(error);
+
+                matched = match(LexerToken::Type::operatorAndAnd);
+                if (auto error = matched.takeError()) return std::move(error);
+            }
+
+            return node;
+        }
+
+        llvm::Expected<std::unique_ptr<ast::ExpressionAST>> Parser::parseLogicalOrPrecedenceExpression() {
+            auto node = parseLogicalAndPrecedenceExpression();
+            if (auto error = node.takeError()) return std::move(error);
+
+            auto matched = match(LexerToken::Type::operatorPipePipe);
+            if (auto error = matched.takeError()) return std::move(error);
+
+            while (*matched) {
+                auto token = std::move(_matchedToken);
+
+                auto right = parseLogicalAndPrecedenceExpression();
+                if (auto error = right.takeError()) return std::move(error);
+
+                node = std::make_unique<ast::BinaryOperatorExpressionAST>(std::move(token), std::move(*node),
+                                                                          std::move(*right));
+                if (auto error = node.takeError()) return std::move(error);
+
+                matched = match(LexerToken::Type::operatorPipePipe);
+                if (auto error = matched.takeError()) return std::move(error);
+            }
+
+            return node;
+        }
+
+        llvm::Expected<std::unique_ptr<ast::ExpressionAST>> Parser::parseAssignmentPrecedenceExpression() {
+            auto node = parseLogicalOrPrecedenceExpression();
             if (auto error = node.takeError()) return std::move(error);
 
             auto matched = match(LexerToken::Type::operatorEqual, LexerToken::Type::operatorPlusEqual,
@@ -319,6 +435,7 @@ namespace juice {
 
                 node = std::make_unique<ast::BinaryOperatorExpressionAST>(std::move(token), std::move(*node),
                                                                           std::move(*right));
+                if (auto error = node.takeError()) return std::move(error);
 
                 matched = match(LexerToken::Type::operatorEqual, LexerToken::Type::operatorPlusEqual,
                                 LexerToken::Type::operatorMinusEqual, LexerToken::Type::operatorAsteriskEqual,

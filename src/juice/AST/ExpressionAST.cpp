@@ -27,6 +27,7 @@
 #include "llvm/IR/Type.h"
 #include "llvm/IR/Value.h"
 #include "llvm/Support/Casting.h"
+#include "llvm/Support/ErrorHandling.h"
 
 namespace juice {
     namespace ast {
@@ -67,9 +68,9 @@ namespace juice {
                 {TokenType::operatorSlashEqual, std::bind(&Builder::CreateFDiv, builder, _1, _2, "divtmp", nullptr)}
             };
 
-            auto function = assignmentOperators.find(_token->type);
+            auto instruction = assignmentOperators.find(_token->type);
 
-            if (function != assignmentOperators.end()) {
+            if (instruction != assignmentOperators.end()) {
                 auto variable = llvm::dyn_cast_or_null<VariableExpressionAST>(_left.get());
 
                 if (variable == nullptr) {
@@ -87,10 +88,10 @@ namespace juice {
 
                 llvm::AllocaInst * alloca = state.getNamedValue(name);
 
-                if (function->second != nullptr) {
+                if (instruction->second != nullptr) {
                     llvm::Value * variableValue = builder.CreateLoad(alloca, name);
 
-                    rightValue = function->second(variableValue, rightValue);
+                    rightValue = instruction->second(variableValue, rightValue);
                 }
 
                 builder.CreateStore(rightValue, alloca);
@@ -101,22 +102,97 @@ namespace juice {
             auto left = _left->codegen(state);
             if (auto error = left.takeError()) return std::move(error);
 
+            if (_token->type == TokenType::operatorAndAnd || _token->type == TokenType::operatorPipePipe) {
+                auto leftValue = *left;
+
+                if (!leftValue) return nullptr;
+
+                leftValue = builder.CreateFCmpONE(leftValue,
+                                                  llvm::ConstantFP::get(state.getContext(), llvm::APFloat(0.0)),
+                                                  "logicalfirst");
+
+                llvm::Function * function = builder.GetInsertBlock()->getParent();
+
+                llvm::BasicBlock * rightBlock = llvm::BasicBlock::Create(state.getContext(), "logical", function);
+                llvm::BasicBlock * mergeBlock = llvm::BasicBlock::Create(state.getContext(), "logicalcont");
+
+                if (_token->type == TokenType::operatorAndAnd) builder.CreateCondBr(leftValue, rightBlock, mergeBlock);
+                else builder.CreateCondBr(leftValue, mergeBlock, rightBlock);
+
+                llvm::BasicBlock * leftBlock = builder.GetInsertBlock();
+
+
+                builder.SetInsertPoint(rightBlock);
+
+                auto right = _right->codegen(state);
+                if (auto error = right.takeError()) return std::move(error);
+
+                auto rightValue = *right;
+
+                if (!rightValue) {
+                    return llvm::make_error<CodegenErrorWithString>(diag::DiagnosticID::expected_block_yield,
+                                                                    _right->getLocation(), "logical");
+                }
+
+                rightValue = builder.CreateFCmpONE(rightValue,
+                                                   llvm::ConstantFP::get(state.getContext(), llvm::APFloat(0.0)),
+                                                   "logicalsecond");
+
+                builder.CreateBr(mergeBlock);
+
+                rightBlock = builder.GetInsertBlock();
+
+
+                function->getBasicBlockList().push_back(mergeBlock);
+                builder.SetInsertPoint(mergeBlock);
+
+                llvm::PHINode * phi = builder.CreatePHI(llvm::Type::getInt1Ty(state.getContext()), 2, "logicaltmp");
+                phi->addIncoming(leftValue, leftBlock);
+                phi->addIncoming(rightValue, rightBlock);
+
+                return builder.CreateUIToFP(phi, llvm::Type::getDoubleTy(state.getContext()), "booltmp");
+            }
+
             auto right = _right->codegen(state);
             if (auto error = right.takeError()) return std::move(error);
 
             if (*left == nullptr || *right == nullptr) return nullptr;
 
             switch (_token->type) {
-                case parser::LexerToken::Type::operatorPlus:
+                case TokenType::operatorPlus:
                     return builder.CreateFAdd(*left, *right, "addtmp");
-                case parser::LexerToken::Type::operatorMinus:
+                case TokenType::operatorMinus:
                     return builder.CreateFSub(*left, *right, "subtmp");
-                case parser::LexerToken::Type::operatorAsterisk:
+                case TokenType::operatorAsterisk:
                     return builder.CreateFMul(*left, *right, "multmp");
-                case parser::LexerToken::Type::operatorSlash:
+                case TokenType::operatorSlash:
                     return builder.CreateFDiv(*left, *right, "divtmp");
+                case TokenType::operatorEqualEqual: {
+                    auto value = builder.CreateFCmpOEQ(*left, *right, "eqtmp");
+                    return builder.CreateUIToFP(value, llvm::Type::getDoubleTy(state.getContext()), "booltmp");
+                }
+                case TokenType::operatorBangEqual: {
+                    auto value = builder.CreateFCmpONE(*left, *right, "netmp");
+                    return builder.CreateUIToFP(value, llvm::Type::getDoubleTy(state.getContext()), "booltmp");
+                }
+                case TokenType::operatorLower: {
+                    auto value = builder.CreateFCmpOLT(*left, *right, "lttmp");
+                    return builder.CreateUIToFP(value, llvm::Type::getDoubleTy(state.getContext()), "booltmp");
+                }
+                case TokenType::operatorLowerEqual: {
+                    auto value = builder.CreateFCmpOLE(*left, *right, "letmp");
+                    return builder.CreateUIToFP(value, llvm::Type::getDoubleTy(state.getContext()), "booltmp");
+                }
+                case TokenType::operatorGreater: {
+                    auto value = builder.CreateFCmpOGT(*left, *right, "gttmp");
+                    return builder.CreateUIToFP(value, llvm::Type::getDoubleTy(state.getContext()), "booltmp");
+                }
+                case TokenType::operatorGreaterEqual: {
+                    auto value = builder.CreateFCmpOGE(*left, *right, "getmp");
+                    return builder.CreateUIToFP(value, llvm::Type::getDoubleTy(state.getContext()), "booltmp");
+                }
                 default:
-                    return nullptr;
+                    llvm_unreachable("All possible parsed operators should be handled here");
             }
         }
 

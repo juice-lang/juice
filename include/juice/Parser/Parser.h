@@ -107,6 +107,13 @@ namespace juice {
             const std::unique_ptr<LexerToken> & getPreviousToken();
 
             bool check(LexerToken::Type type);
+
+            template <typename... T, std::enable_if_t<basic::all_same<LexerToken::Type, T...>::value> * = nullptr>
+            bool check(LexerToken::Type type, T... types);
+
+            template <size_t size>
+            bool check(const std::array<LexerToken::Type, size> & types);
+
             bool checkPrevious(LexerToken::Type type);
 
             llvm::Error advanceOne();
@@ -133,6 +140,10 @@ namespace juice {
             llvm::Expected<std::unique_ptr<ast::ExpressionAST>> parsePrimaryExpression();
             llvm::Expected<std::unique_ptr<ast::ExpressionAST>> parseMultiplicationPrecedenceExpression();
             llvm::Expected<std::unique_ptr<ast::ExpressionAST>> parseAdditionPrecedenceExpression();
+            llvm::Expected<std::unique_ptr<ast::ExpressionAST>> parseComparisonPrecedenceExpression();
+            llvm::Expected<std::unique_ptr<ast::ExpressionAST>> parseEqualityPrecedenceExpression();
+            llvm::Expected<std::unique_ptr<ast::ExpressionAST>> parseLogicalAndPrecedenceExpression();
+            llvm::Expected<std::unique_ptr<ast::ExpressionAST>> parseLogicalOrPrecedenceExpression();
             llvm::Expected<std::unique_ptr<ast::ExpressionAST>> parseAssignmentPrecedenceExpression();
             llvm::Expected<std::unique_ptr<ast::ExpressionAST>> parseExpression();
 

@@ -53,6 +53,8 @@ ERROR(expected_expression, "expected expression", true)
 ERROR(expected_else, "expected else block in if expression", true)
 ERROR(expected_right_paren, "expected closing parenthesis after expression", true)
 
+ERROR(unexpected_operator, "unexpected %0 precedence operator", true)
+
 ERROR(expected_variable_name, "expected variable name", true)
 ERROR(expected_variable_initialization, "expected initialization after variable declaration", true)
 
