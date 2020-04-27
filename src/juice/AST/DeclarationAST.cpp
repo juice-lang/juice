@@ -41,7 +41,7 @@ namespace juice {
             state.getBuilder().CreateStore(*value, alloca);
 
             if (state.newNamedValue(_name->string, alloca)) {
-                return alloca;
+                return nullptr;
             }
 
             return llvm::make_error<CodegenErrorWithString>(diag::DiagnosticID::invalid_redeclaration, getLocation(),

@@ -59,8 +59,7 @@ namespace juice {
             if (auto error = ifCondition.takeError()) return std::move(error);
 
             auto ifConditionValue = *ifCondition;
-
-            if (!ifConditionValue) return nullptr;
+            assert(ifConditionValue && "The if condition should be a valid expression");
 
             ifConditionValue = builder.CreateFCmpONE(ifConditionValue,
                                                      llvm::ConstantFP::get(state.getContext(), llvm::APFloat(0.0)),
@@ -68,7 +67,7 @@ namespace juice {
 
             llvm::Function * function = builder.GetInsertBlock()->getParent();
 
-            llvm::BasicBlock * ifBlock = llvm::BasicBlock::Create(state.getContext(), "then", function);
+            llvm::BasicBlock * ifBlock = llvm::BasicBlock::Create(state.getContext(), "if", function);
 
             std::vector<llvm::BasicBlock *> elifBlocks(_ifExpression->_elifConditionsAndBodies.size() * 2);
 
@@ -111,8 +110,7 @@ namespace juice {
                 if (auto error = elifCondition.takeError()) return std::move(error);
 
                 auto elifConditionValue = *elifCondition;
-
-                if (!elifConditionValue) return nullptr;
+                assert(elifConditionValue && "The elif condition should be a valid expression");
 
                 elifConditionValue = builder.CreateFCmpONE(elifConditionValue,
                                                            llvm::ConstantFP::get(state.getContext(),

@@ -83,8 +83,7 @@ namespace juice {
                 if (auto error = right.takeError()) return std::move(error);
 
                 auto rightValue = *right;
-
-                if (rightValue == nullptr) return nullptr;
+                assert(rightValue && "The binary operator right-hand expression should be valid");
 
                 llvm::AllocaInst * alloca = state.getNamedValue(name);
 
@@ -104,8 +103,7 @@ namespace juice {
 
             if (_token->type == TokenType::operatorAndAnd || _token->type == TokenType::operatorPipePipe) {
                 auto leftValue = *left;
-
-                if (!leftValue) return nullptr;
+                assert(leftValue && "The logical operator left-hand expression should be valid");
 
                 leftValue = builder.CreateFCmpONE(leftValue,
                                                   llvm::ConstantFP::get(state.getContext(), llvm::APFloat(0.0)),
@@ -128,11 +126,7 @@ namespace juice {
                 if (auto error = right.takeError()) return std::move(error);
 
                 auto rightValue = *right;
-
-                if (!rightValue) {
-                    return llvm::make_error<CodegenErrorWithString>(diag::DiagnosticID::expected_block_yield,
-                                                                    _right->getLocation(), "logical");
-                }
+                assert(rightValue && "The logical operator right-hand expression should be valid");
 
                 rightValue = builder.CreateFCmpONE(rightValue,
                                                    llvm::ConstantFP::get(state.getContext(), llvm::APFloat(0.0)),
@@ -155,8 +149,7 @@ namespace juice {
 
             auto right = _right->codegen(state);
             if (auto error = right.takeError()) return std::move(error);
-
-            if (*left == nullptr || *right == nullptr) return nullptr;
+            assert((*left && *right) && "The binary operator left- and right-hand expressions should be valid");
 
             switch (_token->type) {
                 case TokenType::operatorPlus:
@@ -286,8 +279,7 @@ namespace juice {
             if (auto error = ifCondition.takeError()) return std::move(error);
 
             auto ifConditionValue = *ifCondition;
-
-            if (!ifConditionValue) return nullptr;
+            assert(ifConditionValue && "The if condition should be a valid expression");
 
             ifConditionValue = builder.CreateFCmpONE(ifConditionValue,
                                                      llvm::ConstantFP::get(state.getContext(), llvm::APFloat(0.0)),
@@ -295,7 +287,7 @@ namespace juice {
 
             llvm::Function * function = builder.GetInsertBlock()->getParent();
 
-            llvm::BasicBlock * ifBlock = llvm::BasicBlock::Create(state.getContext(), "then", function);
+            llvm::BasicBlock * ifBlock = llvm::BasicBlock::Create(state.getContext(), "if", function);
 
             std::vector<llvm::BasicBlock *> elifBlocks(_elifConditionsAndBodies.size() * 2);
 
@@ -316,7 +308,7 @@ namespace juice {
 
             if (!*ifValue) {
                 return llvm::make_error<CodegenErrorWithString>(diag::DiagnosticID::expected_block_yield,
-                                                                _ifBody->getLocation(), "then");
+                                                                _ifBody->getLocation(), "if");
             }
 
             builder.CreateBr(mergeBlock);
@@ -345,8 +337,7 @@ namespace juice {
                 if (auto error = elifCondition.takeError()) return std::move(error);
 
                 auto elifConditionValue = *elifCondition;
-
-                if (!elifConditionValue) return nullptr;
+                assert(elifConditionValue && "The if condition should be a valid expression");
 
                 elifConditionValue = builder.CreateFCmpONE(elifConditionValue,
                                                            llvm::ConstantFP::get(state.getContext(),
