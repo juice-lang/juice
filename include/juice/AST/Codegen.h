@@ -2,15 +2,15 @@
 //
 // This source file is part of the juice open source project
 //
-// Copyright (c) 2019 juice project authors
+// Copyright (c) 2019 - 2020 juice project authors
 // Licensed under MIT License
 //
 // See https://github.com/juice-lang/juice/blob/master/LICENSE for license information
 // See https://github.com/juice-lang/juice/blob/master/CONTRIBUTORS.txt for the list of juice project authors
 
 
-#ifndef JUICE_CODEGEN_H
-#define JUICE_CODEGEN_H
+#ifndef JUICE_AST_CODEGEN_H
+#define JUICE_AST_CODEGEN_H
 
 #include <map>
 #include <memory>
@@ -29,7 +29,21 @@
 
 namespace juice {
     namespace ast {
-        class Codegen: public std::enable_shared_from_this<Codegen> {
+        struct Scope {
+            llvm::StringMap<llvm::AllocaInst *> namedValues;
+
+            std::unique_ptr<Scope> parent;
+
+            Scope() = default;
+
+            explicit Scope(std::unique_ptr<Scope> parent);
+
+            bool newNamedValue(llvm::StringRef name, llvm::AllocaInst * alloca);
+            bool namedValueExists(llvm::StringRef name) const;
+            llvm::AllocaInst * getNamedValue(llvm::StringRef name) const;
+        };
+
+        class Codegen {
             std::unique_ptr<ModuleAST> _ast;
 
             std::shared_ptr<diag::DiagnosticEngine> _diagnostics;
@@ -38,7 +52,7 @@ namespace juice {
             llvm::IRBuilder<> _builder;
             std::unique_ptr<llvm::Module> _module;
 
-            llvm::StringMap<llvm::AllocaInst *> _namedValues;
+            std::unique_ptr<Scope> _currentScope;
 
         public:
             Codegen(std::unique_ptr<ModuleAST> ast, std::shared_ptr<diag::DiagnosticEngine> diagnostics);
@@ -52,6 +66,9 @@ namespace juice {
             llvm::IRBuilder<> & getBuilder() { return _builder; }
             const llvm::IRBuilder<> & getBuilder() const { return _builder; }
 
+            void newScope();
+            void endScope();
+
             bool newNamedValue(llvm::StringRef name, llvm::AllocaInst * alloca);
             bool namedValueExists(llvm::StringRef name) const;
             llvm::AllocaInst * getNamedValue(llvm::StringRef name) const;
@@ -64,4 +81,4 @@ namespace juice {
     }
 }
 
-#endif //JUICE_CODEGEN_H
+#endif //JUICE_AST_CODEGEN_H

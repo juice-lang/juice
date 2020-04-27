@@ -2,7 +2,7 @@
 //
 // This source file is part of the juice open source project
 //
-// Copyright (c) 2019 juice project authors
+// Copyright (c) 2019 - 2020 juice project authors
 // Licensed under MIT License
 //
 // See https://github.com/juice-lang/juice/blob/master/LICENSE for license information
@@ -12,7 +12,8 @@
 
 #include <string>
 
-#include "juice/AST/CodegenException.h"
+#include "juice/AST/CodegenError.h"
+#include "juice/Basic/Error.h"
 #include "juice/Basic/RawStreamHelpers.h"
 #include "llvm/IR/BasicBlock.h"
 #include "llvm/IR/Type.h"
@@ -22,9 +23,29 @@
 
 namespace juice {
     namespace ast {
+        Scope::Scope(std::unique_ptr<Scope> parent): parent(std::move(parent)) {}
+
+        bool Scope::newNamedValue(llvm::StringRef name, llvm::AllocaInst * alloca) {
+            if (namedValues.find(name) != namedValues.end()) return false;
+
+            namedValues[name] = alloca;
+            return true;
+        }
+
+        bool Scope::namedValueExists(llvm::StringRef name) const {
+            return namedValues.find(name) != namedValues.end() ||
+                   (parent != nullptr ? parent->namedValueExists(name) : false);
+        }
+
+        llvm::AllocaInst * Scope::getNamedValue(llvm::StringRef name) const {
+            return namedValues.find(name) != namedValues.end() ? namedValues.find(name)->second :
+                   (parent != nullptr ? parent->getNamedValue(name) : nullptr);
+        }
+
         Codegen::Codegen(std::unique_ptr<ModuleAST> ast, std::shared_ptr<diag::DiagnosticEngine> diagnostics):
                 _ast(std::move(ast)), _diagnostics(std::move(diagnostics)), _builder(_context) {
             _module = std::make_unique<llvm::Module>("expression", _context);
+            _currentScope = std::make_unique<Scope>();
         }
 
         bool Codegen::generate() {
@@ -37,31 +58,36 @@ namespace juice {
             llvm::BasicBlock * mainEntryBlock = llvm::BasicBlock::Create(_context, "entry", mainFunction);
             _builder.SetInsertPoint(mainEntryBlock);
 
-            try {
-                llvm::Value * value = _ast->codegen(*this);
+            auto value = _ast->codegen(*this);
 
-                auto * globalString = _builder.CreateGlobalString(string, ".str");
-                llvm::Value * stringValue = _builder.CreateBitCast(globalString, llvm::Type::getInt8PtrTy(_context),
-                                                                   "cast");
-
-                _builder.CreateCall(printfFunction, {stringValue, value}, "printfCall");
-
-                llvm::Value * zero = llvm::ConstantInt::get(_context, llvm::APInt(32, 0, true));
-
-                _builder.CreateRet(zero);
-
-                std::string error;
-                llvm::raw_string_ostream os(error);
-
-                if (llvm::verifyFunction(*mainFunction, &os)) {
-                    os.flush();
-                    _diagnostics->diagnose(diag::DiagnosticID::function_verification_error, error);
-                } else return true;
-            } catch (const CodegenException & e) {
-                e.diagnoseInto(_diagnostics);
+            if (auto error = llvm::handleErrors(value.takeError(), [this](const CodegenError & error) {
+                    error.diagnoseInto(_diagnostics);
+                    return llvm::make_error<basic::ReturningError>();
+                })) {
+                llvm::consumeError(std::move(error));
+                return false;
             }
 
-            return false;
+            auto * globalString = _builder.CreateGlobalString(string, ".str");
+            llvm::Value * stringValue = _builder.CreateBitCast(globalString, llvm::Type::getInt8PtrTy(_context),
+                                                               "cast");
+
+            _builder.CreateCall(printfFunction, {stringValue, *value}, "printfCall");
+
+            llvm::Value * zero = llvm::ConstantInt::get(_context, llvm::APInt(32, 0, true));
+
+            _builder.CreateRet(zero);
+
+            std::string error;
+            llvm::raw_string_ostream os(error);
+
+            if (llvm::verifyFunction(*mainFunction, &os)) {
+                os.flush();
+                _diagnostics->diagnose(diag::DiagnosticID::function_verification_error, error);
+                return false;
+            }
+
+            return true;
         }
 
         void Codegen::dumpProgram() {
@@ -72,19 +98,24 @@ namespace juice {
             os << basic::Color::reset;
         }
 
-        bool Codegen::newNamedValue(llvm::StringRef name, llvm::AllocaInst * alloca) {
-            if (namedValueExists(name)) return false;
+        void Codegen::newScope() {
+            _currentScope = std::make_unique<Scope>(std::move(_currentScope));
+        }
 
-            _namedValues[name] = alloca;
-            return true;
+        void Codegen::endScope() {
+            _currentScope = std::move(_currentScope->parent);
+        }
+
+        bool Codegen::newNamedValue(llvm::StringRef name, llvm::AllocaInst * alloca) {
+            return _currentScope->newNamedValue(name, alloca);
         }
 
         bool Codegen::namedValueExists(llvm::StringRef name) const {
-            return _namedValues.find(name) != _namedValues.end();
+            return _currentScope->namedValueExists(name);
         }
 
         llvm::AllocaInst * Codegen::getNamedValue(llvm::StringRef name) const {
-            return _namedValues.find(name)->second;
+            return _currentScope->getNamedValue(name);
         }
 
         llvm::Function *

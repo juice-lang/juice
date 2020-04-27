@@ -2,7 +2,7 @@
 //
 // This source file is part of the juice open source project
 //
-// Copyright (c) 2019 juice project authors
+// Copyright (c) 2019 - 2020 juice project authors
 // Licensed under MIT License
 //
 // See https://github.com/juice-lang/juice/blob/master/LICENSE for license information
@@ -28,7 +28,7 @@ namespace juice {
 
             if (buffer.getError()) return nullptr;
 
-            unsigned index = mgr.AddNewSourceBuffer(std::move(buffer.get()), llvm::SMLoc());
+            unsigned int index = mgr.AddNewSourceBuffer(std::move(buffer.get()), llvm::SMLoc());
 
             manager->_mainBuffer = std::make_shared<SourceBuffer>(mgr.getMemoryBuffer(index)->getBufferStart(),
                                                                   mgr.getMemoryBuffer(index)->getBufferEnd(), filename,

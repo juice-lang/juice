@@ -2,17 +2,19 @@
 //
 // This source file is part of the juice open source project
 //
-// Copyright (c) 2019 juice project authors
+// Copyright (c) 2019 - 2020 juice project authors
 // Licensed under MIT License
 //
 // See https://github.com/juice-lang/juice/blob/master/LICENSE for license information
 // See https://github.com/juice-lang/juice/blob/master/CONTRIBUTORS.txt for the list of juice project authors
 
 
-#ifndef JUICE_EXPRESSIONAST_H
-#define JUICE_EXPRESSIONAST_H
+#ifndef JUICE_AST_EXPRESSIONAST_H
+#define JUICE_AST_EXPRESSIONAST_H
 
 #include <memory>
+#include <utility>
+#include <vector>
 
 #include "AST.h"
 #include "juice/Parser/LexerToken.h"
@@ -24,19 +26,33 @@
 namespace juice {
     namespace ast {
         class ExpressionAST: public AST {
+        public:
+            enum class Kind {
+                binaryOperator,
+                number,
+                variable,
+                grouping,
+                _if
+            };
+
+        private:
+            const Kind _kind;
+
         protected:
             std::unique_ptr<parser::LexerToken> _token;
 
         public:
             ExpressionAST() = delete;
 
-            explicit ExpressionAST(std::unique_ptr<parser::LexerToken> token);
+            explicit ExpressionAST(Kind kind, std::unique_ptr<parser::LexerToken> token);
 
             ~ExpressionAST() override = default;
 
-            void diagnoseInto(diag::DiagnosticEngine & diagnostics, unsigned level) const override = 0;
+            basic::SourceLocation getLocation() const override {
+                return basic::SourceLocation(_token->string.begin());
+            }
 
-            llvm::Value * codegen(Codegen & state) const override = 0;
+            Kind getKind() const { return _kind; }
         };
 
         class BinaryOperatorExpressionAST: public ExpressionAST {
@@ -48,9 +64,14 @@ namespace juice {
             BinaryOperatorExpressionAST(std::unique_ptr<parser::LexerToken> token, std::unique_ptr<ExpressionAST> left,
                                         std::unique_ptr<ExpressionAST> right);
 
-            void diagnoseInto(diag::DiagnosticEngine & diagnostics, unsigned level) const override;
+            void diagnoseInto(diag::DiagnosticEngine & diagnostics, unsigned int level) const override;
 
-            llvm::Value * codegen(Codegen & state) const override;
+            llvm::Expected<llvm::Value *> codegen(Codegen & state) const override;
+
+
+            static bool classof(const ExpressionAST * ast) {
+                return ast->getKind() == Kind::binaryOperator;
+            }
         };
 
         class NumberExpressionAST: public ExpressionAST {
@@ -61,9 +82,14 @@ namespace juice {
 
             NumberExpressionAST(std::unique_ptr<parser::LexerToken> token, double value);
 
-            void diagnoseInto(diag::DiagnosticEngine & diagnostics, unsigned level) const override;
+            void diagnoseInto(diag::DiagnosticEngine & diagnostics, unsigned int level) const override;
 
-            llvm::Value * codegen(Codegen & state) const override;
+            llvm::Expected<llvm::Value *> codegen(Codegen & state) const override;
+
+
+            static bool classof(const ExpressionAST * ast) {
+                return ast->getKind() == Kind::number;
+            }
         };
 
         class VariableExpressionAST: public ExpressionAST {
@@ -76,7 +102,12 @@ namespace juice {
 
             void diagnoseInto(diag::DiagnosticEngine &diagnostics, unsigned int level) const override;
 
-            llvm::Value * codegen(Codegen &state) const override;
+            llvm::Expected<llvm::Value *> codegen(Codegen &state) const override;
+
+
+            static bool classof(const ExpressionAST * ast) {
+                return ast->getKind() == Kind::variable;
+            }
         };
 
         class GroupingExpressionAST: public ExpressionAST {
@@ -85,14 +116,44 @@ namespace juice {
         public:
             GroupingExpressionAST() = delete;
 
-            explicit GroupingExpressionAST(std::unique_ptr<parser::LexerToken> token,
-                                           std::unique_ptr<ExpressionAST> expression);
+            GroupingExpressionAST(std::unique_ptr<parser::LexerToken> token, std::unique_ptr<ExpressionAST> expression);
 
-            void diagnoseInto(diag::DiagnosticEngine & diagnostics, unsigned level) const override;
+            void diagnoseInto(diag::DiagnosticEngine & diagnostics, unsigned int level) const override;
 
-            llvm::Value * codegen(Codegen & state) const override;
+            llvm::Expected<llvm::Value *> codegen(Codegen & state) const override;
+
+
+            static bool classof(const ExpressionAST * ast) {
+                return ast->getKind() == Kind::grouping;
+            }
+        };
+
+        class IfExpressionAST: public ExpressionAST {
+            std::unique_ptr<ExpressionAST> _ifCondition;
+            std::unique_ptr<ControlFlowBodyAST> _ifBody;
+            std::vector<std::pair<std::unique_ptr<ExpressionAST>, std::unique_ptr<ControlFlowBodyAST>>> _elifConditionsAndBodies;
+            std::unique_ptr<ControlFlowBodyAST> _elseBody;
+            bool _isStatement;
+
+            friend class IfStatementAST;
+
+        public:
+            IfExpressionAST() = delete;
+
+            IfExpressionAST(std::unique_ptr<ExpressionAST> ifCondition, std::unique_ptr<ControlFlowBodyAST> ifBody,
+                            std::vector<std::pair<std::unique_ptr<ExpressionAST>,
+                                                  std::unique_ptr<ControlFlowBodyAST>>> && elifConditionsAndBodies,
+                            std::unique_ptr<ControlFlowBodyAST> elseBody, bool isStatement);
+
+            basic::SourceLocation getLocation() const override {
+                return _ifBody->getLocation();
+            }
+
+            void diagnoseInto(diag::DiagnosticEngine & diagnostics, unsigned int level) const override;
+
+            llvm::Expected<llvm::Value *> codegen(Codegen & state) const override;
         };
     }
 }
 
-#endif //JUICE_EXPRESSIONAST_H
+#endif //JUICE_AST_EXPRESSIONAST_H

@@ -2,7 +2,7 @@
 #
 # This file is part of the juice open source project
 #
-# Copyright (c) 2019 juice project authors
+# Copyright (c) 2019 - 2020 juice project authors
 # Licensed under MIT License
 #
 # See https://github.com/juice-lang/juice/blob/master/LICENSE for license information
@@ -24,9 +24,21 @@ project(juice DESCRIPTION "The juicy programming language" LANGUAGES CXX)
 
 set(JUICE_VERSION "1.0")
 
-set(LLVM_INSTALL_DIR ${PROJECT_SOURCE_DIR}/../juice-llvm/build/install)
+set(LLVM_INSTALL_DIR "${PROJECT_SOURCE_DIR}/../juice-llvm/build/install")
 
 set(LLVM_CONFIG_CMD "${LLVM_INSTALL_DIR}/bin/llvm-config")
+execute_process(COMMAND ${LLVM_CONFIG_CMD} --cxxflags
+        OUTPUT_VARIABLE LLVM_COMPILE_FLAGS
+        OUTPUT_STRIP_TRAILING_WHITESPACE)
+
+string(REPLACE
+        "-std=c++11" "-std=c++14" LLVM_COMPILE_FLAGS "${LLVM_COMPILE_FLAGS}")
+string(REGEX REPLACE
+        "-fno-exceptions ?" "" OTHER_COMPILE_FLAGS "${LLVM_COMPILE_FLAGS}")
+
+separate_arguments(LLVM_COMPILE_FLAGS)
+separate_arguments(OTHER_COMPILE_FLAGS)
+
 execute_process(COMMAND ${LLVM_CONFIG_CMD} --libfiles
         OUTPUT_VARIABLE LLVM_LIBS
         OUTPUT_STRIP_TRAILING_WHITESPACE)

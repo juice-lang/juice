@@ -2,7 +2,7 @@
 //
 // This source file is part of the juice open source project
 //
-// Copyright (c) 2019 juice project authors
+// Copyright (c) 2019 - 2020 juice project authors
 // Licensed under MIT License
 //
 // See https://github.com/juice-lang/juice/blob/master/LICENSE for license information
@@ -12,7 +12,6 @@
 #include "juice/Driver/CompilerDriver.h"
 
 #include <memory>
-#include <string>
 #include <utility>
 
 #include "juice/AST/Codegen.h"
@@ -20,7 +19,6 @@
 #include "juice/Diagnostics/Diagnostics.h"
 #include "juice/Parser/Parser.h"
 #include "llvm/ADT/StringRef.h"
-#include "llvm/Support/raw_ostream.h"
 
 namespace juice {
     namespace driver {
@@ -37,7 +35,7 @@ namespace juice {
 
             parser::Parser juiceParser(diagnostics);
 
-            auto ast = juiceParser.parseProgram();
+            auto ast = juiceParser.parseModule();
 
             if (ast != nullptr) {
                 ast->diagnoseInto(*diagnostics, 0);

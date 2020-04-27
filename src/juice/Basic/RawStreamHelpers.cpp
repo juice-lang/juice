@@ -2,7 +2,7 @@
 //
 // This source file is part of the juice open source project
 //
-// Copyright (c) 2019 juice project authors
+// Copyright (c) 2019 - 2020 juice project authors
 // Licensed under MIT License
 //
 // See https://github.com/juice-lang/juice/blob/master/LICENSE for license information
@@ -12,6 +12,15 @@
 
 namespace juice {
     namespace basic {
+        const Color Color::rainbow[6] = {
+            basic::Color::cyan,
+            basic::Color::blue,
+            basic::Color::magenta,
+            basic::Color::red,
+            basic::Color::yellow,
+            basic::Color::green
+        };
+
         llvm::raw_ostream & operator<<(llvm::raw_ostream & os, Color::Value color) {
             switch (color) {
                 case Color::black: return os << "\033[30m";

@@ -1,4 +1,4 @@
-// src/juice/Driver/REPLDriver.cpp - Driver subclass for running the REPL
+// src/juice/Basic/Error.cpp - Helper classes for working with llvm Errors
 //
 // This source file is part of the juice open source project
 //
@@ -8,16 +8,10 @@
 // See https://github.com/juice-lang/juice/blob/master/LICENSE for license information
 // See https://github.com/juice-lang/juice/blob/master/CONTRIBUTORS.txt for the list of juice project authors
 
-
-#include "juice/Driver/REPLDriver.h"
-
-#include "llvm/Support/raw_ostream.h"
+#include "juice/Basic/Error.h"
 
 namespace juice {
-    namespace driver {
-        int REPLDriver::execute() {
-            llvm::outs() << "REPL\n"; // TODO
-            return 0;
-        }
+    namespace basic {
+        char ReturningError::ID = 0;
     }
 }

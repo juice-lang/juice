@@ -2,7 +2,7 @@
 //
 // This source file is part of the juice open source project
 //
-// Copyright (c) 2019 juice project authors
+// Copyright (c) 2019 - 2020 juice project authors
 // Licensed under MIT License
 //
 // See https://github.com/juice-lang/juice/blob/master/LICENSE for license information
@@ -15,6 +15,8 @@
 #include <utility>
 
 #include "juice/Basic/StringHelpers.h"
+#include "llvm/Support/FormatVariadic.h"
+#include "llvm/Support/FormatAdapters.h"
 
 namespace juice {
     namespace diag {
@@ -105,11 +107,11 @@ namespace juice {
 
         llvm::StringRef
         DiagnosticEngine::skipToDelimiter(llvm::StringRef & text, char delimiter, bool * foundDelimiter) {
-            unsigned depth = 0;
+            unsigned int depth = 0;
             if (foundDelimiter) *foundDelimiter = false;
 
-            unsigned i = 0;
-            for (unsigned n = text.size(); i != n; ++i) {
+            unsigned int i = 0;
+            for (unsigned int n = text.size(); i != n; ++i) {
                 if (text[i] == '{') {
                     ++depth;
                     continue;
@@ -133,7 +135,8 @@ namespace juice {
         }
 
         void DiagnosticEngine::formatSelectionArgInto(llvm::raw_ostream & out, llvm::StringRef modifierArguments,
-                                                      const std::vector<DiagnosticArg> & args, int selectedIndex) {
+                                                      const std::vector<DiagnosticArg> & args,
+                                                      unsigned int selectedIndex) {
             bool foundPipe = false;
             do {
                 assert((!modifierArguments.empty() || foundPipe) && "Index beyond bounds in %select modifier");
@@ -148,7 +151,7 @@ namespace juice {
 
         void DiagnosticEngine::formatDiagnosticArgInto(llvm::raw_ostream & out, llvm::StringRef modifier,
                                                        llvm::StringRef modifierArguments,
-                                                       const std::vector<DiagnosticArg> & args, unsigned argIndex,
+                                                       const std::vector<DiagnosticArg> & args, unsigned int argIndex,
                                                        DiagnosticEngine * diagnostics) {
             if (modifier == "reset") {
                 out << basic::Color::reset << basic::Color::bold;
@@ -157,8 +160,9 @@ namespace juice {
             DiagnosticArg arg = args[argIndex];
             switch (arg.getKind()) {
                 case DiagnosticArg::Kind::integer: {
-                    if (modifier == "select") {
-                        assert(arg.getAsInteger() >= 0 && "Negative selection index");
+                    if (modifier == "indent") {
+                        out << llvm::formatv("{0}", llvm::fmt_repeat("    ", arg.getAsInteger()));
+                    } else if (modifier == "select") {
                         formatSelectionArgInto(out, modifierArguments, args, arg.getAsInteger());
                     } else if (modifier == "s") {
                         if (arg.getAsInteger() != 1)
@@ -171,7 +175,7 @@ namespace juice {
                 }
                 case DiagnosticArg::Kind::doubleValue: {
                     assert(modifier.empty() && "Improper modifier for double argument");
-                    out << arg.getAsDouble();
+                    out << llvm::formatv("{0}", arg.getAsDouble());
                     break;
                 }
                 case DiagnosticArg::Kind::boolean: {
@@ -236,7 +240,7 @@ namespace juice {
                     modifierArguments = skipToDelimiter(text, '}');
                 }
 
-                unsigned argIndex;
+                unsigned int argIndex;
 
                 if (modifier != "reset") {
                     size_t length = text.find_if_not(basic::isDigit);
@@ -252,16 +256,16 @@ namespace juice {
             }
         }
 
-        DiagnosticKind DiagnosticEngine::diagnosticKindFor(const DiagnosticID id) {
-            return diagnosticKinds[(unsigned)id];
+        constexpr DiagnosticKind DiagnosticEngine::diagnosticKindFor(DiagnosticID id) {
+            return diagnosticKinds[(unsigned int)id];
         }
 
-        const char * DiagnosticEngine::diagnosticStringFor(const DiagnosticID id) {
-            return diagnosticStrings[(unsigned)id];
+        constexpr const char * DiagnosticEngine::diagnosticStringFor(const DiagnosticID id) {
+            return diagnosticStrings[(unsigned int)id];
         }
 
-        bool DiagnosticEngine::diagnosticNewlineFor(DiagnosticID id) {
-            return diagnosticNewlines[(unsigned)id];
+        constexpr bool DiagnosticEngine::diagnosticNewlineFor(DiagnosticID id) {
+            return diagnosticNewlines[(unsigned int)id];
         }
     }
 }
