@@ -18,6 +18,13 @@
 #include "ExpressionAST.h"
 
 namespace juice {
+    namespace sema {
+        class TypeCheckedBlockStatementAST;
+        class TypeCheckedExpressionStatementAST;
+        class TypeCheckedIfStatementAST;
+        class TypeCheckedWhileStatementAST;
+    }
+
     namespace ast {
         class StatementAST: public AST {
         public:
@@ -48,6 +55,8 @@ namespace juice {
         class BlockStatementAST: public StatementAST {
             std::unique_ptr<BlockAST> _block;
 
+            friend class sema::TypeCheckedBlockStatementAST;
+
         public:
             BlockStatementAST() = delete;
 
@@ -71,6 +80,8 @@ namespace juice {
 
         class ExpressionStatementAST: public StatementAST {
             std::unique_ptr<ExpressionAST> _expression;
+
+            friend class sema::TypeCheckedExpressionStatementAST;
 
         public:
             ExpressionStatementAST() = delete;
@@ -96,6 +107,8 @@ namespace juice {
         class IfStatementAST: public StatementAST {
             std::unique_ptr<IfExpressionAST> _ifExpression;
 
+            friend class sema::TypeCheckedIfStatementAST;
+
         public:
             IfStatementAST() = delete;
 
@@ -120,6 +133,8 @@ namespace juice {
         class WhileStatementAST: public StatementAST {
             std::unique_ptr<ExpressionAST> _condition;
             std::unique_ptr<ControlFlowBodyAST> _body;
+
+            friend class sema::TypeCheckedWhileStatementAST;
 
         public:
             WhileStatementAST() = delete;

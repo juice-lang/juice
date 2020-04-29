@@ -103,6 +103,16 @@ ERROR(expected_block_yield, "expected yield in %0 block", true)
 ERROR(codegen_error, "could not generate any code: %0", true)
 ERROR(function_verification_error, "error while validating llvm-function: %0", true)
 
+//Sema
+ERROR(module_ast_expected_type, "expected return type '%0' in module", true)
+ERROR(statement_ast_expected_type, "expected type '%0', but got a non-yielding statement", true)
+ERROR(statement_ast_expected_unknown_type, "expected a value, but got a non-yielding statement", true)
+
+ERROR(expression_ast_expected_type, "expected type '%0', but got type '%1'", true)
+ERROR(expression_ast_expected_lvalue, "expected lvalue of type '%0', but got %1", true)
+ERROR(expression_ast_expected_lvalue_unknown_type, "expected lvalue, but got %0", true)
+ERROR(expression_ast_expected_either, "expected either type '%0', or type '%1', but got type '%2'", true)
+
 OUTPUT(output, "%0", true)
 
 #if defined(DIAG)

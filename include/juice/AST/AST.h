@@ -25,6 +25,12 @@
 #include "llvm/Support/Error.h"
 
 namespace juice {
+    namespace sema {
+        class TypeCheckedModuleAST;
+        class TypeCheckedBlockAST;
+        class TypeCheckedControlFlowBodyAST;
+    }
+
     namespace ast {
         class Codegen;
         class StatementAST;
@@ -61,6 +67,8 @@ namespace juice {
         };
 
         class ModuleAST: public ContainerAST {
+            friend class sema::TypeCheckedModuleAST;
+
         public:
             ModuleAST() = default;
 
@@ -73,6 +81,8 @@ namespace juice {
 
         class BlockAST: public ContainerAST {
             std::unique_ptr<parser::LexerToken> _start;
+
+            friend class sema::TypeCheckedBlockAST;
 
         public:
             BlockAST() = delete;
@@ -104,6 +114,8 @@ namespace juice {
                 std::unique_ptr<BlockAST> _block;
                 std::unique_ptr<ExpressionAST> _expression;
             };
+
+            friend class sema::TypeCheckedControlFlowBodyAST;
 
         public:
             ControlFlowBodyAST() = delete;

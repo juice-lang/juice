@@ -18,6 +18,10 @@
 #include "juice/Parser/LexerToken.h"
 
 namespace juice {
+    namespace sema {
+        class TypeCheckedVariableDeclarationAST;
+    }
+
     namespace ast {
         class DeclarationAST: public StatementAST {
         protected:
@@ -38,6 +42,8 @@ namespace juice {
         class VariableDeclarationAST: public DeclarationAST {
             std::unique_ptr<parser::LexerToken> _name;
             std::unique_ptr<ExpressionAST> _initialization;
+
+            friend class sema::TypeCheckedVariableDeclarationAST;
 
         public:
             VariableDeclarationAST() = delete;

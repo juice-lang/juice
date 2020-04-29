@@ -24,6 +24,14 @@
 #include "llvm/IR/Value.h"
 
 namespace juice {
+    namespace sema {
+        class TypeCheckedBinaryOperatorExpressionAST;
+        class TypeCheckedNumberExpressionAST;
+        class TypeCheckedVariableExpressionAST;
+        class TypeCheckedGroupingExpressionAST;
+        class TypeCheckedIfExpressionAST;
+    }
+
     namespace ast {
         class ExpressionAST: public AST {
         public:
@@ -58,6 +66,8 @@ namespace juice {
         class BinaryOperatorExpressionAST: public ExpressionAST {
             std::unique_ptr<ExpressionAST> _left, _right;
 
+            friend class sema::TypeCheckedBinaryOperatorExpressionAST;
+
         public:
             BinaryOperatorExpressionAST() = delete;
 
@@ -77,6 +87,8 @@ namespace juice {
         class NumberExpressionAST: public ExpressionAST {
             double _value;
 
+            friend class sema::TypeCheckedNumberExpressionAST;
+
         public:
             NumberExpressionAST() = delete;
 
@@ -93,6 +105,8 @@ namespace juice {
         };
 
         class VariableExpressionAST: public ExpressionAST {
+            friend class sema::TypeCheckedVariableExpressionAST;
+
         public:
             VariableExpressionAST() = delete;
 
@@ -112,6 +126,8 @@ namespace juice {
 
         class GroupingExpressionAST: public ExpressionAST {
             std::unique_ptr<ExpressionAST> _expression;
+
+            friend class sema::TypeCheckedGroupingExpressionAST;
 
         public:
             GroupingExpressionAST() = delete;
@@ -141,6 +157,7 @@ namespace juice {
             bool _isStatement;
 
             friend class IfStatementAST;
+            friend class sema::TypeCheckedIfExpressionAST;
 
         public:
             IfExpressionAST() = delete;
