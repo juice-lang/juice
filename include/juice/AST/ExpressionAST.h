@@ -44,7 +44,7 @@ namespace juice {
         public:
             ExpressionAST() = delete;
 
-            explicit ExpressionAST(Kind kind, std::unique_ptr<parser::LexerToken> token);
+            ExpressionAST(Kind kind, std::unique_ptr<parser::LexerToken> token);
 
             ~ExpressionAST() override = default;
 
@@ -129,9 +129,14 @@ namespace juice {
         };
 
         class IfExpressionAST: public ExpressionAST {
+        public:
+            typedef std::vector<std::pair<std::unique_ptr<ExpressionAST>,
+                                          std::unique_ptr<ControlFlowBodyAST>>> ElifVector;
+
+        private:
             std::unique_ptr<ExpressionAST> _ifCondition;
             std::unique_ptr<ControlFlowBodyAST> _ifBody;
-            std::vector<std::pair<std::unique_ptr<ExpressionAST>, std::unique_ptr<ControlFlowBodyAST>>> _elifConditionsAndBodies;
+            ElifVector _elifConditionsAndBodies;
             std::unique_ptr<ControlFlowBodyAST> _elseBody;
             bool _isStatement;
 
@@ -141,9 +146,8 @@ namespace juice {
             IfExpressionAST() = delete;
 
             IfExpressionAST(std::unique_ptr<ExpressionAST> ifCondition, std::unique_ptr<ControlFlowBodyAST> ifBody,
-                            std::vector<std::pair<std::unique_ptr<ExpressionAST>,
-                                                  std::unique_ptr<ControlFlowBodyAST>>> && elifConditionsAndBodies,
-                            std::unique_ptr<ControlFlowBodyAST> elseBody, bool isStatement);
+                            ElifVector && elifConditionsAndBodies, std::unique_ptr<ControlFlowBodyAST> elseBody,
+                            bool isStatement);
 
             basic::SourceLocation getLocation() const override {
                 return _ifBody->getLocation();

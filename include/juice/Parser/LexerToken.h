@@ -14,8 +14,8 @@
 
 #include <cstdint>
 
-#include "llvm/ADT/StringRef.h"
 #include "juice/Diagnostics/Diagnostics.h"
+#include "llvm/ADT/StringRef.h"
 
 namespace juice {
     namespace parser {

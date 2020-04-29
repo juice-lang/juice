@@ -194,8 +194,7 @@ namespace juice {
             auto ifBody = parseControlFlowBody(std::move(ifKeyword));
             if (auto error = ifBody.takeError()) return std::move(error);
 
-            std::vector<std::pair<std::unique_ptr<ast::ExpressionAST>, std::unique_ptr<ast::ControlFlowBodyAST>>>
-                elifConditionsAndBodies;
+            ast::IfExpressionAST::ElifVector elifConditionsAndBodies;
 
             auto matchedElif = match(LexerToken::Type::keywordElif);
             if (auto error = matchedElif.takeError()) return std::move(error);
