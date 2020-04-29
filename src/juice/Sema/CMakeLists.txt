@@ -1,4 +1,4 @@
-# tools/juice/CMakeLists.txt - juice tool CMake file
+# src/juice/Sema/CMakeLists.txt - juice Sema sources CMake file
 #
 # This file is part of the juice open source project
 #
@@ -11,8 +11,5 @@
 
 add_compile_options(${LLVM_COMPILE_FLAGS})
 
-add_executable(juice juice.cpp)
-target_link_libraries(juice ncurses)
-target_link_libraries(juice juiceAST juiceBasic juiceDiagnostics juiceDriver juiceParser juiceSema ${LLVM_LIBS})
-
-install(TARGETS juice DESTINATION bin)
+add_library(juiceSema STATIC
+        Type.cpp)
