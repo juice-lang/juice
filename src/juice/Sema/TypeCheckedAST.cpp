@@ -33,6 +33,10 @@ namespace juice {
         TypeCheckedModuleAST::TypeCheckedModuleAST(const Type * type, StatementVector && statements):
             TypeCheckedContainerAST(type, std::move(statements)) {}
 
+        void TypeCheckedModuleAST::diagnoseInto(diag::DiagnosticEngine & diagnostics, unsigned int level) const {
+            for (const auto & statement: _statements) { statement->diagnoseInto(diagnostics, level); }
+        }
+
         std::unique_ptr<TypeCheckedModuleAST>
         TypeCheckedModuleAST::createByTypeChecking(std::unique_ptr<ast::ModuleAST> ast, const TypeHint & hint,
                                                    diag::DiagnosticEngine & diagnostics) {
@@ -70,6 +74,26 @@ namespace juice {
         TypeCheckedBlockAST::TypeCheckedBlockAST(const Type * type, StatementVector && statements,
                                                  std::unique_ptr<parser::LexerToken> start):
             TypeCheckedContainerAST(type, std::move(statements)), _start(std::move(start)) {}
+
+        void TypeCheckedBlockAST::diagnoseInto(diag::DiagnosticEngine & diagnostics, unsigned int level) const {
+            basic::SourceLocation location(getLocation());
+
+            if (_statements.empty()) {
+                diagnostics.diagnose(location, diag::DiagnosticID::type_checked_block_ast_empty, getColor(level),
+                                     getType());
+            } else {
+                diagnostics.diagnose(location, diag::DiagnosticID::type_checked_block_ast_0, getColor(level), getType(),
+                                     level);
+
+                for (const auto & statement: _statements) {
+                    diagnostics.diagnose(location, diag::DiagnosticID::block_ast_1, level + 1);
+
+                    statement->diagnoseInto(diagnostics, level + 1);
+                }
+
+                diagnostics.diagnose(location, diag::DiagnosticID::block_ast_2, getColor(level), level);
+            }
+        }
 
         std::unique_ptr<TypeCheckedBlockAST>
         TypeCheckedBlockAST::createByTypeChecking(std::unique_ptr<ast::BlockAST> ast, const TypeHint & hint,
@@ -125,6 +149,26 @@ namespace juice {
                 case Kind::block: _block.~unique_ptr<TypeCheckedBlockAST>(); break;
                 case Kind::expression: _expression.~unique_ptr<TypeCheckedExpressionAST>(); break;
             }
+        }
+
+        void
+        TypeCheckedControlFlowBodyAST::diagnoseInto(diag::DiagnosticEngine & diagnostics, unsigned int level) const {
+            basic::SourceLocation location(getLocation());
+
+            switch (_kind) {
+                case Kind::block:
+                    diagnostics.diagnose(location, diag::DiagnosticID::type_checked_if_body_ast_block, getColor(level),
+                                         getType(), level, _keyword.get());
+                    _block->diagnoseInto(diagnostics, level + 1);
+                    break;
+                case Kind::expression:
+                    diagnostics.diagnose(location, diag::DiagnosticID::type_checked_if_body_ast_expression,
+                                         getColor(level), getType(), level, _keyword.get());
+                    _expression->diagnoseInto(diagnostics, level + 1);
+                    break;
+            }
+
+            diagnostics.diagnose(location, diag::DiagnosticID::ast_end, getColor(level), level);
         }
 
         std::unique_ptr<TypeCheckedControlFlowBodyAST>

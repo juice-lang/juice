@@ -48,6 +48,8 @@ namespace juice {
                 return _block->getLocation();
             }
 
+            void diagnoseInto(diag::DiagnosticEngine & diagnostics, unsigned int level) const override;
+
             static std::unique_ptr<TypeCheckedBlockStatementAST>
             createByTypeChecking(std::unique_ptr<ast::BlockStatementAST> ast, const TypeHint & hint,
                                  diag::DiagnosticEngine & diagnostics);
@@ -67,6 +69,8 @@ namespace juice {
                 return _expression->getLocation();
             }
 
+            void diagnoseInto(diag::DiagnosticEngine & diagnostics, unsigned int level) const override;
+
             static std::unique_ptr<TypeCheckedExpressionStatementAST>
             createByTypeChecking(std::unique_ptr<ast::ExpressionStatementAST> ast, const TypeHint & hint,
                                  diag::DiagnosticEngine & diagnostics);
@@ -85,6 +89,8 @@ namespace juice {
             basic::SourceLocation getLocation() const override {
                 return _ifExpression->getLocation();
             }
+
+            void diagnoseInto(diag::DiagnosticEngine & diagnostics, unsigned int level) const override;
 
             static std::unique_ptr<TypeCheckedIfStatementAST>
             createByTypeChecking(std::unique_ptr<ast::IfStatementAST> ast, const TypeHint & hint,
@@ -106,6 +112,8 @@ namespace juice {
             basic::SourceLocation getLocation() const override {
                 return _body->getLocation();
             }
+
+            void diagnoseInto(diag::DiagnosticEngine & diagnostics, unsigned int level) const override;
 
             static std::unique_ptr<TypeCheckedWhileStatementAST>
             createByTypeChecking(std::unique_ptr<ast::WhileStatementAST> ast, const TypeHint & hint,

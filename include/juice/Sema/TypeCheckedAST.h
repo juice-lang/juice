@@ -18,7 +18,9 @@
 #include "Type.h"
 #include "TypeHint.h"
 #include "juice/AST/AST.h"
+#include "juice/Basic/RawStreamHelpers.h"
 #include "juice/Basic/SourceLocation.h"
+#include "juice/Diagnostics/Diagnostics.h"
 #include "juice/Parser/LexerToken.h"
 
 namespace juice {
@@ -27,6 +29,12 @@ namespace juice {
         class TypeCheckedExpressionAST;
 
         class TypeCheckedAST {
+        protected:
+            static basic::Color getColor(unsigned int level) {
+                return basic::Color::rainbow[level % 6];
+            }
+
+        private:
             const Type * _type;
 
         protected:
@@ -38,6 +46,8 @@ namespace juice {
             virtual ~TypeCheckedAST() = default;
 
             virtual basic::SourceLocation getLocation() const = 0;
+
+            virtual void diagnoseInto(diag::DiagnosticEngine & diagnostics, unsigned int level) const = 0;
 
             const Type * getType() const { return _type; }
         };
@@ -67,6 +77,8 @@ namespace juice {
 
             ~TypeCheckedModuleAST() override = default;
 
+            void diagnoseInto(diag::DiagnosticEngine & diagnostics, unsigned int level) const override;
+
             static std::unique_ptr<TypeCheckedModuleAST>
             createByTypeChecking(std::unique_ptr<ast::ModuleAST> ast, const TypeHint & hint,
                                  diag::DiagnosticEngine & diagnostics);
@@ -86,6 +98,8 @@ namespace juice {
             basic::SourceLocation getLocation() const override {
                 return basic::SourceLocation(_start->string.begin());
             }
+
+            void diagnoseInto(diag::DiagnosticEngine & diagnostics, unsigned int level) const override;
 
             static std::unique_ptr<TypeCheckedBlockAST>
             createByTypeChecking(std::unique_ptr<ast::BlockAST> ast, const TypeHint & hint,
@@ -120,6 +134,8 @@ namespace juice {
             basic::SourceLocation getLocation() const override {
                 return basic::SourceLocation(_keyword->string.begin());
             }
+
+            void diagnoseInto(diag::DiagnosticEngine & diagnostics, unsigned int level) const override;
 
             static std::unique_ptr<TypeCheckedControlFlowBodyAST>
             createByTypeChecking(std::unique_ptr<ast::ControlFlowBodyAST> ast, const TypeHint & hint,

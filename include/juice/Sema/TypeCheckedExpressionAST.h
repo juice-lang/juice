@@ -66,6 +66,8 @@ namespace juice {
         public:
             TypeCheckedBinaryOperatorExpressionAST() = delete;
 
+            void diagnoseInto(diag::DiagnosticEngine & diagnostics, unsigned int level) const override;
+
             static std::unique_ptr<TypeCheckedBinaryOperatorExpressionAST>
             createByTypeChecking(std::unique_ptr<ast::BinaryOperatorExpressionAST> ast, const TypeHint & hint,
                                  diag::DiagnosticEngine & diagnostics);
@@ -83,6 +85,8 @@ namespace juice {
 
         public:
             TypeCheckedNumberExpressionAST() = delete;
+
+            void diagnoseInto(diag::DiagnosticEngine & diagnostics, unsigned int level) const override;
 
             static std::unique_ptr<TypeCheckedNumberExpressionAST>
             createByTypeChecking(std::unique_ptr<ast::NumberExpressionAST> ast, const TypeHint & hint,
@@ -102,6 +106,8 @@ namespace juice {
 
             llvm::StringRef name() const { return _token->string; }
 
+            void diagnoseInto(diag::DiagnosticEngine & diagnostics, unsigned int level) const override;
+
             static std::unique_ptr<TypeCheckedVariableExpressionAST>
             createByTypeChecking(std::unique_ptr<ast::VariableExpressionAST> ast, const TypeHint & hint,
                                  diag::DiagnosticEngine & diagnostics);
@@ -120,6 +126,8 @@ namespace juice {
 
         public:
             TypeCheckedGroupingExpressionAST() = delete;
+
+            void diagnoseInto(diag::DiagnosticEngine & diagnostics, unsigned int level) const override;
 
             static std::unique_ptr<TypeCheckedGroupingExpressionAST>
             createByTypeChecking(std::unique_ptr<ast::GroupingExpressionAST> ast, const TypeHint & hint,
@@ -156,6 +164,8 @@ namespace juice {
             basic::SourceLocation getLocation() const override {
                 return _ifBody->getLocation();
             }
+
+            void diagnoseInto(diag::DiagnosticEngine & diagnostics, unsigned int level) const override;
 
             static std::unique_ptr<TypeCheckedIfExpressionAST>
             createByTypeChecking(std::unique_ptr<ast::IfExpressionAST> ast, const TypeHint & hint,

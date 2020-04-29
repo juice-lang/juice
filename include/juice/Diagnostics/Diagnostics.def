@@ -113,6 +113,25 @@ ERROR(expression_ast_expected_lvalue, "expected lvalue of type '%0', but got %1"
 ERROR(expression_ast_expected_lvalue_unknown_type, "expected lvalue, but got %0", true)
 ERROR(expression_ast_expected_either, "expected either type '%0', or type '%1', but got type '%2'", true)
 
+
+OUTPUT(type_checked_binary_operator_expression_ast_0, "%0BinaryOperatorExpressionAST[%1](\n%indent2  token: %reset%3\n%0%indent2  left: ", false)
+
+OUTPUT(type_checked_number_expression_ast, "%0NumberExpressionAST[%1](\n%indent2  token: %reset%3\n%0%indent2  number: %reset%4\n%0%indent2)", true)
+OUTPUT(type_checked_variable_expression_ast, "%0VariableExpressionAST[%1](token: %reset%2%0)", true)
+
+OUTPUT(type_checked_variable_declaration_ast, "%0VariableDeclarationAST[%1](\n%indent2  name: %reset%3\n%0%indent2  initialization: ", false)
+
+OUTPUT(type_checked_if_expression_ast_0, "%0IfExpressionAST[%1](\n%indent2  token: %reset%3\n%0%indent2  if condition: ", false)
+OUTPUT(type_checked_if_statement_ast_0, "%0IfStatementAST[%1](\n%indent2  token: %reset%3\n%0%indent2  if condition: ", false)
+
+OUTPUT(type_checked_while_statement_ast_0, "%0WhileStatementAST[%1](\n%indent2  token: %reset%3\n%0%indent2  condition: ", false)
+
+OUTPUT(type_checked_block_ast_empty, "%0BlockAST[%1](block: {})", true)
+OUTPUT(type_checked_block_ast_0, "%0BlockAST[%1](\n%indent2  block: {", true)
+
+OUTPUT(type_checked_if_body_ast_block, "%0IfBodyAST[%1](\n%indent2  keyword: %reset%3\n%0%indent2  block: ", false)
+OUTPUT(type_checked_if_body_ast_expression, "%0IfBodyAST[%1](\n%indent2  keyword: %reset%3\n%0%indent2  expression: ", false)
+
 OUTPUT(output, "%0", true)
 
 #if defined(DIAG)

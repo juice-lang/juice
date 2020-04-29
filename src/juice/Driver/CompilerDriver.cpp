@@ -47,14 +47,21 @@ namespace juice {
                 sema::TypeChecker typeChecker(std::move(ast), diagnostics);
                 auto checkedAST = typeChecker.typeCheck();
 
-//                ast::Codegen codegen(std::move(ast), diagnostics);
+                if (!diagnostics->hadError()) {
+                    llvm::outs() << basic::Color::bold << "\n\n=== TypeCheckedAST ===\n" << basic::Color::reset;
+                    checkedAST->diagnoseInto(*diagnostics, 0);
+
+//                    ast::Codegen codegen(std::move(ast), diagnostics);
 //
-//                if (codegen.generate()) {
-//                    codegen.dumpProgram();
-//                }
+//                    if (codegen.generate()) {
+//                        codegen.dumpProgram();
+//                    }
+
+                    return 0;
+                }
             }
 
-            return diagnostics->hadError() ? 1 : 0;
+            return 1;
         }
     }
 }

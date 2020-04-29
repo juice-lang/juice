@@ -69,6 +69,21 @@ namespace juice {
             TypeCheckedExpressionAST(type, Kind::binaryOperator, std::move(token)), _left(std::move(left)),
             _right(std::move(right)) {}
 
+        void TypeCheckedBinaryOperatorExpressionAST::diagnoseInto(diag::DiagnosticEngine & diagnostics,
+                                                                  unsigned int level) const {
+            basic::SourceLocation location(getLocation());
+
+            diagnostics.diagnose(location, diag::DiagnosticID::type_checked_binary_operator_expression_ast_0, getColor(level), getType(),
+                                 level, _token.get());
+            _left->diagnoseInto(diagnostics, level + 1);
+
+            diagnostics
+                .diagnose(location, diag::DiagnosticID::binary_operator_expression_ast_1, getColor(level), level);
+            _right->diagnoseInto(diagnostics, level + 1);
+
+            diagnostics.diagnose(location, diag::DiagnosticID::ast_end, getColor(level), level);
+        }
+
         std::unique_ptr<TypeCheckedBinaryOperatorExpressionAST>
         TypeCheckedBinaryOperatorExpressionAST
             ::createByTypeChecking(std::unique_ptr<ast::BinaryOperatorExpressionAST> ast, const TypeHint & hint,
@@ -299,6 +314,12 @@ namespace juice {
                                                                        double value):
             TypeCheckedExpressionAST(type, Kind::number, std::move(token)), _value(value) {}
 
+        void
+        TypeCheckedNumberExpressionAST::diagnoseInto(diag::DiagnosticEngine & diagnostics, unsigned int level) const {
+            diagnostics.diagnose(getLocation(), diag::DiagnosticID::type_checked_number_expression_ast, getColor(level),
+                                 getType(), level, _token.get(), _value);
+        }
+
         std::unique_ptr<TypeCheckedNumberExpressionAST>
         TypeCheckedNumberExpressionAST::createByTypeChecking(std::unique_ptr<ast::NumberExpressionAST> ast,
                                                              const TypeHint & hint,
@@ -347,6 +368,12 @@ namespace juice {
                                                                            std::unique_ptr<parser::LexerToken> token):
             TypeCheckedExpressionAST(type, Kind::variable, std::move(token)) {}
 
+        void
+        TypeCheckedVariableExpressionAST::diagnoseInto(diag::DiagnosticEngine & diagnostics, unsigned int level) const {
+            diagnostics.diagnose(getLocation(), diag::DiagnosticID::type_checked_variable_expression_ast,
+                                 getColor(level), getType(), _token.get());
+        }
+
         std::unique_ptr<TypeCheckedVariableExpressionAST>
         TypeCheckedVariableExpressionAST::createByTypeChecking(std::unique_ptr<ast::VariableExpressionAST> ast,
                                                                const TypeHint & hint,
@@ -379,6 +406,11 @@ namespace juice {
                                                std::unique_ptr<TypeCheckedExpressionAST> expression):
             TypeCheckedExpressionAST(type, Kind::grouping, std::move(token)), _expression(std::move(expression)) {}
 
+        void
+        TypeCheckedGroupingExpressionAST::diagnoseInto(diag::DiagnosticEngine & diagnostics, unsigned int level) const {
+            _expression->diagnoseInto(diagnostics, level);
+        }
+
         std::unique_ptr<TypeCheckedGroupingExpressionAST>
         TypeCheckedGroupingExpressionAST::createByTypeChecking(std::unique_ptr<ast::GroupingExpressionAST> ast,
                                                                const TypeHint & hint,
@@ -400,6 +432,37 @@ namespace juice {
             TypeCheckedExpressionAST(type, Kind::_if, nullptr), _ifCondition(std::move(ifCondition)),
             _ifBody(std::move(ifBody)), _elifConditionsAndBodies(std::move(elifConditionsAndBodies)),
             _elseBody(std::move(elseBody)), _isStatement(isStatement) {}
+
+        void TypeCheckedIfExpressionAST::diagnoseInto(diag::DiagnosticEngine & diagnostics, unsigned int level) const {
+            basic::SourceLocation location(getLocation());
+
+            if (_isStatement) diagnostics.diagnose(location, diag::DiagnosticID::type_checked_if_statement_ast_0,
+                                                   getColor(level), getType(), level, _ifBody->getKeyword().get());
+            else diagnostics.diagnose(location, diag::DiagnosticID::type_checked_if_expression_ast_0, getColor(level),
+                                      getType(), level, _ifBody->getKeyword().get());
+            _ifCondition->diagnoseInto(diagnostics, level + 1);
+
+            diagnostics.diagnose(location, diag::DiagnosticID::if_ast_1, getColor(level), level);
+            _ifBody->diagnoseInto(diagnostics, level + 1);
+
+            for (const auto & conditionAndBody: _elifConditionsAndBodies) {
+                const auto & condition = std::get<0>(conditionAndBody);
+                const auto & body = std::get<1>(conditionAndBody);
+
+                diagnostics.diagnose(location, diag::DiagnosticID::if_ast_2, getColor(level), level);
+                condition->diagnoseInto(diagnostics, level + 1);
+
+                diagnostics.diagnose(location, diag::DiagnosticID::if_ast_3, getColor(level), level);
+                body->diagnoseInto(diagnostics, level + 1);
+            }
+
+            if (!_isStatement || _elseBody) {
+                diagnostics.diagnose(location, diag::DiagnosticID::if_ast_4, getColor(level), level);
+                _elseBody->diagnoseInto(diagnostics, level + 1);
+            }
+
+            diagnostics.diagnose(location, diag::DiagnosticID::ast_end, getColor(level), level);
+        }
 
         std::unique_ptr<TypeCheckedIfExpressionAST>
         TypeCheckedIfExpressionAST::createByTypeChecking(std::unique_ptr<ast::IfExpressionAST> ast,

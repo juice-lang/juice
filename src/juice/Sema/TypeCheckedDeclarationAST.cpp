@@ -37,6 +37,16 @@ namespace juice {
             TypeCheckedDeclarationAST(new NothingType), _name(std::move(name)),
             _initialization(std::move(initialization)) {}
 
+        void TypeCheckedVariableDeclarationAST::diagnoseInto(diag::DiagnosticEngine & diagnostics,
+                                                             unsigned int level) const {
+            basic::SourceLocation location(getLocation());
+
+            diagnostics.diagnose(location, diag::DiagnosticID::type_checked_variable_declaration_ast, getColor(level), getType(), level,
+                                 _name.get());
+            _initialization->diagnoseInto(diagnostics, level + 1);
+            diagnostics.diagnose(location, diag::DiagnosticID::ast_end, getColor(level), level);
+        }
+
         std::unique_ptr<TypeCheckedVariableDeclarationAST>
         TypeCheckedVariableDeclarationAST::createByTypeChecking(std::unique_ptr<ast::VariableDeclarationAST> ast,
                                                                 const TypeHint & hint,

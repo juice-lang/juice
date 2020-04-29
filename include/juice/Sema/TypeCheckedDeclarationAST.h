@@ -51,6 +51,8 @@ namespace juice {
                 return basic::SourceLocation(_name->string.begin());
             }
 
+            void diagnoseInto(diag::DiagnosticEngine & diagnostics, unsigned int level) const override;
+
             static std::unique_ptr<TypeCheckedVariableDeclarationAST>
             createByTypeChecking(std::unique_ptr<ast::VariableDeclarationAST> ast, const TypeHint & hint,
                                  diag::DiagnosticEngine & diagnostics);

@@ -59,6 +59,11 @@ namespace juice {
                                                                    std::unique_ptr<TypeCheckedBlockAST> block):
             TypeCheckedStatementAST(type), _block(std::move(block)) {}
 
+        void
+        TypeCheckedBlockStatementAST::diagnoseInto(diag::DiagnosticEngine & diagnostics, unsigned int level) const {
+            _block->diagnoseInto(diagnostics, level);
+        }
+
         std::unique_ptr<TypeCheckedBlockStatementAST>
         TypeCheckedBlockStatementAST::createByTypeChecking(std::unique_ptr<ast::BlockStatementAST> ast,
                                                            const TypeHint & hint,
@@ -75,6 +80,11 @@ namespace juice {
             ::TypeCheckedExpressionStatementAST(const Type * type,
                                                 std::unique_ptr<TypeCheckedExpressionAST> expression):
             TypeCheckedStatementAST(type), _expression(std::move(expression)) {}
+
+        void TypeCheckedExpressionStatementAST::diagnoseInto(diag::DiagnosticEngine & diagnostics,
+                                                             unsigned int level) const {
+            _expression->diagnoseInto(diagnostics, level);
+        }
 
         std::unique_ptr<TypeCheckedExpressionStatementAST>
         TypeCheckedExpressionStatementAST::createByTypeChecking(std::unique_ptr<ast::ExpressionStatementAST> ast,
@@ -93,6 +103,10 @@ namespace juice {
                                                              std::unique_ptr<TypeCheckedIfExpressionAST> ifExpression):
             TypeCheckedStatementAST(type), _ifExpression(std::move(ifExpression)) {}
 
+        void TypeCheckedIfStatementAST::diagnoseInto(diag::DiagnosticEngine & diagnostics, unsigned int level) const {
+            _ifExpression->diagnoseInto(diagnostics, level);
+        }
+
         std::unique_ptr<TypeCheckedIfStatementAST>
         TypeCheckedIfStatementAST::createByTypeChecking(std::unique_ptr<ast::IfStatementAST> ast,
                                                         const TypeHint & hint, diag::DiagnosticEngine & diagnostics) {
@@ -109,6 +123,20 @@ namespace juice {
                                                                    std::unique_ptr<TypeCheckedExpressionAST> condition,
                                                                    std::unique_ptr<TypeCheckedControlFlowBodyAST> body):
             TypeCheckedStatementAST(type), _condition(std::move(condition)), _body(std::move(body)) {}
+
+        void
+        TypeCheckedWhileStatementAST::diagnoseInto(diag::DiagnosticEngine & diagnostics, unsigned int level) const {
+            basic::SourceLocation location(getLocation());
+
+            diagnostics.diagnose(location, diag::DiagnosticID::type_checked_while_statement_ast_0, getColor(level),
+                                 getType(), level, _body->getKeyword().get());
+            _condition->diagnoseInto(diagnostics, level + 1);
+
+            diagnostics.diagnose(location, diag::DiagnosticID::while_statement_ast_1, getColor(level), level);
+            _body->diagnoseInto(diagnostics, level + 1);
+
+            diagnostics.diagnose(location, diag::DiagnosticID::ast_end, getColor(level), level);
+        }
 
         std::unique_ptr<TypeCheckedWhileStatementAST>
         TypeCheckedWhileStatementAST::createByTypeChecking(std::unique_ptr<ast::WhileStatementAST> ast,
