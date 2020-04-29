@@ -152,6 +152,11 @@ namespace juice {
             void diagnoseInto(diag::DiagnosticEngine & diagnostics, unsigned int level) const override;
 
             llvm::Expected<llvm::Value *> codegen(Codegen & state) const override;
+
+
+            static bool classof(const ExpressionAST * ast) {
+                return ast->getKind() == Kind::_if;
+            }
         };
     }
 }

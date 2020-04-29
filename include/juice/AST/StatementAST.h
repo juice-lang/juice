@@ -19,7 +19,31 @@
 
 namespace juice {
     namespace ast {
-        class StatementAST: public AST {};
+        class StatementAST: public AST {
+        public:
+            enum class Kind {
+                block,
+                expression,
+                _if,
+                _while,
+                declaration,
+                variableDeclaration,
+                declaration_last
+            };
+
+        private:
+            const Kind _kind;
+
+        protected:
+            explicit StatementAST(Kind kind): _kind(kind) {}
+
+        public:
+            StatementAST() = delete;
+
+            ~StatementAST() override = default;
+
+            Kind getKind() const { return _kind; }
+        };
 
         class BlockStatementAST: public StatementAST {
             std::unique_ptr<BlockAST> _block;
@@ -38,6 +62,11 @@ namespace juice {
             void diagnoseInto(diag::DiagnosticEngine & diagnostics, unsigned int level) const override;
 
             llvm::Expected<llvm::Value *> codegen(Codegen & state) const override;
+
+
+            static bool classof(const StatementAST * ast) {
+                return ast->getKind() == Kind::block;
+            }
         };
 
         class ExpressionStatementAST: public StatementAST {
@@ -57,6 +86,11 @@ namespace juice {
             void diagnoseInto(diag::DiagnosticEngine & diagnostics, unsigned int level) const override;
 
             llvm::Expected<llvm::Value *> codegen(Codegen & state) const override;
+
+
+            static bool classof(const StatementAST * ast) {
+                return ast->getKind() == Kind::expression;
+            }
         };
 
         class IfStatementAST: public StatementAST {
@@ -76,6 +110,11 @@ namespace juice {
             void diagnoseInto(diag::DiagnosticEngine & diagnostics, unsigned int level) const override;
 
             llvm::Expected<llvm::Value *> codegen(Codegen & state) const override;
+
+
+            static bool classof(const StatementAST * ast) {
+                return ast->getKind() == Kind::_if;
+            }
         };
 
         class WhileStatementAST: public StatementAST {
@@ -96,6 +135,11 @@ namespace juice {
             void diagnoseInto(diag::DiagnosticEngine & diagnostics, unsigned int level) const override;
 
             llvm::Expected<llvm::Value *> codegen(Codegen & state) const override;
+
+
+            static bool classof(const StatementAST * ast) {
+                return ast->getKind() == Kind::_while;
+            }
         };
     }
 }

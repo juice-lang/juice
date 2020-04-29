@@ -22,7 +22,8 @@
 
 namespace juice {
     namespace ast {
-        BlockStatementAST::BlockStatementAST(std::unique_ptr<BlockAST> block): _block(std::move(block)) {}
+        BlockStatementAST::BlockStatementAST(std::unique_ptr<BlockAST> block):
+            StatementAST(Kind::block), _block(std::move(block)) {}
 
         void BlockStatementAST::diagnoseInto(diag::DiagnosticEngine & diagnostics, unsigned int level) const {
             _block->diagnoseInto(diagnostics, level);
@@ -33,7 +34,7 @@ namespace juice {
         }
 
         ExpressionStatementAST::ExpressionStatementAST(std::unique_ptr<ExpressionAST> expression):
-                _expression(std::move(expression)) {}
+            StatementAST(Kind::expression), _expression(std::move(expression)) {}
 
         void ExpressionStatementAST::diagnoseInto(diag::DiagnosticEngine & diagnostics, unsigned int level) const {
             _expression->diagnoseInto(diagnostics, level);
@@ -44,7 +45,7 @@ namespace juice {
         }
 
         IfStatementAST::IfStatementAST(std::unique_ptr<IfExpressionAST> ifExpression):
-            _ifExpression(std::move(ifExpression)) {}
+            StatementAST(Kind::_if), _ifExpression(std::move(ifExpression)) {}
 
         void IfStatementAST::diagnoseInto(diag::DiagnosticEngine & diagnostics, unsigned int level) const {
             _ifExpression->diagnoseInto(diagnostics, level);
@@ -159,7 +160,7 @@ namespace juice {
 
         WhileStatementAST::WhileStatementAST(std::unique_ptr<ExpressionAST> condition,
                                              std::unique_ptr<ControlFlowBodyAST> body):
-            _condition(std::move(condition)), _body(std::move(body)) {}
+            StatementAST(Kind::_while), _condition(std::move(condition)), _body(std::move(body)) {}
 
         void WhileStatementAST::diagnoseInto(diag::DiagnosticEngine & diagnostics, unsigned int level) const {
             basic::SourceLocation location(getLocation());

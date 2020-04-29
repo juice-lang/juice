@@ -21,7 +21,8 @@ namespace juice {
     namespace ast {
         VariableDeclarationAST::VariableDeclarationAST(std::unique_ptr<parser::LexerToken> name,
                                                        std::unique_ptr<ExpressionAST> initialization):
-                _name(std::move(name)), _initialization(std::move(initialization)) {}
+                DeclarationAST(Kind::variableDeclaration), _name(std::move(name)),
+                _initialization(std::move(initialization)) {}
 
         void VariableDeclarationAST::diagnoseInto(diag::DiagnosticEngine & diagnostics, unsigned int level) const {
             basic::SourceLocation location(getLocation());

@@ -19,7 +19,21 @@
 
 namespace juice {
     namespace ast {
-        class DeclarationAST: public StatementAST {};
+        class DeclarationAST: public StatementAST {
+        protected:
+            explicit DeclarationAST(Kind kind): StatementAST(kind) {}
+
+        public:
+            DeclarationAST() = delete;
+
+            ~DeclarationAST() override = default;
+
+
+            static bool classof(const StatementAST * ast) {
+                return ast->getKind() >= Kind::declaration
+                    && ast->getKind() <= Kind::declaration_last;
+            }
+        };
 
         class VariableDeclarationAST: public DeclarationAST {
             std::unique_ptr<parser::LexerToken> _name;
@@ -40,6 +54,11 @@ namespace juice {
             void diagnoseInto(diag::DiagnosticEngine & diagnostics, unsigned int level) const override;
 
             llvm::Expected<llvm::Value *> codegen(Codegen & state) const override;
+
+
+            static bool classof(const StatementAST * ast) {
+                return ast->getKind() == Kind::variableDeclaration;
+            }
         };
     }
 }
