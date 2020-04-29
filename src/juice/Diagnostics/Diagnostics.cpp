@@ -205,6 +205,11 @@ namespace juice {
                     out << basic::Color::bold << arg.getAsColor();
                     break;
                 }
+                case DiagnosticArg::Kind::type: {
+                    assert(modifier.empty() && "Improper modifier for Type argument");
+                    out << arg.getAsType();
+                    break;
+                }
             }
         }
 
