@@ -16,4 +16,5 @@ add_library(juiceSema STATIC
         TypeCheckedAST.cpp
         TypeCheckedDeclarationAST.cpp
         TypeCheckedExpressionAST.cpp
-        TypeCheckedStatementAST.cpp)
+        TypeCheckedStatementAST.cpp
+        TypeChecker.cpp)

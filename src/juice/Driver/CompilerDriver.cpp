@@ -15,9 +15,12 @@
 #include <utility>
 
 #include "juice/AST/Codegen.h"
+#include "juice/Basic/RawStreamHelpers.h"
 #include "juice/Basic/SourceManager.h"
 #include "juice/Diagnostics/Diagnostics.h"
 #include "juice/Parser/Parser.h"
+#include "juice/Sema/TypeChecker.h"
+#include "juice/Sema/TypeCheckedStatementAST.h"
 #include "llvm/ADT/StringRef.h"
 
 namespace juice {
@@ -37,14 +40,18 @@ namespace juice {
 
             auto ast = juiceParser.parseModule();
 
-            if (ast != nullptr) {
+            if (ast) {
+                llvm::outs() << basic::Color::bold << "=== AST ===\n" << basic::Color::reset;
                 ast->diagnoseInto(*diagnostics, 0);
 
-                ast::Codegen codegen(std::move(ast), diagnostics);
+                sema::TypeChecker typeChecker(std::move(ast), diagnostics);
+                auto checkedAST = typeChecker.typeCheck();
 
-                if (codegen.generate()) {
-                    codegen.dumpProgram();
-                }
+//                ast::Codegen codegen(std::move(ast), diagnostics);
+//
+//                if (codegen.generate()) {
+//                    codegen.dumpProgram();
+//                }
             }
 
             return diagnostics->hadError() ? 1 : 0;
