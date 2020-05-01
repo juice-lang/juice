@@ -16,6 +16,7 @@
 #include <vector>
 
 #include "Type.h"
+#include "TypeChecker.h"
 #include "TypeHint.h"
 #include "juice/AST/AST.h"
 #include "juice/Basic/RawStreamHelpers.h"
@@ -80,7 +81,7 @@ namespace juice {
             void diagnoseInto(diag::DiagnosticEngine & diagnostics, unsigned int level) const override;
 
             static std::unique_ptr<TypeCheckedModuleAST>
-            createByTypeChecking(std::unique_ptr<ast::ModuleAST> ast, const TypeHint & hint,
+            createByTypeChecking(std::unique_ptr<ast::ModuleAST> ast, const TypeHint & hint, TypeChecker::State & state,
                                  diag::DiagnosticEngine & diagnostics);
         };
 
@@ -102,7 +103,7 @@ namespace juice {
             void diagnoseInto(diag::DiagnosticEngine & diagnostics, unsigned int level) const override;
 
             static std::unique_ptr<TypeCheckedBlockAST>
-            createByTypeChecking(std::unique_ptr<ast::BlockAST> ast, const TypeHint & hint,
+            createByTypeChecking(std::unique_ptr<ast::BlockAST> ast, const TypeHint & hint, TypeChecker::State & state,
                                  diag::DiagnosticEngine & diagnostics);
         };
 
@@ -139,7 +140,7 @@ namespace juice {
 
             static std::unique_ptr<TypeCheckedControlFlowBodyAST>
             createByTypeChecking(std::unique_ptr<ast::ControlFlowBodyAST> ast, const TypeHint & hint,
-                                 diag::DiagnosticEngine & diagnostics);
+                                 TypeChecker::State & state, diag::DiagnosticEngine & diagnostics);
 
 
             const std::unique_ptr<parser::LexerToken> & getKeyword() const { return _keyword; }

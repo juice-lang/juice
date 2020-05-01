@@ -51,7 +51,7 @@ namespace juice {
             unsigned int getBitWidth() const { return (unsigned int)_width; }
 
 
-            static const BuiltinIntegerType * createBool() {
+            static const BuiltinIntegerType * getBool() {
                 static const BuiltinIntegerType _bool(Width::_1);
 
                 return &_bool;
@@ -94,13 +94,13 @@ namespace juice {
             }
 
 
-            static const BuiltinFloatingPointType * createFloat() {
+            static const BuiltinFloatingPointType * getFloat() {
                 static const BuiltinFloatingPointType _float(FPKind::ieee32);
 
                 return &_float;
             }
 
-            static const BuiltinFloatingPointType * createDouble() {
+            static const BuiltinFloatingPointType * getDouble() {
                 static const BuiltinFloatingPointType _double(FPKind::ieee64);
 
                 return &_double;

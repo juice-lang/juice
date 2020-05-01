@@ -39,23 +39,24 @@ namespace juice {
 
         std::unique_ptr<TypeCheckedModuleAST>
         TypeCheckedModuleAST::createByTypeChecking(std::unique_ptr<ast::ModuleAST> ast, const TypeHint & hint,
-                                                   diag::DiagnosticEngine & diagnostics) {
+                                                   TypeChecker::State & state, diag::DiagnosticEngine & diagnostics) {
             basic::SourceLocation location(ast->getLocation());
 
             StatementVector statements;
             const Type * type;
 
             if (!ast->_statements.empty()) {
-                auto statementInserter = std::transform(std::make_move_iterator(ast->_statements.begin()),
-                                                        std::make_move_iterator(ast->_statements.end() - 1),
-                                                        std::back_inserter(statements),
-                                                        [&diagnostics](std::unique_ptr<ast::StatementAST> statement) {
+                auto statementInserter =
+                    std::transform(std::make_move_iterator(ast->_statements.begin()),
+                                   std::make_move_iterator(ast->_statements.end() - 1),
+                                   std::back_inserter(statements),
+                                   [&state, &diagnostics](std::unique_ptr<ast::StatementAST> statement) {
                     return TypeCheckedStatementAST::createByTypeChecking(std::move(statement), NoneTypeHint(),
-                                                                         diagnostics);
+                                                                         state, diagnostics);
                 });
 
                 *statementInserter = TypeCheckedStatementAST::createByTypeChecking(std::move(ast->_statements.back()),
-                                                                                   hint, diagnostics);
+                                                                                   hint, state, diagnostics);
 
                 type = statements.back()->getType();
             } else {
@@ -97,25 +98,30 @@ namespace juice {
 
         std::unique_ptr<TypeCheckedBlockAST>
         TypeCheckedBlockAST::createByTypeChecking(std::unique_ptr<ast::BlockAST> ast, const TypeHint & hint,
-                                                  diag::DiagnosticEngine & diagnostics) {
+                                                  TypeChecker::State & state, diag::DiagnosticEngine & diagnostics) {
             basic::SourceLocation location(ast->getLocation());
 
             StatementVector statements;
             const Type * type;
 
             if (!ast->_statements.empty()) {
-                auto statementInserter = std::transform(std::make_move_iterator(ast->_statements.begin()),
-                                                        std::make_move_iterator(ast->_statements.end() - 1),
-                                                        std::back_inserter(statements),
-                                                        [&diagnostics](std::unique_ptr<ast::StatementAST> statement) {
+                state.newScope();
+
+                auto statementInserter =
+                    std::transform(std::make_move_iterator(ast->_statements.begin()),
+                                   std::make_move_iterator(ast->_statements.end() - 1),
+                                   std::back_inserter(statements),
+                                   [&state, &diagnostics](std::unique_ptr<ast::StatementAST> statement) {
                     return TypeCheckedStatementAST::createByTypeChecking(std::move(statement), NoneTypeHint(),
-                                                                         diagnostics);
+                                                                         state, diagnostics);
                 });
 
                 *statementInserter = TypeCheckedStatementAST::createByTypeChecking(std::move(ast->_statements.back()),
-                                                                                   hint, diagnostics);
+                                                                                   hint, state, diagnostics);
 
                 type = statements.back()->getType();
+
+                state.endScope();
             } else {
                 if (llvm::isa<ExpectedTypeHint>(hint)) {
                     auto expectedType = llvm::cast<ExpectedTypeHint>(hint).getType();
@@ -173,11 +179,12 @@ namespace juice {
 
         std::unique_ptr<TypeCheckedControlFlowBodyAST>
         TypeCheckedControlFlowBodyAST::createByTypeChecking(std::unique_ptr<ast::ControlFlowBodyAST> ast,
-                                                            const TypeHint & hint,
+                                                            const TypeHint & hint, TypeChecker::State & state,
                                                             diag::DiagnosticEngine & diagnostics) {
             switch (ast->_kind) {
                 case ast::ControlFlowBodyAST::Kind::block: {
-                    auto block = TypeCheckedBlockAST::createByTypeChecking(std::move(ast->_block), hint, diagnostics);
+                    auto block = TypeCheckedBlockAST::createByTypeChecking(std::move(ast->_block), hint, state,
+                                                                           diagnostics);
                     auto type = block->getType();
 
                     return std::unique_ptr<TypeCheckedControlFlowBodyAST>(
@@ -185,7 +192,7 @@ namespace juice {
                 }
                 case ast::ControlFlowBodyAST::Kind::expression: {
                     auto expression = TypeCheckedExpressionAST::createByTypeChecking(std::move(ast->_expression), hint,
-                                                                                     diagnostics);
+                                                                                     state, diagnostics);
                     auto type = expression->getType();
 
                     return std::unique_ptr<TypeCheckedControlFlowBodyAST>(

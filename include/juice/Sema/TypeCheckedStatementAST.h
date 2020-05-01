@@ -16,6 +16,7 @@
 
 #include "TypeCheckedAST.h"
 #include "TypeCheckedExpressionAST.h"
+#include "TypeChecker.h"
 #include "juice/AST/StatementAST.h"
 
 namespace juice {
@@ -31,7 +32,7 @@ namespace juice {
 
             static std::unique_ptr<TypeCheckedStatementAST>
             createByTypeChecking(std::unique_ptr<ast::StatementAST> ast, const TypeHint & hint,
-                                 diag::DiagnosticEngine & diagnostics);
+                                 TypeChecker::State & state, diag::DiagnosticEngine & diagnostics);
         };
 
         class TypeCheckedBlockStatementAST: public TypeCheckedStatementAST {
@@ -52,7 +53,7 @@ namespace juice {
 
             static std::unique_ptr<TypeCheckedBlockStatementAST>
             createByTypeChecking(std::unique_ptr<ast::BlockStatementAST> ast, const TypeHint & hint,
-                                 diag::DiagnosticEngine & diagnostics);
+                                 TypeChecker::State & state, diag::DiagnosticEngine & diagnostics);
         };
 
         class TypeCheckedExpressionStatementAST: public TypeCheckedStatementAST {
@@ -73,7 +74,7 @@ namespace juice {
 
             static std::unique_ptr<TypeCheckedExpressionStatementAST>
             createByTypeChecking(std::unique_ptr<ast::ExpressionStatementAST> ast, const TypeHint & hint,
-                                 diag::DiagnosticEngine & diagnostics);
+                                 TypeChecker::State & state, diag::DiagnosticEngine & diagnostics);
         };
 
         class TypeCheckedIfStatementAST: public TypeCheckedStatementAST {
@@ -94,7 +95,7 @@ namespace juice {
 
             static std::unique_ptr<TypeCheckedIfStatementAST>
             createByTypeChecking(std::unique_ptr<ast::IfStatementAST> ast, const TypeHint & hint,
-                                 diag::DiagnosticEngine & diagnostics);
+                                 TypeChecker::State & state, diag::DiagnosticEngine & diagnostics);
         };
 
         class TypeCheckedWhileStatementAST: public TypeCheckedStatementAST {
@@ -117,7 +118,7 @@ namespace juice {
 
             static std::unique_ptr<TypeCheckedWhileStatementAST>
             createByTypeChecking(std::unique_ptr<ast::WhileStatementAST> ast, const TypeHint & hint,
-                                 diag::DiagnosticEngine & diagnostics);
+                                 TypeChecker::State & state, diag::DiagnosticEngine & diagnostics);
         };
     }
 }

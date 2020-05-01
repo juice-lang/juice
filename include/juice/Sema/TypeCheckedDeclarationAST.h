@@ -16,6 +16,7 @@
 
 #include "TypeCheckedExpressionAST.h"
 #include "TypeCheckedStatementAST.h"
+#include "TypeChecker.h"
 #include "juice/AST/DeclarationAST.h"
 #include "juice/Parser/LexerToken.h"
 
@@ -32,15 +33,16 @@ namespace juice {
 
             static std::unique_ptr<TypeCheckedDeclarationAST>
             createByTypeChecking(std::unique_ptr<ast::DeclarationAST> ast, const TypeHint & hint,
-                                 diag::DiagnosticEngine & diagnostics);
+                                 TypeChecker::State & state, diag::DiagnosticEngine & diagnostics);
         };
 
         class TypeCheckedVariableDeclarationAST: public TypeCheckedDeclarationAST {
             std::unique_ptr<parser::LexerToken> _name;
             std::unique_ptr<TypeCheckedExpressionAST> _initialization;
+            size_t _index;
 
             TypeCheckedVariableDeclarationAST(std::unique_ptr<parser::LexerToken> name,
-                                              std::unique_ptr<TypeCheckedExpressionAST> initialization);
+                                              std::unique_ptr<TypeCheckedExpressionAST> initialization, size_t index);
 
         public:
             TypeCheckedVariableDeclarationAST() = delete;
@@ -55,7 +57,7 @@ namespace juice {
 
             static std::unique_ptr<TypeCheckedVariableDeclarationAST>
             createByTypeChecking(std::unique_ptr<ast::VariableDeclarationAST> ast, const TypeHint & hint,
-                                 diag::DiagnosticEngine & diagnostics);
+                                 TypeChecker::State & state, diag::DiagnosticEngine & diagnostics);
         };
     }
 }

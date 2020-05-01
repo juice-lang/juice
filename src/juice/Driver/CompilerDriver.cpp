@@ -45,11 +45,13 @@ namespace juice {
                 ast->diagnoseInto(*diagnostics, 0);
 
                 sema::TypeChecker typeChecker(std::move(ast), diagnostics);
-                auto checkedAST = typeChecker.typeCheck();
+                auto typeCheckResult = typeChecker.typeCheck();
 
                 if (!diagnostics->hadError()) {
                     llvm::outs() << basic::Color::bold << "\n\n=== TypeCheckedAST ===\n" << basic::Color::reset;
-                    checkedAST->diagnoseInto(*diagnostics, 0);
+                    typeCheckResult.ast->diagnoseInto(*diagnostics, 0);
+
+                    llvm::outs() << "\n\nDeclarationVectorSize: " << typeCheckResult.declarationVectorSize << "\n";
 
 //                    ast::Codegen codegen(std::move(ast), diagnostics);
 //

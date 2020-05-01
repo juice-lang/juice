@@ -28,36 +28,36 @@ namespace juice {
 
         std::unique_ptr<TypeCheckedExpressionAST>
         TypeCheckedExpressionAST::createByTypeChecking(std::unique_ptr<ast::ExpressionAST> ast, const TypeHint & hint,
+                                                       TypeChecker::State & state,
                                                        diag::DiagnosticEngine & diagnostics) {
             switch (ast->getKind()) {
                 case ast::ExpressionAST::Kind::binaryOperator: {
                     auto binaryOperator = std::unique_ptr<ast::BinaryOperatorExpressionAST>(
                         llvm::cast<ast::BinaryOperatorExpressionAST>(ast.release()));
                     return TypeCheckedBinaryOperatorExpressionAST::createByTypeChecking(std::move(binaryOperator), hint,
-                                                                                        diagnostics);
+                                                                                        state, diagnostics);
                 }
                 case ast::ExpressionAST::Kind::number: {
                     auto number = std::unique_ptr<ast::NumberExpressionAST>(
                         llvm::cast<ast::NumberExpressionAST>(ast.release()));
-                    return TypeCheckedNumberExpressionAST::createByTypeChecking(std::move(number), hint,
+                    return TypeCheckedNumberExpressionAST::createByTypeChecking(std::move(number), hint, state,
                                                                                 diagnostics);
                 }
                 case ast::ExpressionAST::Kind::variable: {
                     auto variable = std::unique_ptr<ast::VariableExpressionAST>(
                         llvm::cast<ast::VariableExpressionAST>(ast.release()));
-                    return TypeCheckedVariableExpressionAST::createByTypeChecking(std::move(variable), hint,
+                    return TypeCheckedVariableExpressionAST::createByTypeChecking(std::move(variable), hint, state,
                                                                                   diagnostics);
                 }
                 case ast::ExpressionAST::Kind::grouping: {
                     auto grouping = std::unique_ptr<ast::GroupingExpressionAST>(
                         llvm::cast<ast::GroupingExpressionAST>(ast.release()));
-                    return TypeCheckedGroupingExpressionAST::createByTypeChecking(std::move(grouping), hint,
+                    return TypeCheckedGroupingExpressionAST::createByTypeChecking(std::move(grouping), hint, state,
                                                                                   diagnostics);
                 }
                 case ast::ExpressionAST::Kind::_if: {
                     auto _if = std::unique_ptr<ast::IfExpressionAST>(llvm::cast<ast::IfExpressionAST>(ast.release()));
-                    return TypeCheckedIfExpressionAST::createByTypeChecking(std::move(_if), hint,
-                                                                            diagnostics);
+                    return TypeCheckedIfExpressionAST::createByTypeChecking(std::move(_if), hint, state, diagnostics);
                 }
             }
         }
@@ -73,8 +73,8 @@ namespace juice {
                                                                   unsigned int level) const {
             basic::SourceLocation location(getLocation());
 
-            diagnostics.diagnose(location, diag::DiagnosticID::type_checked_binary_operator_expression_ast_0, getColor(level), getType(),
-                                 level, _token.get());
+            diagnostics.diagnose(location, diag::DiagnosticID::type_checked_binary_operator_expression_ast_0,
+                                 getColor(level), getType(), level, _token.get());
             _left->diagnoseInto(diagnostics, level + 1);
 
             diagnostics
@@ -87,7 +87,7 @@ namespace juice {
         std::unique_ptr<TypeCheckedBinaryOperatorExpressionAST>
         TypeCheckedBinaryOperatorExpressionAST
             ::createByTypeChecking(std::unique_ptr<ast::BinaryOperatorExpressionAST> ast, const TypeHint & hint,
-                                   diag::DiagnosticEngine & diagnostics) {
+                                   TypeChecker::State & state, diag::DiagnosticEngine & diagnostics) {
             using TokenType = parser::LexerToken::Type;
 
             basic::SourceLocation location(ast->getLocation());
@@ -117,15 +117,16 @@ namespace juice {
                 case TokenType::operatorSlashEqual: {
                     auto left = TypeCheckedExpressionAST
                         ::createByTypeChecking(std::move(ast->_left),
-                                               ExpectedTypeHint(BuiltinFloatingPointType::createDouble(),
+                                               ExpectedTypeHint(BuiltinFloatingPointType::getDouble(),
                                                                 TypeHint::Flags::lValue),
-                                           diagnostics);
+                                               state, diagnostics);
 
                     auto right = TypeCheckedExpressionAST
                         ::createByTypeChecking(std::move(ast->_right),
-                                               ExpectedTypeHint(BuiltinFloatingPointType::createDouble()), diagnostics);
+                                               ExpectedTypeHint(BuiltinFloatingPointType::getDouble()), state,
+                                               diagnostics);
 
-                    const Type * type = BuiltinFloatingPointType::createDouble();
+                    const Type * type = BuiltinFloatingPointType::getDouble();
 
                     switch (hint.getKind()) {
                         case TypeHint::Kind::none:
@@ -150,13 +151,13 @@ namespace juice {
                 case TokenType::operatorPipePipe: {
                     auto left = TypeCheckedExpressionAST
                         ::createByTypeChecking(std::move(ast->_left),
-                                               ExpectedTypeHint(BuiltinIntegerType::createBool()), diagnostics);
+                                               ExpectedTypeHint(BuiltinIntegerType::getBool()), state, diagnostics);
 
                     auto right = TypeCheckedExpressionAST
                         ::createByTypeChecking(std::move(ast->_right),
-                                               ExpectedTypeHint(BuiltinIntegerType::createBool()), diagnostics);
+                                               ExpectedTypeHint(BuiltinIntegerType::getBool()), state, diagnostics);
 
-                    const Type * type = BuiltinIntegerType::createBool();
+                    const Type * type = BuiltinIntegerType::getBool();
 
                     switch (hint.getKind()) {
                         case TypeHint::Kind::none:
@@ -183,13 +184,15 @@ namespace juice {
                 case TokenType::operatorSlash: {
                     auto left = TypeCheckedExpressionAST
                         ::createByTypeChecking(std::move(ast->_left),
-                                               ExpectedTypeHint(BuiltinFloatingPointType::createDouble()), diagnostics);
+                                               ExpectedTypeHint(BuiltinFloatingPointType::getDouble()), state,
+                                               diagnostics);
 
                     auto right = TypeCheckedExpressionAST
                         ::createByTypeChecking(std::move(ast->_right),
-                                               ExpectedTypeHint(BuiltinFloatingPointType::createDouble()), diagnostics);
+                                               ExpectedTypeHint(BuiltinFloatingPointType::getDouble()), state,
+                                               diagnostics);
 
-                    const Type * type = BuiltinFloatingPointType::createDouble();
+                    const Type * type = BuiltinFloatingPointType::getDouble();
 
                     switch (hint.getKind()) {
                         case TypeHint::Kind::none:
@@ -213,7 +216,7 @@ namespace juice {
                 case TokenType::operatorEqualEqual:
                 case TokenType::operatorBangEqual: {
                     auto left = TypeCheckedExpressionAST
-                        ::createByTypeChecking(std::move(ast->_left), UnknownTypeHint(), diagnostics);
+                        ::createByTypeChecking(std::move(ast->_left), UnknownTypeHint(), state, diagnostics);
 
                     const Type * leftType = left->getType();
 
@@ -222,7 +225,7 @@ namespace juice {
                             if (llvm::cast<BuiltinIntegerType>(leftType)->getWidth() != BuiltinIntegerType::Width::_1) {
                                 diagnostics.diagnose(left->getLocation(),
                                                      diag::DiagnosticID::expression_ast_expected_either,
-                                                     BuiltinFloatingPointType::createDouble(),
+                                                     BuiltinFloatingPointType::getDouble(),
                                                      new BuiltinIntegerType(BuiltinIntegerType::Width::_1), leftType);
                             }
                             break;
@@ -232,7 +235,7 @@ namespace juice {
                                 != BuiltinFloatingPointType::FPKind::ieee64) {
                                 diagnostics.diagnose(left->getLocation(),
                                                      diag::DiagnosticID::expression_ast_expected_either,
-                                                     BuiltinFloatingPointType::createDouble(),
+                                                     BuiltinFloatingPointType::getDouble(),
                                                      new BuiltinIntegerType(BuiltinIntegerType::Width::_1), leftType);
                             }
                             break;
@@ -240,17 +243,17 @@ namespace juice {
                         default: {
                             diagnostics.diagnose(left->getLocation(),
                                                  diag::DiagnosticID::expression_ast_expected_either,
-                                                 BuiltinFloatingPointType::createDouble(),
+                                                 BuiltinFloatingPointType::getDouble(),
                                                  new BuiltinIntegerType(BuiltinIntegerType::Width::_1), leftType);
                             break;
                         }
                     }
 
                     auto right = TypeCheckedExpressionAST
-                        ::createByTypeChecking(std::move(ast->_right), ExpectedTypeHint(leftType), diagnostics);
+                        ::createByTypeChecking(std::move(ast->_right), ExpectedTypeHint(leftType), state, diagnostics);
 
 
-                    const Type * type = BuiltinIntegerType::createBool();
+                    const Type * type = BuiltinIntegerType::getBool();
 
                     switch (hint.getKind()) {
                         case TypeHint::Kind::none:
@@ -277,13 +280,15 @@ namespace juice {
                 case TokenType::operatorGreaterEqual: {
                     auto left = TypeCheckedExpressionAST
                         ::createByTypeChecking(std::move(ast->_left),
-                                               ExpectedTypeHint(BuiltinFloatingPointType::createDouble()), diagnostics);
+                                               ExpectedTypeHint(BuiltinFloatingPointType::getDouble()), state,
+                                               diagnostics);
 
                     auto right = TypeCheckedExpressionAST
                         ::createByTypeChecking(std::move(ast->_right),
-                                               ExpectedTypeHint(BuiltinFloatingPointType::createDouble()), diagnostics);
+                                               ExpectedTypeHint(BuiltinFloatingPointType::getDouble()), state,
+                                               diagnostics);
 
-                    const Type * type = BuiltinIntegerType::createBool();
+                    const Type * type = BuiltinIntegerType::getBool();
 
                     switch (hint.getKind()) {
                         case TypeHint::Kind::none:
@@ -323,10 +328,10 @@ namespace juice {
         std::unique_ptr<TypeCheckedNumberExpressionAST>
         TypeCheckedNumberExpressionAST::createByTypeChecking(std::unique_ptr<ast::NumberExpressionAST> ast,
                                                              const TypeHint & hint,
-                                                             diag::DiagnosticEngine & diagnostics) {
+                                                             TypeChecker::State & state, diag::DiagnosticEngine & diagnostics) {
             basic::SourceLocation location(ast->getLocation());
 
-            auto type = BuiltinFloatingPointType::createDouble();
+            auto type = BuiltinFloatingPointType::getDouble();
 
             if (hint.requiresLValue()) {
                 switch (hint.getKind()) {
@@ -365,22 +370,33 @@ namespace juice {
         }
 
         TypeCheckedVariableExpressionAST::TypeCheckedVariableExpressionAST(const Type * type,
-                                                                           std::unique_ptr<parser::LexerToken> token):
-            TypeCheckedExpressionAST(type, Kind::variable, std::move(token)) {}
+                                                                           std::unique_ptr<parser::LexerToken> token,
+                                                                           size_t index):
+            TypeCheckedExpressionAST(type, Kind::variable, std::move(token)), _index(index) {}
 
         void
         TypeCheckedVariableExpressionAST::diagnoseInto(diag::DiagnosticEngine & diagnostics, unsigned int level) const {
             diagnostics.diagnose(getLocation(), diag::DiagnosticID::type_checked_variable_expression_ast,
-                                 getColor(level), getType(), _token.get());
+                                 getColor(level), getType(), (unsigned int)_index, _token.get());
         }
 
         std::unique_ptr<TypeCheckedVariableExpressionAST>
         TypeCheckedVariableExpressionAST::createByTypeChecking(std::unique_ptr<ast::VariableExpressionAST> ast,
-                                                               const TypeHint & hint,
+                                                               const TypeHint & hint, TypeChecker::State & state,
                                                                diag::DiagnosticEngine & diagnostics) {
             basic::SourceLocation location(ast->getLocation());
+            auto token = std::move(ast->_token);
 
-            auto type = BuiltinFloatingPointType::createDouble();
+            auto indexAndType = state.getDeclaration(token->string);
+
+            if (!indexAndType) {
+                diagnostics.diagnose(location, diag::DiagnosticID::expression_ast_unresolved_identifier, token->string);
+            }
+
+            size_t index;
+            const Type * type;
+
+            std::tie(index, type) = indexAndType.getValueOr(std::make_pair(0, BuiltinFloatingPointType::getDouble()));
 
             switch (hint.getKind()) {
                 case TypeHint::Kind::none:
@@ -398,7 +414,7 @@ namespace juice {
             }
 
             return std::unique_ptr<TypeCheckedVariableExpressionAST>(
-                new TypeCheckedVariableExpressionAST(type, std::move(ast->_token)));
+                new TypeCheckedVariableExpressionAST(type, std::move(token), index));
         }
 
         TypeCheckedGroupingExpressionAST
@@ -413,9 +429,9 @@ namespace juice {
 
         std::unique_ptr<TypeCheckedGroupingExpressionAST>
         TypeCheckedGroupingExpressionAST::createByTypeChecking(std::unique_ptr<ast::GroupingExpressionAST> ast,
-                                                               const TypeHint & hint,
+                                                               const TypeHint & hint, TypeChecker::State & state,
                                                                diag::DiagnosticEngine & diagnostics) {
-            auto expression = TypeCheckedExpressionAST::createByTypeChecking(std::move(ast->_expression), hint,
+            auto expression = TypeCheckedExpressionAST::createByTypeChecking(std::move(ast->_expression), hint, state,
                                                                              diagnostics);
 
             auto type = expression->getType();
@@ -466,7 +482,8 @@ namespace juice {
 
         std::unique_ptr<TypeCheckedIfExpressionAST>
         TypeCheckedIfExpressionAST::createByTypeChecking(std::unique_ptr<ast::IfExpressionAST> ast,
-                                                         const TypeHint & hint, diag::DiagnosticEngine & diagnostics) {
+                                                         const TypeHint & hint, TypeChecker::State & state,
+                                                         diag::DiagnosticEngine & diagnostics) {
             basic::SourceLocation location(ast->getLocation());
 
             if (hint.requiresLValue()) {
@@ -491,11 +508,11 @@ namespace juice {
 
             auto ifCondition =
                 TypeCheckedExpressionAST::createByTypeChecking(std::move(ast->_ifCondition),
-                                                               ExpectedTypeHint(BuiltinIntegerType::createBool()),
-                                                               diagnostics);
+                                                               ExpectedTypeHint(BuiltinIntegerType::getBool()),
+                                                               state, diagnostics);
 
             auto ifBody = TypeCheckedControlFlowBodyAST::createByTypeChecking(std::move(ast->_ifBody), ifHint,
-                                                                              diagnostics);
+                                                                              state, diagnostics);
 
             auto type = ast->_isStatement ? new NothingType : ifBody->getType();
 
@@ -504,7 +521,7 @@ namespace juice {
             std::transform(std::make_move_iterator(ast->_elifConditionsAndBodies.begin()),
                            std::make_move_iterator(ast->_elifConditionsAndBodies.end()),
                            std::back_inserter(elifConditionsAndBodies),
-                           [&ifHint, &diagnostics](std::pair<std::unique_ptr<ast::ExpressionAST>,
+                           [&ifHint, &state, &diagnostics](std::pair<std::unique_ptr<ast::ExpressionAST>,
                                                            std::unique_ptr<ast::ControlFlowBodyAST>> conditionAndBody) {
                 std::unique_ptr<ast::ExpressionAST> condition;
                 std::unique_ptr<ast::ControlFlowBodyAST> body;
@@ -512,11 +529,11 @@ namespace juice {
 
                 auto checkedCondition =
                     TypeCheckedExpressionAST::createByTypeChecking(std::move(condition),
-                                                                   ExpectedTypeHint(BuiltinIntegerType::createBool()),
-                                                                   diagnostics);
+                                                                   ExpectedTypeHint(BuiltinIntegerType::getBool()),
+                                                                   state, diagnostics);
 
                 auto checkedBody = TypeCheckedControlFlowBodyAST::createByTypeChecking(std::move(body), ifHint,
-                                                                                       diagnostics);
+                                                                                       state, diagnostics);
 
                 return std::make_pair(std::move(checkedCondition), std::move(checkedBody));
             });
@@ -525,7 +542,7 @@ namespace juice {
 
             if (!ast->_isStatement || ast->_elseBody) {
                 elseBody = TypeCheckedControlFlowBodyAST::createByTypeChecking(std::move(ast->_elseBody), ifHint,
-                                                                                    diagnostics);
+                                                                               state, diagnostics);
             }
 
             return std::unique_ptr<TypeCheckedIfExpressionAST>(

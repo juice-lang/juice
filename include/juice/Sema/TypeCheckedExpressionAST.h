@@ -17,6 +17,7 @@
 #include <vector>
 
 #include "TypeCheckedAST.h"
+#include "TypeChecker.h"
 #include "juice/AST/ExpressionAST.h"
 #include "juice/Parser/LexerToken.h"
 
@@ -53,7 +54,7 @@ namespace juice {
 
             static std::unique_ptr<TypeCheckedExpressionAST>
             createByTypeChecking(std::unique_ptr<ast::ExpressionAST> ast, const TypeHint & hint,
-                                 diag::DiagnosticEngine & diagnostics);
+                                 TypeChecker::State & state, diag::DiagnosticEngine & diagnostics);
         };
 
         class TypeCheckedBinaryOperatorExpressionAST: public TypeCheckedExpressionAST {
@@ -70,7 +71,7 @@ namespace juice {
 
             static std::unique_ptr<TypeCheckedBinaryOperatorExpressionAST>
             createByTypeChecking(std::unique_ptr<ast::BinaryOperatorExpressionAST> ast, const TypeHint & hint,
-                                 diag::DiagnosticEngine & diagnostics);
+                                 TypeChecker::State & state, diag::DiagnosticEngine & diagnostics);
 
 
             static bool classof(const TypeCheckedExpressionAST * ast) {
@@ -90,7 +91,7 @@ namespace juice {
 
             static std::unique_ptr<TypeCheckedNumberExpressionAST>
             createByTypeChecking(std::unique_ptr<ast::NumberExpressionAST> ast, const TypeHint & hint,
-                                 diag::DiagnosticEngine & diagnostics);
+                                 TypeChecker::State & state, diag::DiagnosticEngine & diagnostics);
 
 
             static bool classof(const TypeCheckedExpressionAST * ast) {
@@ -99,7 +100,10 @@ namespace juice {
         };
 
         class TypeCheckedVariableExpressionAST: public TypeCheckedExpressionAST {
-            TypeCheckedVariableExpressionAST(const Type * type, std::unique_ptr<parser::LexerToken> token);
+            size_t _index;
+
+            TypeCheckedVariableExpressionAST(const Type * type, std::unique_ptr<parser::LexerToken> token,
+                                             size_t index);
 
         public:
             TypeCheckedVariableExpressionAST() = delete;
@@ -110,7 +114,7 @@ namespace juice {
 
             static std::unique_ptr<TypeCheckedVariableExpressionAST>
             createByTypeChecking(std::unique_ptr<ast::VariableExpressionAST> ast, const TypeHint & hint,
-                                 diag::DiagnosticEngine & diagnostics);
+                                 TypeChecker::State & state, diag::DiagnosticEngine & diagnostics);
 
 
             static bool classof(const TypeCheckedExpressionAST * ast) {
@@ -131,7 +135,7 @@ namespace juice {
 
             static std::unique_ptr<TypeCheckedGroupingExpressionAST>
             createByTypeChecking(std::unique_ptr<ast::GroupingExpressionAST> ast, const TypeHint & hint,
-                                 diag::DiagnosticEngine & diagnostics);
+                                 TypeChecker::State & state, diag::DiagnosticEngine & diagnostics);
 
 
             static bool classof(const TypeCheckedExpressionAST * ast) {
@@ -169,7 +173,7 @@ namespace juice {
 
             static std::unique_ptr<TypeCheckedIfExpressionAST>
             createByTypeChecking(std::unique_ptr<ast::IfExpressionAST> ast, const TypeHint & hint,
-                                 diag::DiagnosticEngine & diagnostics);
+                                 TypeChecker::State & state, diag::DiagnosticEngine & diagnostics);
 
 
             static bool classof(const TypeCheckedExpressionAST * ast) {
