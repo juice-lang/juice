@@ -61,7 +61,7 @@ namespace juice {
 
         TypeCheckedBlockStatementAST::TypeCheckedBlockStatementAST(const Type * type,
                                                                    std::unique_ptr<TypeCheckedBlockAST> block):
-            TypeCheckedStatementAST(type), _block(std::move(block)) {}
+            TypeCheckedStatementAST(Kind::blockStatement, type), _block(std::move(block)) {}
 
         void
         TypeCheckedBlockStatementAST::diagnoseInto(diag::DiagnosticEngine & diagnostics, unsigned int level) const {
@@ -83,7 +83,7 @@ namespace juice {
         TypeCheckedExpressionStatementAST
             ::TypeCheckedExpressionStatementAST(const Type * type,
                                                 std::unique_ptr<TypeCheckedExpressionAST> expression):
-            TypeCheckedStatementAST(type), _expression(std::move(expression)) {}
+            TypeCheckedStatementAST(Kind::expressionStatement, type), _expression(std::move(expression)) {}
 
         void TypeCheckedExpressionStatementAST::diagnoseInto(diag::DiagnosticEngine & diagnostics,
                                                              unsigned int level) const {
@@ -105,7 +105,7 @@ namespace juice {
 
         TypeCheckedIfStatementAST::TypeCheckedIfStatementAST(const Type * type,
                                                              std::unique_ptr<TypeCheckedIfExpressionAST> ifExpression):
-            TypeCheckedStatementAST(type), _ifExpression(std::move(ifExpression)) {}
+            TypeCheckedStatementAST(Kind::ifStatement, type), _ifExpression(std::move(ifExpression)) {}
 
         void TypeCheckedIfStatementAST::diagnoseInto(diag::DiagnosticEngine & diagnostics, unsigned int level) const {
             _ifExpression->diagnoseInto(diagnostics, level);
@@ -127,7 +127,8 @@ namespace juice {
         TypeCheckedWhileStatementAST::TypeCheckedWhileStatementAST(const Type * type,
                                                                    std::unique_ptr<TypeCheckedExpressionAST> condition,
                                                                    std::unique_ptr<TypeCheckedControlFlowBodyAST> body):
-            TypeCheckedStatementAST(type), _condition(std::move(condition)), _body(std::move(body)) {}
+            TypeCheckedStatementAST(Kind::whileStatement, type), _condition(std::move(condition)),
+            _body(std::move(body)) {}
 
         void
         TypeCheckedWhileStatementAST::diagnoseInto(diag::DiagnosticEngine & diagnostics, unsigned int level) const {

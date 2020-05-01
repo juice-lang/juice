@@ -24,22 +24,10 @@
 namespace juice {
     namespace sema {
         class TypeCheckedExpressionAST: public TypeCheckedAST {
-        public:
-            enum class Kind {
-                binaryOperator,
-                number,
-                variable,
-                grouping,
-                _if
-            };
-
-        private:
-            const Kind _kind;
-
         protected:
             std::unique_ptr<parser::LexerToken> _token;
 
-            TypeCheckedExpressionAST(const Type * type, Kind kind, std::unique_ptr<parser::LexerToken> token);
+            TypeCheckedExpressionAST(Kind kind, const Type * type, std::unique_ptr<parser::LexerToken> token);
 
         public:
             TypeCheckedExpressionAST() = delete;
@@ -50,11 +38,15 @@ namespace juice {
                 return basic::SourceLocation(_token->string.begin());
             }
 
-            Kind getKind() const { return _kind; }
-
             static std::unique_ptr<TypeCheckedExpressionAST>
             createByTypeChecking(std::unique_ptr<ast::ExpressionAST> ast, const TypeHint & hint,
                                  TypeChecker::State & state, diag::DiagnosticEngine & diagnostics);
+
+
+            static bool classof(const TypeCheckedAST * type) {
+                return type->getKind() >= Kind::expression
+                    && type->getKind() <= Kind::expression_last;
+            }
         };
 
         class TypeCheckedBinaryOperatorExpressionAST: public TypeCheckedExpressionAST {
@@ -74,8 +66,8 @@ namespace juice {
                                  TypeChecker::State & state, diag::DiagnosticEngine & diagnostics);
 
 
-            static bool classof(const TypeCheckedExpressionAST * ast) {
-                return ast->getKind() == Kind::binaryOperator;
+            static bool classof(const TypeCheckedAST * ast) {
+                return ast->getKind() == Kind::binaryOperatorExpression;
             }
         };
 
@@ -94,8 +86,8 @@ namespace juice {
                                  TypeChecker::State & state, diag::DiagnosticEngine & diagnostics);
 
 
-            static bool classof(const TypeCheckedExpressionAST * ast) {
-                return ast->getKind() == Kind::number;
+            static bool classof(const TypeCheckedAST * ast) {
+                return ast->getKind() == Kind::numberExpression;
             }
         };
 
@@ -117,8 +109,8 @@ namespace juice {
                                  TypeChecker::State & state, diag::DiagnosticEngine & diagnostics);
 
 
-            static bool classof(const TypeCheckedExpressionAST * ast) {
-                return ast->getKind() == Kind::variable;
+            static bool classof(const TypeCheckedAST * ast) {
+                return ast->getKind() == Kind::variableExpression;
             }
         };
 
@@ -138,8 +130,8 @@ namespace juice {
                                  TypeChecker::State & state, diag::DiagnosticEngine & diagnostics);
 
 
-            static bool classof(const TypeCheckedExpressionAST * ast) {
-                return ast->getKind() == Kind::grouping;
+            static bool classof(const TypeCheckedAST * ast) {
+                return ast->getKind() == Kind::groupingExpression;
             }
         };
 
@@ -176,8 +168,8 @@ namespace juice {
                                  TypeChecker::State & state, diag::DiagnosticEngine & diagnostics);
 
 
-            static bool classof(const TypeCheckedExpressionAST * ast) {
-                return ast->getKind() == Kind::_if;
+            static bool classof(const TypeCheckedAST * ast) {
+                return ast->getKind() == Kind::ifExpression;
             }
         };
     }

@@ -23,7 +23,7 @@ namespace juice {
     namespace sema {
         class TypeCheckedStatementAST: public TypeCheckedAST {
         protected:
-            explicit TypeCheckedStatementAST(const Type * type): TypeCheckedAST(type) {}
+            explicit TypeCheckedStatementAST(Kind kind, const Type * type): TypeCheckedAST(kind, type) {}
 
         public:
             TypeCheckedStatementAST() = delete;
@@ -33,6 +33,12 @@ namespace juice {
             static std::unique_ptr<TypeCheckedStatementAST>
             createByTypeChecking(std::unique_ptr<ast::StatementAST> ast, const TypeHint & hint,
                                  TypeChecker::State & state, diag::DiagnosticEngine & diagnostics);
+
+
+            static bool classof(const TypeCheckedAST * type) {
+                return type->getKind() >= Kind::statement
+                    && type->getKind() <= Kind::statement_last;
+            }
         };
 
         class TypeCheckedBlockStatementAST: public TypeCheckedStatementAST {
@@ -54,6 +60,11 @@ namespace juice {
             static std::unique_ptr<TypeCheckedBlockStatementAST>
             createByTypeChecking(std::unique_ptr<ast::BlockStatementAST> ast, const TypeHint & hint,
                                  TypeChecker::State & state, diag::DiagnosticEngine & diagnostics);
+
+
+            static bool classof(const TypeCheckedAST * type) {
+                return type->getKind() == Kind::blockStatement;
+            }
         };
 
         class TypeCheckedExpressionStatementAST: public TypeCheckedStatementAST {
@@ -75,6 +86,11 @@ namespace juice {
             static std::unique_ptr<TypeCheckedExpressionStatementAST>
             createByTypeChecking(std::unique_ptr<ast::ExpressionStatementAST> ast, const TypeHint & hint,
                                  TypeChecker::State & state, diag::DiagnosticEngine & diagnostics);
+
+
+            static bool classof(const TypeCheckedAST * type) {
+                return type->getKind() == Kind::expressionStatement;
+            }
         };
 
         class TypeCheckedIfStatementAST: public TypeCheckedStatementAST {
@@ -96,6 +112,11 @@ namespace juice {
             static std::unique_ptr<TypeCheckedIfStatementAST>
             createByTypeChecking(std::unique_ptr<ast::IfStatementAST> ast, const TypeHint & hint,
                                  TypeChecker::State & state, diag::DiagnosticEngine & diagnostics);
+
+
+            static bool classof(const TypeCheckedAST * type) {
+                return type->getKind() == Kind::ifStatement;
+            }
         };
 
         class TypeCheckedWhileStatementAST: public TypeCheckedStatementAST {
@@ -119,6 +140,11 @@ namespace juice {
             static std::unique_ptr<TypeCheckedWhileStatementAST>
             createByTypeChecking(std::unique_ptr<ast::WhileStatementAST> ast, const TypeHint & hint,
                                  TypeChecker::State & state, diag::DiagnosticEngine & diagnostics);
+
+
+            static bool classof(const TypeCheckedAST * type) {
+                return type->getKind() == Kind::whileStatement;
+            }
         };
     }
 }

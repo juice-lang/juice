@@ -24,7 +24,7 @@ namespace juice {
     namespace sema {
         class TypeCheckedDeclarationAST: public TypeCheckedStatementAST {
         protected:
-            explicit TypeCheckedDeclarationAST(const Type * type): TypeCheckedStatementAST(type) {}
+            explicit TypeCheckedDeclarationAST(Kind kind, const Type * type): TypeCheckedStatementAST(kind, type) {}
 
         public:
             TypeCheckedDeclarationAST() = delete;
@@ -34,6 +34,12 @@ namespace juice {
             static std::unique_ptr<TypeCheckedDeclarationAST>
             createByTypeChecking(std::unique_ptr<ast::DeclarationAST> ast, const TypeHint & hint,
                                  TypeChecker::State & state, diag::DiagnosticEngine & diagnostics);
+
+
+            static bool classof(const TypeCheckedAST * type) {
+                return type->getKind() >= Kind::declaration
+                    && type->getKind() <= Kind::declaration_last;
+            }
         };
 
         class TypeCheckedVariableDeclarationAST: public TypeCheckedDeclarationAST {
@@ -58,6 +64,11 @@ namespace juice {
             static std::unique_ptr<TypeCheckedVariableDeclarationAST>
             createByTypeChecking(std::unique_ptr<ast::VariableDeclarationAST> ast, const TypeHint & hint,
                                  TypeChecker::State & state, diag::DiagnosticEngine & diagnostics);
+
+
+            static bool classof(const TypeCheckedAST * type) {
+                return type->getKind() == Kind::variableDeclaration;
+            }
         };
     }
 }

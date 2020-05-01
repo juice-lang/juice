@@ -21,9 +21,9 @@
 namespace juice {
     namespace sema {
         TypeCheckedContainerAST
-            ::TypeCheckedContainerAST(const Type * type,
+            ::TypeCheckedContainerAST(Kind kind, const Type * type,
                                       std::vector<std::unique_ptr<TypeCheckedStatementAST>> && statements):
-            TypeCheckedAST(type), _statements(std::move(statements)) {}
+            TypeCheckedAST(kind, type), _statements(std::move(statements)) {}
 
         basic::SourceLocation TypeCheckedContainerAST::getLocation() const {
             if (!_statements.empty()) return _statements.front()->getLocation();
@@ -31,7 +31,7 @@ namespace juice {
         }
 
         TypeCheckedModuleAST::TypeCheckedModuleAST(const Type * type, StatementVector && statements):
-            TypeCheckedContainerAST(type, std::move(statements)) {}
+            TypeCheckedContainerAST(Kind::module, type, std::move(statements)) {}
 
         void TypeCheckedModuleAST::diagnoseInto(diag::DiagnosticEngine & diagnostics, unsigned int level) const {
             for (const auto & statement: _statements) { statement->diagnoseInto(diagnostics, level); }
@@ -74,7 +74,7 @@ namespace juice {
 
         TypeCheckedBlockAST::TypeCheckedBlockAST(const Type * type, StatementVector && statements,
                                                  std::unique_ptr<parser::LexerToken> start):
-            TypeCheckedContainerAST(type, std::move(statements)), _start(std::move(start)) {}
+            TypeCheckedContainerAST(Kind::block, type, std::move(statements)), _start(std::move(start)) {}
 
         void TypeCheckedBlockAST::diagnoseInto(diag::DiagnosticEngine & diagnostics, unsigned int level) const {
             basic::SourceLocation location(getLocation());
@@ -139,21 +139,21 @@ namespace juice {
         TypeCheckedControlFlowBodyAST::TypeCheckedControlFlowBodyAST(const Type * type,
                                                                      std::unique_ptr<parser::LexerToken> keyword,
                                                                      std::unique_ptr<TypeCheckedBlockAST> block):
-            TypeCheckedAST(type), _keyword(std::move(keyword)), _kind(Kind::block) {
+            TypeCheckedAST(Kind::controlFlowBody, type), _keyword(std::move(keyword)), _bodyKind(BodyKind::block) {
             new (&_block) std::unique_ptr<TypeCheckedBlockAST>(std::move(block));
         }
 
         TypeCheckedControlFlowBodyAST
             ::TypeCheckedControlFlowBodyAST(const Type * type, std::unique_ptr<parser::LexerToken> keyword,
                                             std::unique_ptr<TypeCheckedExpressionAST> expression):
-            TypeCheckedAST(type), _keyword(std::move(keyword)), _kind(Kind::expression) {
+            TypeCheckedAST(Kind::controlFlowBody, type), _keyword(std::move(keyword)), _bodyKind(BodyKind::expression) {
             new (&_expression) std::unique_ptr<TypeCheckedExpressionAST>(std::move(expression));
         }
 
         TypeCheckedControlFlowBodyAST::~TypeCheckedControlFlowBodyAST() {
-            switch (_kind) {
-                case Kind::block: _block.~unique_ptr<TypeCheckedBlockAST>(); break;
-                case Kind::expression: _expression.~unique_ptr<TypeCheckedExpressionAST>(); break;
+            switch (_bodyKind) {
+                case BodyKind::block: _block.~unique_ptr<TypeCheckedBlockAST>(); break;
+                case BodyKind::expression: _expression.~unique_ptr<TypeCheckedExpressionAST>(); break;
             }
         }
 
@@ -161,13 +161,13 @@ namespace juice {
         TypeCheckedControlFlowBodyAST::diagnoseInto(diag::DiagnosticEngine & diagnostics, unsigned int level) const {
             basic::SourceLocation location(getLocation());
 
-            switch (_kind) {
-                case Kind::block:
+            switch (_bodyKind) {
+                case BodyKind::block:
                     diagnostics.diagnose(location, diag::DiagnosticID::type_checked_if_body_ast_block, getColor(level),
                                          getType(), level, _keyword.get());
                     _block->diagnoseInto(diagnostics, level + 1);
                     break;
-                case Kind::expression:
+                case BodyKind::expression:
                     diagnostics.diagnose(location, diag::DiagnosticID::type_checked_if_body_ast_expression,
                                          getColor(level), getType(), level, _keyword.get());
                     _expression->diagnoseInto(diagnostics, level + 1);

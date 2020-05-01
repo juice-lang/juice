@@ -34,7 +34,7 @@ namespace juice {
         TypeCheckedVariableDeclarationAST
             ::TypeCheckedVariableDeclarationAST(std::unique_ptr<parser::LexerToken> name,
                                                 std::unique_ptr<TypeCheckedExpressionAST> initialization, size_t index):
-            TypeCheckedDeclarationAST(new NothingType), _name(std::move(name)),
+            TypeCheckedDeclarationAST(Kind::variableDeclaration, new NothingType), _name(std::move(name)),
             _initialization(std::move(initialization)), _index(index) {}
 
         void TypeCheckedVariableDeclarationAST::diagnoseInto(diag::DiagnosticEngine & diagnostics,

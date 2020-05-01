@@ -22,9 +22,9 @@
 
 namespace juice {
     namespace sema {
-        TypeCheckedExpressionAST::TypeCheckedExpressionAST(const Type * type, TypeCheckedExpressionAST::Kind kind,
+        TypeCheckedExpressionAST::TypeCheckedExpressionAST(Kind kind, const Type * type,
                                                            std::unique_ptr<parser::LexerToken> token):
-            TypeCheckedAST(type), _kind(kind), _token(std::move(token)) {}
+            TypeCheckedAST(kind, type), _token(std::move(token)) {}
 
         std::unique_ptr<TypeCheckedExpressionAST>
         TypeCheckedExpressionAST::createByTypeChecking(std::unique_ptr<ast::ExpressionAST> ast, const TypeHint & hint,
@@ -66,7 +66,7 @@ namespace juice {
             ::TypeCheckedBinaryOperatorExpressionAST(const Type * type, std::unique_ptr<parser::LexerToken> token,
                                                      std::unique_ptr<TypeCheckedExpressionAST> left,
                                                      std::unique_ptr<TypeCheckedExpressionAST> right):
-            TypeCheckedExpressionAST(type, Kind::binaryOperator, std::move(token)), _left(std::move(left)),
+            TypeCheckedExpressionAST(Kind::binaryOperatorExpression, type, std::move(token)), _left(std::move(left)),
             _right(std::move(right)) {}
 
         void TypeCheckedBinaryOperatorExpressionAST::diagnoseInto(diag::DiagnosticEngine & diagnostics,
@@ -317,7 +317,7 @@ namespace juice {
         TypeCheckedNumberExpressionAST::TypeCheckedNumberExpressionAST(const Type * type,
                                                                        std::unique_ptr<parser::LexerToken> token,
                                                                        double value):
-            TypeCheckedExpressionAST(type, Kind::number, std::move(token)), _value(value) {}
+            TypeCheckedExpressionAST(Kind::numberExpression, type, std::move(token)), _value(value) {}
 
         void
         TypeCheckedNumberExpressionAST::diagnoseInto(diag::DiagnosticEngine & diagnostics, unsigned int level) const {
@@ -372,7 +372,7 @@ namespace juice {
         TypeCheckedVariableExpressionAST::TypeCheckedVariableExpressionAST(const Type * type,
                                                                            std::unique_ptr<parser::LexerToken> token,
                                                                            size_t index):
-            TypeCheckedExpressionAST(type, Kind::variable, std::move(token)), _index(index) {}
+            TypeCheckedExpressionAST(Kind::variableExpression, type, std::move(token)), _index(index) {}
 
         void
         TypeCheckedVariableExpressionAST::diagnoseInto(diag::DiagnosticEngine & diagnostics, unsigned int level) const {
@@ -420,7 +420,8 @@ namespace juice {
         TypeCheckedGroupingExpressionAST
             ::TypeCheckedGroupingExpressionAST(const Type * type, std::unique_ptr<parser::LexerToken> token,
                                                std::unique_ptr<TypeCheckedExpressionAST> expression):
-            TypeCheckedExpressionAST(type, Kind::grouping, std::move(token)), _expression(std::move(expression)) {}
+            TypeCheckedExpressionAST(Kind::groupingExpression, type, std::move(token)),
+            _expression(std::move(expression)) {}
 
         void
         TypeCheckedGroupingExpressionAST::diagnoseInto(diag::DiagnosticEngine & diagnostics, unsigned int level) const {
@@ -445,7 +446,7 @@ namespace juice {
                                          std::unique_ptr<TypeCheckedControlFlowBodyAST> ifBody,
                                          ElifVector && elifConditionsAndBodies,
                                          std::unique_ptr<TypeCheckedControlFlowBodyAST> elseBody, bool isStatement):
-            TypeCheckedExpressionAST(type, Kind::_if, nullptr), _ifCondition(std::move(ifCondition)),
+            TypeCheckedExpressionAST(Kind::ifExpression, type, nullptr), _ifCondition(std::move(ifCondition)),
             _ifBody(std::move(ifBody)), _elifConditionsAndBodies(std::move(elifConditionsAndBodies)),
             _elseBody(std::move(elseBody)), _isStatement(isStatement) {}
 
