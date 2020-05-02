@@ -115,12 +115,24 @@ namespace juice {
         TypeCheckedIfStatementAST::createByTypeChecking(std::unique_ptr<ast::IfStatementAST> ast,
                                                         const TypeHint & hint, TypeChecker::State & state,
                                                         diag::DiagnosticEngine & diagnostics) {
+            basic::SourceLocation location(ast->getLocation());
+
             auto ifExpression = TypeCheckedIfExpressionAST::createByTypeChecking(std::move(ast->_ifExpression), hint,
                                                                                  state, diagnostics);
 
-            auto type = ifExpression->getType();
+            switch (hint.getKind()) {
+                case TypeHint::Kind::none: break;
+                case TypeHint::Kind::unknown:
+                    diagnostics.diagnose(location, diag::DiagnosticID::statement_ast_expected_unknown_type);
+                    break;
+                case TypeHint::Kind::expected: {
+                    auto expectedType = llvm::cast<ExpectedTypeHint>(hint).getType();
+                    diagnostics.diagnose(location, diag::DiagnosticID::statement_ast_expected_type, expectedType);
+                    break;
+                }
+            }
 
-            return std::unique_ptr<TypeCheckedIfStatementAST>(new TypeCheckedIfStatementAST(type,
+            return std::unique_ptr<TypeCheckedIfStatementAST>(new TypeCheckedIfStatementAST(NothingType::get(),
                                                                                             std::move(ifExpression)));
         }
 
