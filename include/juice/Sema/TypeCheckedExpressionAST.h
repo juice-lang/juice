@@ -24,6 +24,8 @@
 namespace juice {
     namespace sema {
         class TypeCheckedExpressionAST: public TypeCheckedAST {
+            friend class irgen::IRGen;
+
         protected:
             std::unique_ptr<parser::LexerToken> _token;
 
@@ -56,6 +58,8 @@ namespace juice {
                                                    std::unique_ptr<TypeCheckedExpressionAST> left,
                                                    std::unique_ptr<TypeCheckedExpressionAST> right);
 
+            friend class irgen::IRGen;
+
         public:
             TypeCheckedBinaryOperatorExpressionAST() = delete;
 
@@ -75,6 +79,8 @@ namespace juice {
             double _value;
 
             TypeCheckedNumberExpressionAST(Type type, std::unique_ptr<parser::LexerToken> token, double value);
+
+            friend class irgen::IRGen;
 
         public:
             TypeCheckedNumberExpressionAST() = delete;
@@ -96,6 +102,8 @@ namespace juice {
 
             TypeCheckedVariableExpressionAST(Type type, std::unique_ptr<parser::LexerToken> token,
                                              size_t index);
+
+            friend class irgen::IRGen;
 
         public:
             TypeCheckedVariableExpressionAST() = delete;
@@ -119,6 +127,8 @@ namespace juice {
 
             TypeCheckedGroupingExpressionAST(Type type, std::unique_ptr<parser::LexerToken> token,
                                              std::unique_ptr<TypeCheckedExpressionAST> expression);
+
+            friend class irgen::IRGen;
 
         public:
             TypeCheckedGroupingExpressionAST() = delete;
@@ -153,6 +163,7 @@ namespace juice {
                                        std::unique_ptr<TypeCheckedControlFlowBodyAST> elseBody, bool isStatement);
 
             friend class TypeCheckedIfStatementAST;
+            friend class irgen::IRGen;
 
         public:
             TypeCheckedIfExpressionAST() = delete;

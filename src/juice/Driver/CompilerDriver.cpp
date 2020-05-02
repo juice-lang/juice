@@ -14,10 +14,10 @@
 #include <memory>
 #include <utility>
 
-#include "juice/AST/Codegen.h"
 #include "juice/Basic/RawStreamHelpers.h"
 #include "juice/Basic/SourceManager.h"
 #include "juice/Diagnostics/Diagnostics.h"
+#include "juice/IRGen/IRGen.h"
 #include "juice/Parser/Parser.h"
 #include "juice/Sema/TypeChecker.h"
 #include "juice/Sema/TypeCheckedStatementAST.h"
@@ -53,13 +53,14 @@ namespace juice {
 
                     llvm::outs() << "\n\nAllocaVectorSize: " << typeCheckResult.allocaVectorSize << "\n";
 
-//                    ast::Codegen codegen(std::move(ast), diagnostics);
-//
-//                    if (codegen.generate()) {
-//                        codegen.dumpProgram();
-//                    }
+                    irgen::IRGen codegen(std::move(typeCheckResult), diagnostics);
 
-                    return 0;
+                    if (codegen.generate()) {
+                        llvm::outs() << basic::Color::bold << "\n\n=== LLVM IR ===\n\n" << basic::Color::reset;
+                        codegen.dumpProgram();
+
+                        return 0;
+                    }
                 }
             }
 

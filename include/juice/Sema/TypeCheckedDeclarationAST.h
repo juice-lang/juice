@@ -23,6 +23,8 @@
 namespace juice {
     namespace sema {
         class TypeCheckedDeclarationAST: public TypeCheckedStatementAST {
+            friend class irgen::IRGen;
+
         protected:
             explicit TypeCheckedDeclarationAST(Kind kind, Type type): TypeCheckedStatementAST(kind, type) {}
 
@@ -50,6 +52,8 @@ namespace juice {
             TypeCheckedVariableDeclarationAST(std::unique_ptr<parser::LexerToken> keyword,
                                               std::unique_ptr<parser::LexerToken> name,
                                               std::unique_ptr<TypeCheckedExpressionAST> initialization, size_t index);
+
+            friend class irgen::IRGen;
 
         public:
             TypeCheckedVariableDeclarationAST() = delete;

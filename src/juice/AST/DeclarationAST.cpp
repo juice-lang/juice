@@ -12,11 +12,6 @@
 
 #include <utility>
 
-#include "juice/AST/Codegen.h"
-#include "juice/AST/CodegenError.h"
-#include "llvm/ADT/APFloat.h"
-#include "llvm/IR/Instructions.h"
-
 namespace juice {
     namespace ast {
         VariableDeclarationAST::VariableDeclarationAST(std::unique_ptr<parser::LexerToken> keyword,
@@ -32,22 +27,6 @@ namespace juice {
                                  _name.get());
             _initialization->diagnoseInto(diagnostics, level + 1);
             diagnostics.diagnose(location, diag::DiagnosticID::ast_end, getColor(level), level);
-        }
-
-        llvm::Expected<llvm::Value *> VariableDeclarationAST::codegen(Codegen & state) const {
-            auto value = _initialization->codegen(state);
-            if (auto error = value.takeError()) return std::move(error);
-
-            llvm::AllocaInst * alloca = state.getBuilder().CreateAlloca(llvm::Type::getDoubleTy(state.getContext()),
-                                                                         nullptr, _name->string);
-            state.getBuilder().CreateStore(*value, alloca);
-
-            if (state.newNamedValue(_name->string, alloca)) {
-                return nullptr;
-            }
-
-            return llvm::make_error<CodegenErrorWithString>(diag::DiagnosticID::invalid_redeclaration, getLocation(),
-                                                            _name->string);
         }
     }
 }

@@ -22,6 +22,8 @@
 namespace juice {
     namespace sema {
         class TypeCheckedStatementAST: public TypeCheckedAST {
+            friend class irgen::IRGen;
+
         protected:
             explicit TypeCheckedStatementAST(Kind kind, Type type): TypeCheckedAST(kind, type) {}
 
@@ -45,6 +47,8 @@ namespace juice {
             std::unique_ptr<TypeCheckedBlockAST> _block;
 
             TypeCheckedBlockStatementAST(Type type, std::unique_ptr<TypeCheckedBlockAST> block);
+
+            friend class irgen::IRGen;
 
         public:
             TypeCheckedBlockStatementAST() = delete;
@@ -72,6 +76,8 @@ namespace juice {
 
             TypeCheckedExpressionStatementAST(Type type, std::unique_ptr<TypeCheckedExpressionAST> expression);
 
+            friend class irgen::IRGen;
+
         public:
             TypeCheckedExpressionStatementAST() = delete;
 
@@ -97,6 +103,8 @@ namespace juice {
             std::unique_ptr<TypeCheckedIfExpressionAST> _ifExpression;
 
             TypeCheckedIfStatementAST(Type type, std::unique_ptr<TypeCheckedIfExpressionAST> ifExpression);
+
+            friend class irgen::IRGen;
 
         public:
             TypeCheckedIfStatementAST() = delete;
@@ -125,6 +133,8 @@ namespace juice {
 
             TypeCheckedWhileStatementAST(Type type, std::unique_ptr<TypeCheckedExpressionAST> condition,
                                          std::unique_ptr<TypeCheckedControlFlowBodyAST> body);
+
+            friend class irgen::IRGen;
 
         public:
             TypeCheckedWhileStatementAST() = delete;

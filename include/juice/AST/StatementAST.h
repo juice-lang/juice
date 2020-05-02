@@ -70,8 +70,6 @@ namespace juice {
 
             void diagnoseInto(diag::DiagnosticEngine & diagnostics, unsigned int level) const override;
 
-            llvm::Expected<llvm::Value *> codegen(Codegen & state) const override;
-
 
             static bool classof(const StatementAST * ast) {
                 return ast->getKind() == Kind::block;
@@ -95,8 +93,6 @@ namespace juice {
             }
 
             void diagnoseInto(diag::DiagnosticEngine & diagnostics, unsigned int level) const override;
-
-            llvm::Expected<llvm::Value *> codegen(Codegen & state) const override;
 
 
             static bool classof(const StatementAST * ast) {
@@ -122,8 +118,6 @@ namespace juice {
 
             void diagnoseInto(diag::DiagnosticEngine & diagnostics, unsigned int level) const override;
 
-            llvm::Expected<llvm::Value *> codegen(Codegen & state) const override;
-
 
             static bool classof(const StatementAST * ast) {
                 return ast->getKind() == Kind::_if;
@@ -148,8 +142,6 @@ namespace juice {
             }
 
             void diagnoseInto(diag::DiagnosticEngine & diagnostics, unsigned int level) const override;
-
-            llvm::Expected<llvm::Value *> codegen(Codegen & state) const override;
 
 
             static bool classof(const StatementAST * ast) {

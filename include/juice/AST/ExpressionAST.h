@@ -19,9 +19,6 @@
 #include "AST.h"
 #include "juice/Parser/LexerToken.h"
 #include "juice/Diagnostics/Diagnostics.h"
-#include "llvm/IR/IRBuilder.h"
-#include "llvm/IR/LLVMContext.h"
-#include "llvm/IR/Value.h"
 
 namespace juice {
     namespace sema {
@@ -76,8 +73,6 @@ namespace juice {
 
             void diagnoseInto(diag::DiagnosticEngine & diagnostics, unsigned int level) const override;
 
-            llvm::Expected<llvm::Value *> codegen(Codegen & state) const override;
-
 
             static bool classof(const ExpressionAST * ast) {
                 return ast->getKind() == Kind::binaryOperator;
@@ -95,8 +90,6 @@ namespace juice {
             NumberExpressionAST(std::unique_ptr<parser::LexerToken> token, double value);
 
             void diagnoseInto(diag::DiagnosticEngine & diagnostics, unsigned int level) const override;
-
-            llvm::Expected<llvm::Value *> codegen(Codegen & state) const override;
 
 
             static bool classof(const ExpressionAST * ast) {
@@ -116,8 +109,6 @@ namespace juice {
 
             void diagnoseInto(diag::DiagnosticEngine &diagnostics, unsigned int level) const override;
 
-            llvm::Expected<llvm::Value *> codegen(Codegen &state) const override;
-
 
             static bool classof(const ExpressionAST * ast) {
                 return ast->getKind() == Kind::variable;
@@ -135,8 +126,6 @@ namespace juice {
             GroupingExpressionAST(std::unique_ptr<parser::LexerToken> token, std::unique_ptr<ExpressionAST> expression);
 
             void diagnoseInto(diag::DiagnosticEngine & diagnostics, unsigned int level) const override;
-
-            llvm::Expected<llvm::Value *> codegen(Codegen & state) const override;
 
 
             static bool classof(const ExpressionAST * ast) {
@@ -171,8 +160,6 @@ namespace juice {
             }
 
             void diagnoseInto(diag::DiagnosticEngine & diagnostics, unsigned int level) const override;
-
-            llvm::Expected<llvm::Value *> codegen(Codegen & state) const override;
 
 
             static bool classof(const ExpressionAST * ast) {

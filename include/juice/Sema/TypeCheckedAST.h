@@ -1,4 +1,3 @@
-#include <stddef.h>
 // include/juice/Sema/TypeCheckedAST.h - basic type-checked AST nodes
 //
 // This source file is part of the juice open source project
@@ -26,11 +25,17 @@
 #include "juice/Parser/LexerToken.h"
 
 namespace juice {
+    namespace irgen {
+        class IRGen;
+    }
+
     namespace sema {
         class TypeCheckedStatementAST;
         class TypeCheckedExpressionAST;
 
         class TypeCheckedAST {
+            friend class irgen::IRGen;
+
         protected:
             static basic::Color getColor(unsigned int level) {
                 return basic::Color::rainbow[level % 6];
@@ -82,6 +87,8 @@ namespace juice {
         };
 
         class TypeCheckedContainerAST: public TypeCheckedAST {
+            friend class irgen::IRGen;
+
         public:
             typedef std::vector<std::unique_ptr<TypeCheckedStatementAST>> StatementVector;
 
@@ -106,6 +113,8 @@ namespace juice {
         class TypeCheckedModuleAST: public TypeCheckedContainerAST {
             TypeCheckedModuleAST(Type type, StatementVector && statements);
 
+            friend class irgen::IRGen;
+
         public:
             TypeCheckedModuleAST() = delete;
 
@@ -128,6 +137,8 @@ namespace juice {
 
             TypeCheckedBlockAST(Type type, StatementVector && statements,
                                 std::unique_ptr<parser::LexerToken> start);
+
+            friend class irgen::IRGen;
 
         public:
             TypeCheckedBlockAST() = delete;
@@ -169,6 +180,8 @@ namespace juice {
                                           std::unique_ptr<TypeCheckedBlockAST> block);
             TypeCheckedControlFlowBodyAST(Type type, std::unique_ptr<parser::LexerToken> keyword,
                                           std::unique_ptr<TypeCheckedExpressionAST> expression);
+
+            friend class irgen::IRGen;
 
         public:
             TypeCheckedControlFlowBodyAST() = delete;

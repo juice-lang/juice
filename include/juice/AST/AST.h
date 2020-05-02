@@ -19,10 +19,6 @@
 #include "juice/Basic/SourceLocation.h"
 #include "juice/Diagnostics/Diagnostics.h"
 #include "juice/Parser/LexerToken.h"
-#include "llvm/IR/IRBuilder.h"
-#include "llvm/IR/LLVMContext.h"
-#include "llvm/IR/Value.h"
-#include "llvm/Support/Error.h"
 
 namespace juice {
     namespace sema {
@@ -49,8 +45,6 @@ namespace juice {
             virtual basic::SourceLocation getLocation() const = 0;
 
             virtual void diagnoseInto(diag::DiagnosticEngine & diagnostics, unsigned int level) const = 0;
-
-            virtual llvm::Expected<llvm::Value *> codegen(Codegen & state) const = 0;
         };
 
 
@@ -75,8 +69,6 @@ namespace juice {
             ~ModuleAST() override = default;
 
             void diagnoseInto(diag::DiagnosticEngine & diagnostics, unsigned int level) const override;
-
-            llvm::Expected<llvm::Value *> codegen(Codegen & state) const override;
         };
 
         class BlockAST: public ContainerAST {
@@ -96,8 +88,6 @@ namespace juice {
             }
 
             void diagnoseInto(diag::DiagnosticEngine & diagnostics, unsigned int level) const override;
-
-            llvm::Expected<llvm::Value *> codegen(Codegen & state) const override;
         };
 
 
@@ -130,8 +120,6 @@ namespace juice {
             }
 
             void diagnoseInto(diag::DiagnosticEngine & diagnostics, unsigned int level) const override;
-
-            llvm::Expected<llvm::Value *> codegen(Codegen & state) const override;
 
 
             const std::unique_ptr<parser::LexerToken> & getKeyword() const { return _keyword; }

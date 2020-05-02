@@ -12,7 +12,6 @@
 
 #include <utility>
 
-#include "juice/AST/Codegen.h"
 #include "juice/AST/StatementAST.h"
 
 namespace juice {
@@ -28,22 +27,6 @@ namespace juice {
 
         void ModuleAST::diagnoseInto(diag::DiagnosticEngine & diagnostics, unsigned int level) const {
             for (const auto & statement: _statements) { statement->diagnoseInto(diagnostics, level); }
-        }
-
-        llvm::Expected<llvm::Value *> ModuleAST::codegen(Codegen & state) const {
-            switch (_statements.size()) {
-                case 0:
-                    return nullptr;
-                case 1:
-                    return _statements.front()->codegen(state);
-                default: {
-                    auto last = _statements.end() - 1;
-                    for (auto i = _statements.begin(); i < last; ++i) {
-                        if (auto error = (*i)->codegen(state).takeError()) return std::move(error);
-                    }
-                    return (*last)->codegen(state);
-                }
-            }
         }
 
         BlockAST::BlockAST(std::unique_ptr<parser::LexerToken> start): ContainerAST(), _start(std::move(start)) {}
@@ -64,41 +47,6 @@ namespace juice {
 
                 diagnostics.diagnose(location, diag::DiagnosticID::block_ast_2, getColor(level), level);
             }
-        }
-
-        llvm::Expected<llvm::Value *> BlockAST::codegen(Codegen & state) const {
-            state.newScope();
-
-            llvm::Value * returnValue;
-
-            switch (_statements.size()) {
-                case 0:
-                    returnValue = nullptr;
-                    break;
-                case 1: {
-                    auto value = _statements.front()->codegen(state);
-                    if (auto error = value.takeError()) return std::move(error);
-
-                    returnValue = *value;
-                    break;
-                }
-                default: {
-                    auto last = _statements.end() - 1;
-                    for (auto i = _statements.begin(); i < last; ++i) {
-                        if (auto error = (*i)->codegen(state).takeError()) return std::move(error);
-                    }
-
-                    auto value = (*last)->codegen(state);
-                    if (auto error = value.takeError()) return std::move(error);
-
-                    returnValue = *value;
-                    break;
-                }
-            }
-
-            state.endScope();
-
-            return returnValue;
         }
 
         ControlFlowBodyAST::ControlFlowBodyAST(std::unique_ptr<parser::LexerToken> keyword, std::unique_ptr<BlockAST> block):
@@ -136,13 +84,6 @@ namespace juice {
             }
 
             diagnostics.diagnose(location, diag::DiagnosticID::ast_end, getColor(level), level);
-        }
-
-        llvm::Expected<llvm::Value *> ControlFlowBodyAST::codegen(Codegen & state) const {
-            switch (_kind) {
-                case Kind::block: return _block->codegen(state);
-                case Kind::expression: return _expression->codegen(state);
-            }
         }
     }
 }
