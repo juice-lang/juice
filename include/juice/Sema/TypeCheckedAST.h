@@ -63,10 +63,10 @@ namespace juice {
 
         private:
             const Kind _kind;
-            const Type * _type;
+            Type _type;
 
         protected:
-            TypeCheckedAST(Kind kind, const Type * type): _kind(kind), _type(type) {}
+            TypeCheckedAST(Kind kind, Type type): _kind(kind), _type(type) {}
 
         public:
             TypeCheckedAST() = delete;
@@ -78,7 +78,7 @@ namespace juice {
             virtual void diagnoseInto(diag::DiagnosticEngine & diagnostics, unsigned int level) const = 0;
 
             Kind getKind() const { return _kind; }
-            const Type * getType() const { return _type; }
+            Type getType() const { return _type; }
         };
 
         class TypeCheckedContainerAST: public TypeCheckedAST {
@@ -88,7 +88,7 @@ namespace juice {
         protected:
             StatementVector _statements;
 
-            TypeCheckedContainerAST(Kind kind, const Type * type, StatementVector && statements);
+            TypeCheckedContainerAST(Kind kind, Type type, StatementVector && statements);
 
         public:
             TypeCheckedContainerAST() = delete;
@@ -104,7 +104,7 @@ namespace juice {
         };
 
         class TypeCheckedModuleAST: public TypeCheckedContainerAST {
-            TypeCheckedModuleAST(const Type * type, StatementVector && statements);
+            TypeCheckedModuleAST(Type type, StatementVector && statements);
 
         public:
             TypeCheckedModuleAST() = delete;
@@ -126,7 +126,7 @@ namespace juice {
         class TypeCheckedBlockAST: public TypeCheckedContainerAST {
             std::unique_ptr<parser::LexerToken> _start;
 
-            TypeCheckedBlockAST(const Type * type, StatementVector && statements,
+            TypeCheckedBlockAST(Type type, StatementVector && statements,
                                 std::unique_ptr<parser::LexerToken> start);
 
         public:
@@ -165,9 +165,9 @@ namespace juice {
                 std::unique_ptr<TypeCheckedExpressionAST> _expression;
             };
 
-            TypeCheckedControlFlowBodyAST(const Type * type, std::unique_ptr<parser::LexerToken> keyword,
+            TypeCheckedControlFlowBodyAST(Type type, std::unique_ptr<parser::LexerToken> keyword,
                                           std::unique_ptr<TypeCheckedBlockAST> block);
-            TypeCheckedControlFlowBodyAST(const Type * type, std::unique_ptr<parser::LexerToken> keyword,
+            TypeCheckedControlFlowBodyAST(Type type, std::unique_ptr<parser::LexerToken> keyword,
                                           std::unique_ptr<TypeCheckedExpressionAST> expression);
 
         public:

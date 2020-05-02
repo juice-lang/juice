@@ -77,14 +77,13 @@ namespace juice {
         };
 
         class ExpectedTypeHint: public TypeHint {
-            const Type * _type;
+            Type _type;
 
         public:
             template <typename... T, std::enable_if_t<basic::all_same<Flags, T...>::value> * = nullptr>
-            explicit ExpectedTypeHint(const Type * type, T... flags):
-                TypeHint(Kind::expected, flags...), _type(type) {}
+            explicit ExpectedTypeHint(Type type, T... flags): TypeHint(Kind::expected, flags...), _type(type) {}
 
-            const Type * getType() const { return _type; }
+            Type getType() const { return _type; }
 
 
             static bool classof(const TypeHint * hint) {

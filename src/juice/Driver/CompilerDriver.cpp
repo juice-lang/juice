@@ -51,7 +51,7 @@ namespace juice {
                     llvm::outs() << basic::Color::bold << "\n\n=== TypeCheckedAST ===\n" << basic::Color::reset;
                     typeCheckResult.ast->diagnoseInto(*diagnostics, 0);
 
-                    llvm::outs() << "\n\nDeclarationVectorSize: " << typeCheckResult.declarationVectorSize << "\n";
+                    llvm::outs() << "\n\nAllocaVectorSize: " << typeCheckResult.allocaVectorSize << "\n";
 
 //                    ast::Codegen codegen(std::move(ast), diagnostics);
 //

@@ -103,7 +103,7 @@ namespace juice {
                 llvm::StringRef _string;
                 const parser::LexerToken * _lexerToken;
                 const basic::Color _color;
-                const sema::Type * _type;
+                sema::Type _type;
             };
 
         public:
@@ -115,7 +115,7 @@ namespace juice {
             explicit DiagnosticArg(llvm::StringRef string): _kind(Kind::string), _string(string) {}
             explicit DiagnosticArg(const parser::LexerToken * lexerToken): _kind(Kind::lexerToken), _lexerToken(lexerToken) {}
             explicit DiagnosticArg(const basic::Color color): _kind(Kind::color), _color(color) {}
-            explicit DiagnosticArg(const sema::Type * type): _kind(Kind::type), _type(type) {}
+            explicit DiagnosticArg(sema::Type type): _kind(Kind::type), _type(type) {}
 
             static void getAllInto(std::vector<DiagnosticArg> & vector) {}
 
@@ -138,7 +138,7 @@ namespace juice {
             llvm::StringRef getAsString() const { return _string; }
             const parser::LexerToken * getAsLexerToken() const { return _lexerToken; }
             basic::Color getAsColor() const { return _color; }
-            const sema::Type * getAsType() const { return _type; }
+            sema::Type getAsType() const { return _type; }
         };
 
         class DiagnosticEngine {

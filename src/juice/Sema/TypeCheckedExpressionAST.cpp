@@ -22,7 +22,7 @@
 
 namespace juice {
     namespace sema {
-        TypeCheckedExpressionAST::TypeCheckedExpressionAST(Kind kind, const Type * type,
+        TypeCheckedExpressionAST::TypeCheckedExpressionAST(Kind kind, Type type,
                                                            std::unique_ptr<parser::LexerToken> token):
             TypeCheckedAST(kind, type), _token(std::move(token)) {}
 
@@ -63,7 +63,7 @@ namespace juice {
         }
 
         TypeCheckedBinaryOperatorExpressionAST
-            ::TypeCheckedBinaryOperatorExpressionAST(const Type * type, std::unique_ptr<parser::LexerToken> token,
+            ::TypeCheckedBinaryOperatorExpressionAST(Type type, std::unique_ptr<parser::LexerToken> token,
                                                      std::unique_ptr<TypeCheckedExpressionAST> left,
                                                      std::unique_ptr<TypeCheckedExpressionAST> right):
             TypeCheckedExpressionAST(Kind::binaryOperatorExpression, type, std::move(token)), _left(std::move(left)),
@@ -126,21 +126,14 @@ namespace juice {
                                                ExpectedTypeHint(BuiltinFloatingPointType::getDouble()), state,
                                                diagnostics);
 
-                    const Type * type = BuiltinFloatingPointType::getDouble();
+                    Type type = BuiltinFloatingPointType::getDouble();
 
-                    switch (hint.getKind()) {
-                        case TypeHint::Kind::none:
-                        case TypeHint::Kind::unknown: break;
-                        case TypeHint::Kind::expected: {
-                            auto expectedType = llvm::cast<ExpectedTypeHint>(hint).getType();
-                            if (!llvm::isa<BuiltinFloatingPointType>(expectedType)
-                                || llvm::cast<BuiltinFloatingPointType>(expectedType)->getFPKind()
-                                != BuiltinFloatingPointType::FPKind::ieee64) {
-                                diagnostics.diagnose(location, diag::DiagnosticID::expression_ast_expected_type,
-                                                     expectedType, type);
-                            }
-                            break;
-                        }
+                    if (llvm::isa<ExpectedTypeHint>(hint)) {
+                        auto expectedType = llvm::cast<ExpectedTypeHint>(hint).getType();
+
+                        if (expectedType != type) diagnostics.diagnose(location,
+                                                                       diag::DiagnosticID::expression_ast_expected_type,
+                                                                       expectedType, type);
                     }
 
                     return std::unique_ptr<TypeCheckedBinaryOperatorExpressionAST>(
@@ -157,21 +150,14 @@ namespace juice {
                         ::createByTypeChecking(std::move(ast->_right),
                                                ExpectedTypeHint(BuiltinIntegerType::getBool()), state, diagnostics);
 
-                    const Type * type = BuiltinIntegerType::getBool();
+                    Type type = BuiltinIntegerType::getBool();
 
-                    switch (hint.getKind()) {
-                        case TypeHint::Kind::none:
-                        case TypeHint::Kind::unknown: break;
-                        case TypeHint::Kind::expected: {
-                            auto expectedType = llvm::cast<ExpectedTypeHint>(hint).getType();
-                            if (!llvm::isa<BuiltinIntegerType>(expectedType)
-                                || llvm::cast<BuiltinIntegerType>(expectedType)->getWidth()
-                                    != BuiltinIntegerType::Width::_1) {
-                                diagnostics.diagnose(location, diag::DiagnosticID::expression_ast_expected_type,
-                                                     expectedType, type);
-                            }
-                            break;
-                        }
+                    if (llvm::isa<ExpectedTypeHint>(hint)) {
+                        auto expectedType = llvm::cast<ExpectedTypeHint>(hint).getType();
+
+                        if (expectedType != type) diagnostics.diagnose(location,
+                                                                       diag::DiagnosticID::expression_ast_expected_type,
+                                                                       expectedType, type);
                     }
 
                     return std::unique_ptr<TypeCheckedBinaryOperatorExpressionAST>(
@@ -192,21 +178,14 @@ namespace juice {
                                                ExpectedTypeHint(BuiltinFloatingPointType::getDouble()), state,
                                                diagnostics);
 
-                    const Type * type = BuiltinFloatingPointType::getDouble();
+                    Type type = BuiltinFloatingPointType::getDouble();
 
-                    switch (hint.getKind()) {
-                        case TypeHint::Kind::none:
-                        case TypeHint::Kind::unknown: break;
-                        case TypeHint::Kind::expected: {
-                            auto expectedType = llvm::cast<ExpectedTypeHint>(hint).getType();
-                            if (!llvm::isa<BuiltinFloatingPointType>(expectedType)
-                                || llvm::cast<BuiltinFloatingPointType>(expectedType)->getFPKind()
-                                    != BuiltinFloatingPointType::FPKind::ieee64) {
-                                diagnostics.diagnose(location, diag::DiagnosticID::expression_ast_expected_type,
-                                                     expectedType, type);
-                            }
-                            break;
-                        }
+                    if (llvm::isa<ExpectedTypeHint>(hint)) {
+                        auto expectedType = llvm::cast<ExpectedTypeHint>(hint).getType();
+
+                        if (expectedType != type) diagnostics.diagnose(location,
+                                                                       diag::DiagnosticID::expression_ast_expected_type,
+                                                                       expectedType, type);
                     }
 
                     return std::unique_ptr<TypeCheckedBinaryOperatorExpressionAST>(
@@ -218,56 +197,28 @@ namespace juice {
                     auto left = TypeCheckedExpressionAST
                         ::createByTypeChecking(std::move(ast->_left), UnknownTypeHint(), state, diagnostics);
 
-                    const Type * leftType = left->getType();
+                    Type leftType = left->getType();
 
-                    switch (leftType->getKind()) {
-                        case Type::Kind::builtinInteger: {
-                            if (llvm::cast<BuiltinIntegerType>(leftType)->getWidth() != BuiltinIntegerType::Width::_1) {
-                                diagnostics.diagnose(left->getLocation(),
-                                                     diag::DiagnosticID::expression_ast_expected_either,
-                                                     BuiltinFloatingPointType::getDouble(),
-                                                     new BuiltinIntegerType(BuiltinIntegerType::Width::_1), leftType);
-                            }
-                            break;
-                        }
-                        case Type::Kind::builtinFloatingPoint: {
-                            if (llvm::cast<BuiltinFloatingPointType>(leftType)->getFPKind()
-                                != BuiltinFloatingPointType::FPKind::ieee64) {
-                                diagnostics.diagnose(left->getLocation(),
-                                                     diag::DiagnosticID::expression_ast_expected_either,
-                                                     BuiltinFloatingPointType::getDouble(),
-                                                     new BuiltinIntegerType(BuiltinIntegerType::Width::_1), leftType);
-                            }
-                            break;
-                        }
-                        default: {
-                            diagnostics.diagnose(left->getLocation(),
-                                                 diag::DiagnosticID::expression_ast_expected_either,
-                                                 BuiltinFloatingPointType::getDouble(),
-                                                 new BuiltinIntegerType(BuiltinIntegerType::Width::_1), leftType);
-                            break;
-                        }
+                    Type _double = BuiltinFloatingPointType::getDouble();
+                    Type _bool = BuiltinIntegerType::getBool();
+
+                    if (leftType != _double && leftType != _bool) {
+                        diagnostics.diagnose(left->getLocation(), diag::DiagnosticID::expression_ast_expected_either,
+                                             _double, _bool, leftType);
                     }
 
                     auto right = TypeCheckedExpressionAST
                         ::createByTypeChecking(std::move(ast->_right), ExpectedTypeHint(leftType), state, diagnostics);
 
 
-                    const Type * type = BuiltinIntegerType::getBool();
+                    Type type = BuiltinIntegerType::getBool();
 
-                    switch (hint.getKind()) {
-                        case TypeHint::Kind::none:
-                        case TypeHint::Kind::unknown: break;
-                        case TypeHint::Kind::expected: {
-                            auto expectedType = llvm::cast<ExpectedTypeHint>(hint).getType();
-                            if (!llvm::isa<BuiltinIntegerType>(expectedType)
-                                || llvm::cast<BuiltinIntegerType>(expectedType)->getWidth()
-                                    != BuiltinIntegerType::Width::_1) {
-                                diagnostics.diagnose(location, diag::DiagnosticID::expression_ast_expected_type,
-                                                     expectedType, type);
-                            }
-                            break;
-                        }
+                    if (llvm::isa<ExpectedTypeHint>(hint)) {
+                        auto expectedType = llvm::cast<ExpectedTypeHint>(hint).getType();
+
+                        if (expectedType != type) diagnostics.diagnose(location,
+                                                                       diag::DiagnosticID::expression_ast_expected_type,
+                                                                       expectedType, type);
                     }
 
                     return std::unique_ptr<TypeCheckedBinaryOperatorExpressionAST>(
@@ -288,21 +239,14 @@ namespace juice {
                                                ExpectedTypeHint(BuiltinFloatingPointType::getDouble()), state,
                                                diagnostics);
 
-                    const Type * type = BuiltinIntegerType::getBool();
+                    Type type = BuiltinIntegerType::getBool();
 
-                    switch (hint.getKind()) {
-                        case TypeHint::Kind::none:
-                        case TypeHint::Kind::unknown: break;
-                        case TypeHint::Kind::expected: {
-                            auto expectedType = llvm::cast<ExpectedTypeHint>(hint).getType();
-                            if (!llvm::isa<BuiltinIntegerType>(expectedType)
-                                || llvm::cast<BuiltinIntegerType>(expectedType)->getWidth()
-                                    != BuiltinIntegerType::Width::_1) {
-                                diagnostics.diagnose(location, diag::DiagnosticID::expression_ast_expected_type,
-                                                     expectedType, type);
-                            }
-                            break;
-                        }
+                    if (llvm::isa<ExpectedTypeHint>(hint)) {
+                        auto expectedType = llvm::cast<ExpectedTypeHint>(hint).getType();
+
+                        if (expectedType != type) diagnostics.diagnose(location,
+                                                                       diag::DiagnosticID::expression_ast_expected_type,
+                                                                       expectedType, type);
                     }
 
                     return std::unique_ptr<TypeCheckedBinaryOperatorExpressionAST>(
@@ -314,7 +258,7 @@ namespace juice {
             }
         }
 
-        TypeCheckedNumberExpressionAST::TypeCheckedNumberExpressionAST(const Type * type,
+        TypeCheckedNumberExpressionAST::TypeCheckedNumberExpressionAST(Type type,
                                                                        std::unique_ptr<parser::LexerToken> token,
                                                                        double value):
             TypeCheckedExpressionAST(Kind::numberExpression, type, std::move(token)), _value(value) {}
@@ -350,26 +294,19 @@ namespace juice {
                 }
             }
 
-            switch (hint.getKind()) {
-                case TypeHint::Kind::none:
-                case TypeHint::Kind::unknown: break;
-                case TypeHint::Kind::expected: {
-                    auto expectedType = llvm::cast<ExpectedTypeHint>(hint).getType();
-                    if (!llvm::isa<BuiltinFloatingPointType>(expectedType)
-                        || llvm::cast<BuiltinFloatingPointType>(expectedType)->getFPKind()
-                            != BuiltinFloatingPointType::FPKind::ieee64) {
-                        diagnostics.diagnose(location, diag::DiagnosticID::expression_ast_expected_type,
-                                             expectedType, type);
-                    }
-                    break;
-                }
+            if (llvm::isa<ExpectedTypeHint>(hint)) {
+                auto expectedType = llvm::cast<ExpectedTypeHint>(hint).getType();
+
+                if (expectedType != type) diagnostics.diagnose(location,
+                                                               diag::DiagnosticID::expression_ast_expected_type,
+                                                               expectedType, type);
             }
 
             return std::unique_ptr<TypeCheckedNumberExpressionAST>(
                 new TypeCheckedNumberExpressionAST(type, std::move(ast->_token), ast->_value));
         }
 
-        TypeCheckedVariableExpressionAST::TypeCheckedVariableExpressionAST(const Type * type,
+        TypeCheckedVariableExpressionAST::TypeCheckedVariableExpressionAST(Type type,
                                                                            std::unique_ptr<parser::LexerToken> token,
                                                                            size_t index):
             TypeCheckedExpressionAST(Kind::variableExpression, type, std::move(token)), _index(index) {}
@@ -387,30 +324,23 @@ namespace juice {
             basic::SourceLocation location(ast->getLocation());
             auto token = std::move(ast->_token);
 
-            auto indexAndType = state.getDeclaration(token->string);
+            auto optionalDeclaration = state.getDeclaration(token->string);
 
-            if (!indexAndType) {
+            if (!optionalDeclaration) {
                 diagnostics.diagnose(location, diag::DiagnosticID::expression_ast_unresolved_identifier, token->string);
             }
 
-            size_t index;
-            const Type * type;
+            auto declaration = optionalDeclaration.getValueOr(std::make_pair(0, BuiltinFloatingPointType::getDouble()));
 
-            std::tie(index, type) = indexAndType.getValueOr(std::make_pair(0, BuiltinFloatingPointType::getDouble()));
+            size_t index = std::get<0>(declaration);
+            Type type = std::get<1>(declaration).addFlag(Type::Flags::lValue);
 
-            switch (hint.getKind()) {
-                case TypeHint::Kind::none:
-                case TypeHint::Kind::unknown: break;
-                case TypeHint::Kind::expected: {
-                    auto expectedType = llvm::cast<ExpectedTypeHint>(hint).getType();
-                    if (!llvm::isa<BuiltinFloatingPointType>(expectedType)
-                        || llvm::cast<BuiltinFloatingPointType>(expectedType)->getFPKind()
-                            != BuiltinFloatingPointType::FPKind::ieee64) {
-                        diagnostics.diagnose(location, diag::DiagnosticID::expression_ast_expected_type, expectedType,
-                                             type);
-                    }
-                    break;
-                }
+            if (llvm::isa<ExpectedTypeHint>(hint)) {
+                auto expectedType = llvm::cast<ExpectedTypeHint>(hint).getType();
+
+                if (expectedType != type) diagnostics.diagnose(location,
+                                                               diag::DiagnosticID::expression_ast_expected_type,
+                                                               expectedType, type);
             }
 
             return std::unique_ptr<TypeCheckedVariableExpressionAST>(
@@ -418,7 +348,7 @@ namespace juice {
         }
 
         TypeCheckedGroupingExpressionAST
-            ::TypeCheckedGroupingExpressionAST(const Type * type, std::unique_ptr<parser::LexerToken> token,
+            ::TypeCheckedGroupingExpressionAST(Type type, std::unique_ptr<parser::LexerToken> token,
                                                std::unique_ptr<TypeCheckedExpressionAST> expression):
             TypeCheckedExpressionAST(Kind::groupingExpression, type, std::move(token)),
             _expression(std::move(expression)) {}
@@ -442,7 +372,7 @@ namespace juice {
         }
 
         TypeCheckedIfExpressionAST
-            ::TypeCheckedIfExpressionAST(const Type * type, std::unique_ptr<TypeCheckedExpressionAST> ifCondition,
+            ::TypeCheckedIfExpressionAST(Type type, std::unique_ptr<TypeCheckedExpressionAST> ifCondition,
                                          std::unique_ptr<TypeCheckedControlFlowBodyAST> ifBody,
                                          ElifVector && elifConditionsAndBodies,
                                          std::unique_ptr<TypeCheckedControlFlowBodyAST> elseBody, bool isStatement):
@@ -515,15 +445,15 @@ namespace juice {
             auto ifBody = TypeCheckedControlFlowBodyAST::createByTypeChecking(std::move(ast->_ifBody), ifHint,
                                                                               state, diagnostics);
 
-            auto type = ast->_isStatement ? new NothingType : ifBody->getType();
+            auto type = ast->_isStatement ? NothingType::get() : ifBody->getType();
 
             ElifVector elifConditionsAndBodies;
 
             std::transform(std::make_move_iterator(ast->_elifConditionsAndBodies.begin()),
                            std::make_move_iterator(ast->_elifConditionsAndBodies.end()),
                            std::back_inserter(elifConditionsAndBodies),
-                           [&ifHint, &state, &diagnostics](std::pair<std::unique_ptr<ast::ExpressionAST>,
-                                                           std::unique_ptr<ast::ControlFlowBodyAST>> conditionAndBody) {
+                           [&](std::pair<std::unique_ptr<ast::ExpressionAST>,
+                                         std::unique_ptr<ast::ControlFlowBodyAST>> conditionAndBody) {
                 std::unique_ptr<ast::ExpressionAST> condition;
                 std::unique_ptr<ast::ControlFlowBodyAST> body;
                 std::tie(condition, body) = std::move(conditionAndBody);

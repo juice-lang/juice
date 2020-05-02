@@ -27,7 +27,7 @@ namespace juice {
         protected:
             std::unique_ptr<parser::LexerToken> _token;
 
-            TypeCheckedExpressionAST(Kind kind, const Type * type, std::unique_ptr<parser::LexerToken> token);
+            TypeCheckedExpressionAST(Kind kind, Type type, std::unique_ptr<parser::LexerToken> token);
 
         public:
             TypeCheckedExpressionAST() = delete;
@@ -52,7 +52,7 @@ namespace juice {
         class TypeCheckedBinaryOperatorExpressionAST: public TypeCheckedExpressionAST {
             std::unique_ptr<TypeCheckedExpressionAST> _left, _right;
 
-            TypeCheckedBinaryOperatorExpressionAST(const Type * type, std::unique_ptr<parser::LexerToken> token,
+            TypeCheckedBinaryOperatorExpressionAST(Type type, std::unique_ptr<parser::LexerToken> token,
                                                    std::unique_ptr<TypeCheckedExpressionAST> left,
                                                    std::unique_ptr<TypeCheckedExpressionAST> right);
 
@@ -74,7 +74,7 @@ namespace juice {
         class TypeCheckedNumberExpressionAST: public TypeCheckedExpressionAST {
             double _value;
 
-            TypeCheckedNumberExpressionAST(const Type * type, std::unique_ptr<parser::LexerToken> token, double value);
+            TypeCheckedNumberExpressionAST(Type type, std::unique_ptr<parser::LexerToken> token, double value);
 
         public:
             TypeCheckedNumberExpressionAST() = delete;
@@ -94,7 +94,7 @@ namespace juice {
         class TypeCheckedVariableExpressionAST: public TypeCheckedExpressionAST {
             size_t _index;
 
-            TypeCheckedVariableExpressionAST(const Type * type, std::unique_ptr<parser::LexerToken> token,
+            TypeCheckedVariableExpressionAST(Type type, std::unique_ptr<parser::LexerToken> token,
                                              size_t index);
 
         public:
@@ -117,7 +117,7 @@ namespace juice {
         class TypeCheckedGroupingExpressionAST: public TypeCheckedExpressionAST {
             std::unique_ptr<TypeCheckedExpressionAST> _expression;
 
-            TypeCheckedGroupingExpressionAST(const Type * type, std::unique_ptr<parser::LexerToken> token,
+            TypeCheckedGroupingExpressionAST(Type type, std::unique_ptr<parser::LexerToken> token,
                                              std::unique_ptr<TypeCheckedExpressionAST> expression);
 
         public:
@@ -147,7 +147,7 @@ namespace juice {
             std::unique_ptr<TypeCheckedControlFlowBodyAST> _elseBody;
             bool _isStatement;
 
-            TypeCheckedIfExpressionAST(const Type * type, std::unique_ptr<TypeCheckedExpressionAST> ifCondition,
+            TypeCheckedIfExpressionAST(Type type, std::unique_ptr<TypeCheckedExpressionAST> ifCondition,
                                        std::unique_ptr<TypeCheckedControlFlowBodyAST> ifBody,
                                        ElifVector && elifConditionsAndBodies,
                                        std::unique_ptr<TypeCheckedControlFlowBodyAST> elseBody, bool isStatement);

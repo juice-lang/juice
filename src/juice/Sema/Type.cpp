@@ -17,21 +17,21 @@
 
 namespace juice {
     namespace sema {
-        llvm::raw_ostream & operator<<(llvm::raw_ostream & os, const Type * type) {
-            switch (type->getKind()) {
-                case Type::Kind::_void:
+        llvm::raw_ostream & operator<<(llvm::raw_ostream & os, Type type) {
+            switch (type.getPointer()->getKind()) {
+                case TypeBase::Kind::_void:
                     os << "()";
                     break;
-                case Type::Kind::nothing:
+                case TypeBase::Kind::nothing:
                     os << "--";
                     break;
-                case Type::Kind::builtinInteger: {
-                    auto integerType = llvm::cast<BuiltinIntegerType>(type);
+                case TypeBase::Kind::builtinInteger: {
+                    auto integerType = llvm::cast<BuiltinIntegerType>(type.getPointer());
                     os << "Builtin::Int" << integerType->getBitWidth();
                     break;
                 }
-                case Type::Kind::builtinFloatingPoint: {
-                    auto floatingPointType = llvm::cast<BuiltinFloatingPointType>(type);
+                case TypeBase::Kind::builtinFloatingPoint: {
+                    auto floatingPointType = llvm::cast<BuiltinFloatingPointType>(type.getPointer());
                     os << "Builtin::";
 
                     switch (floatingPointType->getFPKind()) {
@@ -58,6 +58,18 @@ namespace juice {
             }
 
             return os;
+        }
+
+        bool Type::operator==(Type other) const {
+            switch (this->_pointer->getKind()) {
+                case TypeBase::Kind::_void: return llvm::isa<VoidType>(other._pointer);
+                case TypeBase::Kind::nothing: return llvm::isa<NothingType>(other._pointer);
+                case TypeBase::Kind::builtin:
+                case TypeBase::Kind::builtinInteger:
+                case TypeBase::Kind::builtinFloatingPoint:
+                case TypeBase::Kind::builtin_last:
+                    return llvm::cast<BuiltinType>(this->_pointer)->equals(other._pointer);
+            }
         }
     }
 }

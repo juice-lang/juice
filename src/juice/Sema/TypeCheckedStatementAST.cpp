@@ -59,7 +59,7 @@ namespace juice {
             }
         }
 
-        TypeCheckedBlockStatementAST::TypeCheckedBlockStatementAST(const Type * type,
+        TypeCheckedBlockStatementAST::TypeCheckedBlockStatementAST(Type type,
                                                                    std::unique_ptr<TypeCheckedBlockAST> block):
             TypeCheckedStatementAST(Kind::blockStatement, type), _block(std::move(block)) {}
 
@@ -81,7 +81,7 @@ namespace juice {
         }
 
         TypeCheckedExpressionStatementAST
-            ::TypeCheckedExpressionStatementAST(const Type * type,
+            ::TypeCheckedExpressionStatementAST(Type type,
                                                 std::unique_ptr<TypeCheckedExpressionAST> expression):
             TypeCheckedStatementAST(Kind::expressionStatement, type), _expression(std::move(expression)) {}
 
@@ -103,7 +103,7 @@ namespace juice {
                 new TypeCheckedExpressionStatementAST(type, std::move(expression)));
         }
 
-        TypeCheckedIfStatementAST::TypeCheckedIfStatementAST(const Type * type,
+        TypeCheckedIfStatementAST::TypeCheckedIfStatementAST(Type type,
                                                              std::unique_ptr<TypeCheckedIfExpressionAST> ifExpression):
             TypeCheckedStatementAST(Kind::ifStatement, type), _ifExpression(std::move(ifExpression)) {}
 
@@ -124,7 +124,7 @@ namespace juice {
                                                                                             std::move(ifExpression)));
         }
 
-        TypeCheckedWhileStatementAST::TypeCheckedWhileStatementAST(const Type * type,
+        TypeCheckedWhileStatementAST::TypeCheckedWhileStatementAST(Type type,
                                                                    std::unique_ptr<TypeCheckedExpressionAST> condition,
                                                                    std::unique_ptr<TypeCheckedControlFlowBodyAST> body):
             TypeCheckedStatementAST(Kind::whileStatement, type), _condition(std::move(condition)),
@@ -171,7 +171,7 @@ namespace juice {
             }
 
             return std::unique_ptr<TypeCheckedWhileStatementAST>(
-                new TypeCheckedWhileStatementAST(new NothingType, std::move(condition), std::move(body)));
+                new TypeCheckedWhileStatementAST(NothingType::get(), std::move(condition), std::move(body)));
         }
     }
 }

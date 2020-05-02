@@ -23,7 +23,7 @@ namespace juice {
     namespace sema {
         class TypeCheckedStatementAST: public TypeCheckedAST {
         protected:
-            explicit TypeCheckedStatementAST(Kind kind, const Type * type): TypeCheckedAST(kind, type) {}
+            explicit TypeCheckedStatementAST(Kind kind, Type type): TypeCheckedAST(kind, type) {}
 
         public:
             TypeCheckedStatementAST() = delete;
@@ -44,7 +44,7 @@ namespace juice {
         class TypeCheckedBlockStatementAST: public TypeCheckedStatementAST {
             std::unique_ptr<TypeCheckedBlockAST> _block;
 
-            TypeCheckedBlockStatementAST(const Type * type, std::unique_ptr<TypeCheckedBlockAST> block);
+            TypeCheckedBlockStatementAST(Type type, std::unique_ptr<TypeCheckedBlockAST> block);
 
         public:
             TypeCheckedBlockStatementAST() = delete;
@@ -70,7 +70,7 @@ namespace juice {
         class TypeCheckedExpressionStatementAST: public TypeCheckedStatementAST {
             std::unique_ptr<TypeCheckedExpressionAST> _expression;
 
-            TypeCheckedExpressionStatementAST(const Type * type, std::unique_ptr<TypeCheckedExpressionAST> expression);
+            TypeCheckedExpressionStatementAST(Type type, std::unique_ptr<TypeCheckedExpressionAST> expression);
 
         public:
             TypeCheckedExpressionStatementAST() = delete;
@@ -96,7 +96,7 @@ namespace juice {
         class TypeCheckedIfStatementAST: public TypeCheckedStatementAST {
             std::unique_ptr<TypeCheckedIfExpressionAST> _ifExpression;
 
-            TypeCheckedIfStatementAST(const Type * type, std::unique_ptr<TypeCheckedIfExpressionAST> ifExpression);
+            TypeCheckedIfStatementAST(Type type, std::unique_ptr<TypeCheckedIfExpressionAST> ifExpression);
 
         public:
             TypeCheckedIfStatementAST() = delete;
@@ -123,7 +123,7 @@ namespace juice {
             std::unique_ptr<TypeCheckedExpressionAST> _condition;
             std::unique_ptr<TypeCheckedControlFlowBodyAST> _body;
 
-            TypeCheckedWhileStatementAST(const Type * type, std::unique_ptr<TypeCheckedExpressionAST> condition,
+            TypeCheckedWhileStatementAST(Type type, std::unique_ptr<TypeCheckedExpressionAST> condition,
                                          std::unique_ptr<TypeCheckedControlFlowBodyAST> body);
 
         public:

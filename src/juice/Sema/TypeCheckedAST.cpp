@@ -21,7 +21,7 @@
 namespace juice {
     namespace sema {
         TypeCheckedContainerAST
-            ::TypeCheckedContainerAST(Kind kind, const Type * type,
+            ::TypeCheckedContainerAST(Kind kind, Type type,
                                       std::vector<std::unique_ptr<TypeCheckedStatementAST>> && statements):
             TypeCheckedAST(kind, type), _statements(std::move(statements)) {}
 
@@ -30,7 +30,7 @@ namespace juice {
             return {};
         }
 
-        TypeCheckedModuleAST::TypeCheckedModuleAST(const Type * type, StatementVector && statements):
+        TypeCheckedModuleAST::TypeCheckedModuleAST(Type type, StatementVector && statements):
             TypeCheckedContainerAST(Kind::module, type, std::move(statements)) {}
 
         void TypeCheckedModuleAST::diagnoseInto(diag::DiagnosticEngine & diagnostics, unsigned int level) const {
@@ -43,7 +43,6 @@ namespace juice {
             basic::SourceLocation location(ast->getLocation());
 
             StatementVector statements;
-            const Type * type;
 
             if (!ast->_statements.empty()) {
                 auto statementInserter =
@@ -58,7 +57,9 @@ namespace juice {
                 *statementInserter = TypeCheckedStatementAST::createByTypeChecking(std::move(ast->_statements.back()),
                                                                                    hint, state, diagnostics);
 
-                type = statements.back()->getType();
+                Type type = statements.back()->getType();
+
+                return std::unique_ptr<TypeCheckedModuleAST>(new TypeCheckedModuleAST(type, std::move(statements)));
             } else {
                 if (llvm::isa<ExpectedTypeHint>(hint)) {
                     auto expectedType = llvm::cast<ExpectedTypeHint>(hint).getType();
@@ -66,13 +67,13 @@ namespace juice {
                     diagnostics.diagnose(location, diag::DiagnosticID::module_ast_expected_type, expectedType);
                 }
 
-                type = new NothingType;
-            }
+                Type type = NothingType::get();
 
-            return std::unique_ptr<TypeCheckedModuleAST>(new TypeCheckedModuleAST(type, std::move(statements)));
+                return std::unique_ptr<TypeCheckedModuleAST>(new TypeCheckedModuleAST(type, std::move(statements)));
+            }
         }
 
-        TypeCheckedBlockAST::TypeCheckedBlockAST(const Type * type, StatementVector && statements,
+        TypeCheckedBlockAST::TypeCheckedBlockAST(Type type, StatementVector && statements,
                                                  std::unique_ptr<parser::LexerToken> start):
             TypeCheckedContainerAST(Kind::block, type, std::move(statements)), _start(std::move(start)) {}
 
@@ -102,7 +103,6 @@ namespace juice {
             basic::SourceLocation location(ast->getLocation());
 
             StatementVector statements;
-            const Type * type;
 
             if (!ast->_statements.empty()) {
                 state.newScope();
@@ -119,24 +119,27 @@ namespace juice {
                 *statementInserter = TypeCheckedStatementAST::createByTypeChecking(std::move(ast->_statements.back()),
                                                                                    hint, state, diagnostics);
 
-                type = statements.back()->getType();
+                Type type = statements.back()->getType();
 
                 state.endScope();
+
+                return std::unique_ptr<TypeCheckedBlockAST>(new TypeCheckedBlockAST(type, std::move(statements),
+                                                                                    std::move(ast->_start)));
             } else {
                 if (llvm::isa<ExpectedTypeHint>(hint)) {
                     auto expectedType = llvm::cast<ExpectedTypeHint>(hint).getType();
 
-                    diagnostics.diagnose(location, diag::DiagnosticID::module_ast_expected_type, expectedType);
+                    diagnostics.diagnose(location, diag::DiagnosticID::block_ast_expected_type, expectedType);
                 }
 
-                type = new NothingType;
-            }
+                Type type = NothingType::get();
 
-            return std::unique_ptr<TypeCheckedBlockAST>(new TypeCheckedBlockAST(type, std::move(statements),
-                                                                                std::move(ast->_start)));
+                return std::unique_ptr<TypeCheckedBlockAST>(new TypeCheckedBlockAST(type, std::move(statements),
+                                                                                    std::move(ast->_start)));
+            }
         }
 
-        TypeCheckedControlFlowBodyAST::TypeCheckedControlFlowBodyAST(const Type * type,
+        TypeCheckedControlFlowBodyAST::TypeCheckedControlFlowBodyAST(Type type,
                                                                      std::unique_ptr<parser::LexerToken> keyword,
                                                                      std::unique_ptr<TypeCheckedBlockAST> block):
             TypeCheckedAST(Kind::controlFlowBody, type), _keyword(std::move(keyword)), _bodyKind(BodyKind::block) {
@@ -144,7 +147,7 @@ namespace juice {
         }
 
         TypeCheckedControlFlowBodyAST
-            ::TypeCheckedControlFlowBodyAST(const Type * type, std::unique_ptr<parser::LexerToken> keyword,
+            ::TypeCheckedControlFlowBodyAST(Type type, std::unique_ptr<parser::LexerToken> keyword,
                                             std::unique_ptr<TypeCheckedExpressionAST> expression):
             TypeCheckedAST(Kind::controlFlowBody, type), _keyword(std::move(keyword)), _bodyKind(BodyKind::expression) {
             new (&_expression) std::unique_ptr<TypeCheckedExpressionAST>(std::move(expression));

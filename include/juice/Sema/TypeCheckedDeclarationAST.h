@@ -24,7 +24,7 @@ namespace juice {
     namespace sema {
         class TypeCheckedDeclarationAST: public TypeCheckedStatementAST {
         protected:
-            explicit TypeCheckedDeclarationAST(Kind kind, const Type * type): TypeCheckedStatementAST(kind, type) {}
+            explicit TypeCheckedDeclarationAST(Kind kind, Type type): TypeCheckedStatementAST(kind, type) {}
 
         public:
             TypeCheckedDeclarationAST() = delete;

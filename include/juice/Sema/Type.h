@@ -19,7 +19,7 @@
 
 namespace juice {
     namespace sema {
-        class Type {
+        class TypeBase {
         public:
             enum class Kind {
                 _void,
@@ -30,51 +30,99 @@ namespace juice {
                 builtin_last
             };
 
+        private:
+            const Kind _kind;
+            uint8_t _flags = 0;
+
+        protected:
+            explicit TypeBase(Kind kind): _kind(kind) {}
+
+        public:
+            TypeBase() = delete;
+            TypeBase(const TypeBase &) = delete;
+            void operator=(const TypeBase &) = delete;
+
+            Kind getKind() const { return _kind; }
+        };
+
+        class VoidType: public TypeBase {
+            VoidType(): TypeBase(Kind::_void) {}
+
+        public:
+            VoidType(const VoidType &) = delete;
+            void operator=(const VoidType &) = delete;
+
+            static const VoidType * get() {
+                static const VoidType _void;
+
+                return &_void;
+            }
+
+
+            static bool classof(const TypeBase * type) {
+                return type->getKind() == Kind::_void;
+            }
+        };
+
+        class NothingType: public TypeBase {
+            NothingType(): TypeBase(Kind::nothing) {}
+
+        public:
+            NothingType(const NothingType &) = delete;
+            void operator=(const NothingType &) = delete;
+
+            static const NothingType * get() {
+                static const NothingType nothing;
+
+                return &nothing;
+            }
+
+
+            static bool classof(const TypeBase * type) {
+                return type->getKind() == Kind::nothing;
+            }
+        };
+
+
+        class Type {
+        public:
             enum class Flags: uint8_t {
                 lValue = 1 << 0
             };
 
         private:
-            const Kind _kind;
+            const TypeBase * _pointer = nullptr;
             uint8_t _flags = 0;
 
         public:
-            explicit Type(Kind kind): _kind(kind) {}
+            Type() = delete;
+
+            /* implicit */ Type(const TypeBase * pointer): _pointer(pointer) {}
 
             template <typename... T, std::enable_if_t<basic::all_same<Flags, T...>::value> * = nullptr>
-            Type(Kind kind, Flags flag, T... flags): Type(kind, flags...) {
-                _flags |= (uint8_t)flag;
+            Type(const TypeBase * pointer, Flags flag, T... flags): Type(pointer, flags...) {
+                addFlag(flag);
             }
 
-            Kind getKind() const { return _kind; }
+            Type addFlag(Flags flag) {
+                _flags |= (uint8_t)flag;
+                return *this;
+            }
+
+            const TypeBase * getPointer() const { return _pointer; }
+            const TypeBase * operator->() const { return _pointer; }
 
             bool isRValue() const { return !(_flags & (uint8_t)Flags::lValue); }
             bool isLValue() const { return _flags & (uint8_t)Flags::lValue; }
-        };
 
-        class VoidType: public Type {
-        public:
-            template <typename... T, std::enable_if_t<basic::all_same<Flags, T...>::value> * = nullptr>
-            explicit VoidType(T... flags): Type(Kind::_void, flags...) {}
+            bool operator==(Type other) const;
 
-
-            static bool classof(const Type * type) {
-                return type->getKind() == Kind::_void;
+            bool operator!=(Type other) const {
+                return !(*this == other);
             }
         };
 
-        class NothingType: public Type {
-        public:
-            template <typename... T, std::enable_if_t<basic::all_same<Flags, T...>::value> * = nullptr>
-            explicit NothingType(T... flags): Type(Kind::nothing, flags...) {}
-
-
-            static bool classof(const Type * type) {
-                return type->getKind() == Kind::nothing;
-            }
-        };
-
-        llvm::raw_ostream & operator<<(llvm::raw_ostream & os, const Type * type);
+        llvm::raw_ostream & operator<<(llvm::raw_ostream & os, Type type);
     }
 }
 

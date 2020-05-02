@@ -28,7 +28,7 @@ namespace juice {
         class TypeChecker {
         public:
             class State {
-                typedef std::pair<llvm::StringRef, const Type *> DeclarationPair;
+                typedef std::pair<llvm::StringRef, Type> DeclarationPair;
                 typedef std::vector<DeclarationPair> DeclarationVector;
 
                 struct Scope {
@@ -42,8 +42,8 @@ namespace juice {
                     Scope(DeclarationVector & declarations, size_t currentIndex, std::unique_ptr<Scope> parent):
                         declarations(declarations), currentIndex(currentIndex), parent(std::move(parent)) {}
 
-                    llvm::Optional<std::pair<size_t, const Type *>> getDeclaration(llvm::StringRef name) const;
-                    llvm::Optional<size_t> addDeclaration(llvm::StringRef name, const Type * type);
+                    llvm::Optional<std::pair<size_t, Type>> getDeclaration(llvm::StringRef name) const;
+                    llvm::Optional<size_t> addDeclaration(llvm::StringRef name, Type type);
                 };
 
                 DeclarationVector _declarations;
@@ -55,19 +55,19 @@ namespace juice {
                 void newScope();
                 void endScope();
 
-                size_t declarationVectorSize() const { return _declarations.size(); }
+                size_t getAllocaVectorSize() const { return _declarations.size(); }
 
-                llvm::Optional<std::pair<size_t, const Type *>> getDeclaration(llvm::StringRef name) const;
-                llvm::Optional<size_t> addDeclaration(llvm::StringRef name, const Type * type);
+                llvm::Optional<std::pair<size_t, Type>> getDeclaration(llvm::StringRef name) const;
+                llvm::Optional<size_t> addDeclaration(llvm::StringRef name, Type type);
             };
 
             struct Result {
                 std::unique_ptr<TypeCheckedModuleAST> ast;
-                size_t declarationVectorSize;
+                size_t allocaVectorSize;
 
                 Result() = delete;
 
-                Result(std::unique_ptr<TypeCheckedModuleAST> ast, size_t declarationVectorSize);
+                Result(std::unique_ptr<TypeCheckedModuleAST> ast, size_t allocaVectorSize);
             };
 
         private:

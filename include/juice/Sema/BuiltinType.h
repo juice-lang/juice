@@ -16,13 +16,19 @@
 
 namespace juice {
     namespace sema {
-        class BuiltinType: public Type {
+        class BuiltinType: public TypeBase {
+        protected:
+            explicit BuiltinType(Kind kind): TypeBase(kind) {}
+
         public:
-            template <typename... T, std::enable_if_t<basic::all_same<Flags, T...>::value> * = nullptr>
-            explicit BuiltinType(Kind kind, T... flags): Type(kind, flags...) {}
+            BuiltinType() = delete;
+            BuiltinType(const BuiltinType &) = delete;
+            void operator=(const BuiltinType &) = delete;
+
+            virtual bool equals(const TypeBase * other) const = 0;
 
 
-            static bool classof(const Type * type) {
+            static bool classof(const TypeBase * type) {
                 return type->getKind() >= Kind::builtin
                     && type->getKind() <= Kind::builtin_last;
             }
@@ -42,13 +48,17 @@ namespace juice {
         private:
             Width _width;
 
+            explicit BuiltinIntegerType(Width width): BuiltinType(Kind::builtinInteger), _width(width) {}
+
         public:
-            template <typename... T, std::enable_if_t<basic::all_same<Flags, T...>::value> * = nullptr>
-            explicit BuiltinIntegerType(Width width, T... flags):
-                BuiltinType(Kind::builtinInteger, flags...), _width(width) {}
+            BuiltinIntegerType() = delete;
+            BuiltinIntegerType(const BuiltinIntegerType &) = delete;
+            void operator=(const BuiltinIntegerType &) = delete;
 
             Width getWidth() const { return _width; }
             unsigned int getBitWidth() const { return (unsigned int)_width; }
+
+            bool equals(const TypeBase * other) const override;
 
 
             static const BuiltinIntegerType * getBool() {
@@ -58,7 +68,7 @@ namespace juice {
             }
 
 
-            static bool classof(const Type * type) {
+            static bool classof(const TypeBase * type) {
                 return type->getKind() == Kind::builtinInteger;
             }
         };
@@ -76,10 +86,13 @@ namespace juice {
         private:
             FPKind _fpKind;
 
+            explicit BuiltinFloatingPointType(FPKind fpKind):
+                BuiltinType(Kind::builtinFloatingPoint), _fpKind(fpKind) {}
+
         public:
-            template <typename... T, std::enable_if_t<basic::all_same<Flags, T...>::value> * = nullptr>
-            explicit BuiltinFloatingPointType(FPKind fpKind, T... flags):
-                BuiltinType(Kind::builtinFloatingPoint, flags...), _fpKind(fpKind) {}
+            BuiltinFloatingPointType() = delete;
+            BuiltinFloatingPointType(const BuiltinFloatingPointType &) = delete;
+            void operator=(const BuiltinFloatingPointType &) = delete;
 
             FPKind getFPKind() const { return _fpKind; }
 
@@ -92,6 +105,8 @@ namespace juice {
                     case FPKind::ieee128: return 128;
                 }
             }
+
+            bool equals(const TypeBase * other) const override;
 
 
             static const BuiltinFloatingPointType * getFloat() {
@@ -107,7 +122,7 @@ namespace juice {
             }
 
 
-            static bool classof(const Type * type) {
+            static bool classof(const TypeBase * type) {
                 return type->getKind() == Kind::builtinFloatingPoint;
             }
         };

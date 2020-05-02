@@ -12,6 +12,7 @@
 add_compile_options(${LLVM_COMPILE_FLAGS})
 
 add_library(juiceSema STATIC
+        BuiltinType.cpp
         Type.cpp
         TypeCheckedAST.cpp
         TypeCheckedDeclarationAST.cpp

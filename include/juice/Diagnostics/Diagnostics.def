@@ -105,6 +105,8 @@ ERROR(function_verification_error, "error while validating llvm-function: %0", t
 
 //Sema
 ERROR(module_ast_expected_type, "expected return type '%0' in module", true)
+ERROR(block_ast_expected_type, "expected yield of type '%0' in block", true)
+
 ERROR(statement_ast_expected_type, "expected type '%0', but got a non-yielding statement", true)
 ERROR(statement_ast_expected_unknown_type, "expected a value, but got a non-yielding statement", true)
 

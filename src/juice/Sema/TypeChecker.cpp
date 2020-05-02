@@ -18,7 +18,7 @@
 
 namespace juice {
     namespace sema {
-        llvm::Optional<std::pair<size_t, const Type *>>
+        llvm::Optional<std::pair<size_t, Type>>
         TypeChecker::State::Scope::getDeclaration(llvm::StringRef name) const {
             auto begin = declarations.begin();
             auto result = std::find_if(begin, begin + currentIndex, [&name](const DeclarationPair & pair) {
@@ -30,7 +30,7 @@ namespace juice {
             return std::make_pair((size_t)(result - begin), (*result).second);
         }
 
-        llvm::Optional<size_t> TypeChecker::State::Scope::addDeclaration(llvm::StringRef name, const Type * type) {
+        llvm::Optional<size_t> TypeChecker::State::Scope::addDeclaration(llvm::StringRef name, Type type) {
             if (!getDeclaration(name)) {
                 auto begin = declarations.begin();
                 if (begin + currentIndex == declarations.end()) {
@@ -54,16 +54,16 @@ namespace juice {
             _currentScope = std::move(_currentScope->parent);
         }
 
-        TypeChecker::Result::Result(std::unique_ptr<TypeCheckedModuleAST> ast, size_t declarationVectorSize):
-            ast(std::move(ast)), declarationVectorSize(declarationVectorSize) {}
-
-        llvm::Optional<std::pair<size_t, const Type *>> TypeChecker::State::getDeclaration(llvm::StringRef name) const {
+        llvm::Optional<std::pair<size_t, Type>> TypeChecker::State::getDeclaration(llvm::StringRef name) const {
             return _currentScope->getDeclaration(name);
         }
 
-        llvm::Optional<size_t> TypeChecker::State::addDeclaration(llvm::StringRef name, const Type * type) {
+        llvm::Optional<size_t> TypeChecker::State::addDeclaration(llvm::StringRef name, Type type) {
             return _currentScope->addDeclaration(name, type);
         }
+
+        TypeChecker::Result::Result(std::unique_ptr<TypeCheckedModuleAST> ast, size_t allocaVectorSize):
+            ast(std::move(ast)), allocaVectorSize(allocaVectorSize) {}
 
         TypeChecker::TypeChecker(std::unique_ptr<ast::ModuleAST> ast,
                                  std::shared_ptr<diag::DiagnosticEngine> diagnostics):
@@ -77,7 +77,7 @@ namespace juice {
                                                            ExpectedTypeHint(BuiltinFloatingPointType::getDouble()),
                                                            state, *_diagnostics);
 
-            return { std::move(ast), state.declarationVectorSize() };
+            return { std::move(ast), state.getAllocaVectorSize() };
         }
     }
 }
