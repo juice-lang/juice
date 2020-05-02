@@ -18,7 +18,8 @@ namespace juice {
     namespace sema {
         std::unique_ptr<TypeCheckedDeclarationAST>
         TypeCheckedDeclarationAST::createByTypeChecking(std::unique_ptr<ast::DeclarationAST> ast, const TypeHint & hint,
-                                                        TypeChecker::State & state, diag::DiagnosticEngine & diagnostics) {
+                                                        TypeChecker::State & state,
+                                                        diag::DiagnosticEngine & diagnostics) {
             switch (ast->getKind()) {
                 case ast::StatementAST::Kind::variableDeclaration: {
                     auto variableDeclaration = std::unique_ptr<ast::VariableDeclarationAST>(
@@ -32,10 +33,11 @@ namespace juice {
         }
 
         TypeCheckedVariableDeclarationAST
-            ::TypeCheckedVariableDeclarationAST(std::unique_ptr<parser::LexerToken> name,
+            ::TypeCheckedVariableDeclarationAST(std::unique_ptr<parser::LexerToken> keyword,
+                                                std::unique_ptr<parser::LexerToken> name,
                                                 std::unique_ptr<TypeCheckedExpressionAST> initialization, size_t index):
-            TypeCheckedDeclarationAST(Kind::variableDeclaration, new NothingType), _name(std::move(name)),
-            _initialization(std::move(initialization)), _index(index) {}
+            TypeCheckedDeclarationAST(Kind::variableDeclaration, new NothingType), _keyword(std::move(keyword)),
+            _name(std::move(name)), _initialization(std::move(initialization)), _index(index) {}
 
         void TypeCheckedVariableDeclarationAST::diagnoseInto(diag::DiagnosticEngine & diagnostics,
                                                              unsigned int level) const {
@@ -58,21 +60,6 @@ namespace juice {
                 ::createByTypeChecking(std::move(ast->_initialization),
                                        ExpectedTypeHint(BuiltinFloatingPointType::getDouble()), state, diagnostics);
 
-            switch (hint.getKind()) {
-                case TypeHint::Kind::none: break;
-                case TypeHint::Kind::unknown: {
-                    diagnostics.diagnose(location,
-                                         diag::DiagnosticID::statement_ast_expected_unknown_type);
-                    break;
-                }
-                case TypeHint::Kind::expected: {
-                    auto expectedType = llvm::cast<ExpectedTypeHint>(hint).getType();
-                    diagnostics.diagnose(location, diag::DiagnosticID::statement_ast_expected_type,
-                                         expectedType);
-                    break;
-                }
-            }
-
             auto index = state.addDeclaration(name->string, initialization->getType());
 
             if (!index) {
@@ -80,9 +67,22 @@ namespace juice {
                                      name->string);
             }
 
+            switch (hint.getKind()) {
+                case TypeHint::Kind::none: break;
+                case TypeHint::Kind::unknown: {
+                    diagnostics.diagnose(location, diag::DiagnosticID::statement_ast_expected_unknown_type);
+                    break;
+                }
+                case TypeHint::Kind::expected: {
+                    auto expectedType = llvm::cast<ExpectedTypeHint>(hint).getType();
+                    diagnostics.diagnose(location, diag::DiagnosticID::statement_ast_expected_type, expectedType);
+                    break;
+                }
+            }
+
             return std::unique_ptr<TypeCheckedVariableDeclarationAST>(
-                new TypeCheckedVariableDeclarationAST(std::move(name), std::move(initialization),
-                                                      index.getValueOr(0)));
+                new TypeCheckedVariableDeclarationAST(std::move(ast->_keyword), std::move(name),
+                                                      std::move(initialization), index.getValueOr(0)));
         }
     }
 }

@@ -40,7 +40,7 @@ namespace juice {
         };
 
         class VariableDeclarationAST: public DeclarationAST {
-            std::unique_ptr<parser::LexerToken> _name;
+            std::unique_ptr<parser::LexerToken> _keyword, _name;
             std::unique_ptr<ExpressionAST> _initialization;
 
             friend class sema::TypeCheckedVariableDeclarationAST;
@@ -48,13 +48,14 @@ namespace juice {
         public:
             VariableDeclarationAST() = delete;
 
-            VariableDeclarationAST(std::unique_ptr<parser::LexerToken> name,
+            VariableDeclarationAST(std::unique_ptr<parser::LexerToken> keyword,
+                                   std::unique_ptr<parser::LexerToken> name,
                                    std::unique_ptr<ExpressionAST> initialization);
 
             ~VariableDeclarationAST() override = default;
 
             basic::SourceLocation getLocation() const override {
-                return basic::SourceLocation(_name->string.begin());
+                return basic::SourceLocation(_keyword->string.begin());
             }
 
             void diagnoseInto(diag::DiagnosticEngine & diagnostics, unsigned int level) const override;
