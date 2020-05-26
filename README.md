@@ -1,3 +1,5 @@
+<img src="https://juicelang.org/logo" alt="juice logo" height="70">
+
 # *juice*
 
 ## The **_juicy_** programming language
