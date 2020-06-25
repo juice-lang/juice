@@ -101,7 +101,7 @@ namespace juice {
                         break;
                     }
                     case TypeHint::Kind::expected: {
-                        auto expectedType = llvm::cast<ExpectedTypeHint>(hint).getType();
+                        Type expectedType = llvm::cast<ExpectedTypeHint>(hint).getType();
                         diagnostics.diagnose(location, diag::DiagnosticID::expression_ast_expected_lvalue,
                                              expectedType, "binary operator expression");
                         break;
@@ -129,7 +129,7 @@ namespace juice {
                     Type type = BuiltinFloatingPointType::getDouble();
 
                     if (llvm::isa<ExpectedTypeHint>(hint)) {
-                        auto expectedType = llvm::cast<ExpectedTypeHint>(hint).getType();
+                        Type expectedType = llvm::cast<ExpectedTypeHint>(hint).getType();
 
                         if (expectedType != type) diagnostics.diagnose(location,
                                                                        diag::DiagnosticID::expression_ast_expected_type,
@@ -153,7 +153,7 @@ namespace juice {
                     Type type = BuiltinIntegerType::getBool();
 
                     if (llvm::isa<ExpectedTypeHint>(hint)) {
-                        auto expectedType = llvm::cast<ExpectedTypeHint>(hint).getType();
+                        Type expectedType = llvm::cast<ExpectedTypeHint>(hint).getType();
 
                         if (expectedType != type) diagnostics.diagnose(location,
                                                                        diag::DiagnosticID::expression_ast_expected_type,
@@ -181,7 +181,7 @@ namespace juice {
                     Type type = BuiltinFloatingPointType::getDouble();
 
                     if (llvm::isa<ExpectedTypeHint>(hint)) {
-                        auto expectedType = llvm::cast<ExpectedTypeHint>(hint).getType();
+                        Type expectedType = llvm::cast<ExpectedTypeHint>(hint).getType();
 
                         if (expectedType != type) diagnostics.diagnose(location,
                                                                        diag::DiagnosticID::expression_ast_expected_type,
@@ -214,7 +214,7 @@ namespace juice {
                     Type type = BuiltinIntegerType::getBool();
 
                     if (llvm::isa<ExpectedTypeHint>(hint)) {
-                        auto expectedType = llvm::cast<ExpectedTypeHint>(hint).getType();
+                        Type expectedType = llvm::cast<ExpectedTypeHint>(hint).getType();
 
                         if (expectedType != type) diagnostics.diagnose(location,
                                                                        diag::DiagnosticID::expression_ast_expected_type,
@@ -242,7 +242,7 @@ namespace juice {
                     Type type = BuiltinIntegerType::getBool();
 
                     if (llvm::isa<ExpectedTypeHint>(hint)) {
-                        auto expectedType = llvm::cast<ExpectedTypeHint>(hint).getType();
+                        Type expectedType = llvm::cast<ExpectedTypeHint>(hint).getType();
 
                         if (expectedType != type) diagnostics.diagnose(location,
                                                                        diag::DiagnosticID::expression_ast_expected_type,
@@ -275,7 +275,7 @@ namespace juice {
                                                              TypeChecker::State & state, diag::DiagnosticEngine & diagnostics) {
             basic::SourceLocation location(ast->getLocation());
 
-            auto type = BuiltinFloatingPointType::getDouble();
+            Type type = BuiltinFloatingPointType::getDouble();
 
             if (hint.requiresLValue()) {
                 switch (hint.getKind()) {
@@ -286,7 +286,7 @@ namespace juice {
                         break;
                     }
                     case TypeHint::Kind::expected: {
-                        auto expectedType = llvm::cast<ExpectedTypeHint>(hint).getType();
+                        Type expectedType = llvm::cast<ExpectedTypeHint>(hint).getType();
                         diagnostics.diagnose(location, diag::DiagnosticID::expression_ast_expected_lvalue,
                                              expectedType, "number literal");
                         break;
@@ -295,7 +295,7 @@ namespace juice {
             }
 
             if (llvm::isa<ExpectedTypeHint>(hint)) {
-                auto expectedType = llvm::cast<ExpectedTypeHint>(hint).getType();
+                Type expectedType = llvm::cast<ExpectedTypeHint>(hint).getType();
 
                 if (expectedType != type) diagnostics.diagnose(location,
                                                                diag::DiagnosticID::expression_ast_expected_type,
@@ -336,7 +336,7 @@ namespace juice {
             Type type = std::get<1>(declaration).addFlag(Type::Flags::lValue);
 
             if (llvm::isa<ExpectedTypeHint>(hint)) {
-                auto expectedType = llvm::cast<ExpectedTypeHint>(hint).getType();
+                Type expectedType = llvm::cast<ExpectedTypeHint>(hint).getType();
 
                 if (expectedType != type) diagnostics.diagnose(location,
                                                                diag::DiagnosticID::expression_ast_expected_type,
@@ -365,7 +365,7 @@ namespace juice {
             auto expression = TypeCheckedExpressionAST::createByTypeChecking(std::move(ast->_expression), hint, state,
                                                                              diagnostics);
 
-            auto type = expression->getType();
+            Type type = expression->getType();
 
             return std::unique_ptr<TypeCheckedGroupingExpressionAST>(
                 new TypeCheckedGroupingExpressionAST(type, std::move(ast->_token), std::move(expression)));
@@ -426,7 +426,7 @@ namespace juice {
                         break;
                     }
                     case TypeHint::Kind::expected: {
-                        auto expectedType = llvm::cast<ExpectedTypeHint>(hint).getType();
+                        Type expectedType = llvm::cast<ExpectedTypeHint>(hint).getType();
                         diagnostics.diagnose(location, diag::DiagnosticID::expression_ast_expected_lvalue,
                                              expectedType, ast->_isStatement ? "if statement" : "if expression");
                         break;
@@ -445,7 +445,7 @@ namespace juice {
             auto ifBody = TypeCheckedControlFlowBodyAST::createByTypeChecking(std::move(ast->_ifBody), ifHint,
                                                                               state, diagnostics);
 
-            auto type = ast->_isStatement ? NothingType::get() : ifBody->getType();
+            Type type = ast->_isStatement ? NothingType::get() : ifBody->getType();
 
             ElifVector elifConditionsAndBodies;
 

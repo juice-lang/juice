@@ -74,7 +74,7 @@ namespace juice {
                     break;
                 }
                 case TypeHint::Kind::expected: {
-                    auto expectedType = llvm::cast<ExpectedTypeHint>(hint).getType();
+                    Type expectedType = llvm::cast<ExpectedTypeHint>(hint).getType();
                     diagnostics.diagnose(location, diag::DiagnosticID::statement_ast_expected_type, expectedType);
                     break;
                 }

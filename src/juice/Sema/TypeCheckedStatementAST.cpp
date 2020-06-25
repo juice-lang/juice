@@ -74,7 +74,7 @@ namespace juice {
                                                            diag::DiagnosticEngine & diagnostics) {
             auto block = TypeCheckedBlockAST::createByTypeChecking(std::move(ast->_block), hint, state, diagnostics);
 
-            auto type = block->getType();
+            Type type = block->getType();
 
             return std::unique_ptr<TypeCheckedBlockStatementAST>(new TypeCheckedBlockStatementAST(type,
                                                                                                   std::move(block)));
@@ -97,7 +97,7 @@ namespace juice {
             auto expression = TypeCheckedExpressionAST::createByTypeChecking(std::move(ast->_expression), hint, state,
                                                                              diagnostics);
 
-            auto type = expression->getType();
+            Type type = expression->getType();
 
             return std::unique_ptr<TypeCheckedExpressionStatementAST>(
                 new TypeCheckedExpressionStatementAST(type, std::move(expression)));
@@ -126,7 +126,7 @@ namespace juice {
                     diagnostics.diagnose(location, diag::DiagnosticID::statement_ast_expected_unknown_type);
                     break;
                 case TypeHint::Kind::expected: {
-                    auto expectedType = llvm::cast<ExpectedTypeHint>(hint).getType();
+                    Type expectedType = llvm::cast<ExpectedTypeHint>(hint).getType();
                     diagnostics.diagnose(location, diag::DiagnosticID::statement_ast_expected_type, expectedType);
                     break;
                 }
@@ -176,7 +176,7 @@ namespace juice {
                     diagnostics.diagnose(location, diag::DiagnosticID::statement_ast_expected_unknown_type);
                     break;
                 case TypeHint::Kind::expected: {
-                    auto expectedType = llvm::cast<ExpectedTypeHint>(hint).getType();
+                    Type expectedType = llvm::cast<ExpectedTypeHint>(hint).getType();
                     diagnostics.diagnose(location, diag::DiagnosticID::statement_ast_expected_type, expectedType);
                     break;
                 }

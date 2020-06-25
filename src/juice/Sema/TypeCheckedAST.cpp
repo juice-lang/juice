@@ -62,7 +62,7 @@ namespace juice {
                 return std::unique_ptr<TypeCheckedModuleAST>(new TypeCheckedModuleAST(type, std::move(statements)));
             } else {
                 if (llvm::isa<ExpectedTypeHint>(hint)) {
-                    auto expectedType = llvm::cast<ExpectedTypeHint>(hint).getType();
+                    Type expectedType = llvm::cast<ExpectedTypeHint>(hint).getType();
 
                     diagnostics.diagnose(location, diag::DiagnosticID::module_ast_expected_type, expectedType);
                 }
@@ -127,7 +127,7 @@ namespace juice {
                                                                                     std::move(ast->_start)));
             } else {
                 if (llvm::isa<ExpectedTypeHint>(hint)) {
-                    auto expectedType = llvm::cast<ExpectedTypeHint>(hint).getType();
+                    Type expectedType = llvm::cast<ExpectedTypeHint>(hint).getType();
 
                     diagnostics.diagnose(location, diag::DiagnosticID::block_ast_expected_type, expectedType);
                 }
@@ -188,7 +188,7 @@ namespace juice {
                 case ast::ControlFlowBodyAST::Kind::block: {
                     auto block = TypeCheckedBlockAST::createByTypeChecking(std::move(ast->_block), hint, state,
                                                                            diagnostics);
-                    auto type = block->getType();
+                    Type type = block->getType();
 
                     return std::unique_ptr<TypeCheckedControlFlowBodyAST>(
                         new TypeCheckedControlFlowBodyAST(type, std::move(ast->_keyword), std::move(block)));
@@ -196,7 +196,7 @@ namespace juice {
                 case ast::ControlFlowBodyAST::Kind::expression: {
                     auto expression = TypeCheckedExpressionAST::createByTypeChecking(std::move(ast->_expression), hint,
                                                                                      state, diagnostics);
-                    auto type = expression->getType();
+                    Type type = expression->getType();
 
                     return std::unique_ptr<TypeCheckedControlFlowBodyAST>(
                         new TypeCheckedControlFlowBodyAST(type, std::move(ast->_keyword), std::move(expression)));
