@@ -34,6 +34,27 @@ namespace juice {
             return _matchedToken;
         }
 
+        const std::unique_ptr<LexerToken> & Parser::getPreviousLookaheadToken() {
+            switch (_lookaheadTokens.size()) {
+                case 0: return getPreviousToken();
+                case 1: return _currentToken;
+                default: return *(_lookaheadTokens.end() - 1);
+            }
+        }
+
+        const std::unique_ptr<LexerToken> & Parser::getCurrentLookaheadToken() {
+            return _lookaheadTokens.empty() ? _currentToken : _lookaheadTokens.back();
+        }
+
+        std::unique_ptr<LexerToken> Parser::moveFirstLookaheadToken() {
+            assert(!_lookaheadTokens.empty() && "There should be at least one lookahead token.");
+
+            auto first = std::move(_lookaheadTokens.front());
+            _lookaheadTokens.pop_front();
+
+            return first;
+        }
+
         bool Parser::check(LexerToken::Type type) {
             if (isAtEnd()) return false;
             return _currentToken->type == type;
@@ -63,7 +84,7 @@ namespace juice {
             if (isAtEnd()) return llvm::make_error<Error>(diag::DiagnosticID::unexpected_parser_error);
             _previousToken = std::move(_currentToken);
             if (_previousToken) _wasNewline = (_previousToken->type == LexerToken::Type::delimiterNewline);
-            _currentToken = _lexer->nextToken();
+            _currentToken = _lookaheadTokens.empty() ? _lexer->nextToken() : moveFirstLookaheadToken();
             if (check(LexerToken::Type::error)) return llvm::make_error<LexerError>();
 
             return llvm::Error::success();
@@ -141,6 +162,94 @@ namespace juice {
         llvm::Error Parser::consume(LexerToken::Type type, diag::DiagnosticID errorID, llvm::StringRef name) {
             return consume(type, llvm::make_error<ErrorWithString>(errorID, name));
         }
+
+        bool Parser::lookaheadIsAtEnd() {
+            return getCurrentLookaheadToken() == nullptr || getCurrentLookaheadToken()->type == LexerToken::Type::eof;
+        }
+
+        bool Parser::checkLookahead(LexerToken::Type type) {
+            if (lookaheadIsAtEnd()) return false;
+            if (_lookaheadTokens.empty()) return check(type);
+            return getCurrentLookaheadToken()->type == type;
+        }
+
+        template<typename... T, std::enable_if_t<basic::all_same<LexerToken::Type, T...>::value> *>
+        bool Parser::checkLookahead(LexerToken::Type type, T... types) {
+            if (checkLookahead(type)) return true;
+
+            return checkLookahead(types...);
+        }
+
+        template<size_t size>
+        bool Parser::checkLookahead(const std::array<LexerToken::Type, size> & types) {
+            for (const auto & type: types) {
+                if (checkLookahead(type)) return true;
+            }
+
+            return false;
+        }
+
+        bool Parser::checkPreviousLookahead(LexerToken::Type type) {
+            return getPreviousLookaheadToken()->type == type;
+        }
+
+        llvm::Error Parser::advanceLookaheadOne() {
+            if (lookaheadIsAtEnd()) return llvm::make_error<Error>(diag::DiagnosticID::unexpected_parser_error);
+            _lookaheadTokens.push_back(_lexer->nextToken());
+            if (checkLookahead(LexerToken::Type::error)) return llvm::make_error<LexerError>();
+
+            return llvm::Error::success();
+        }
+
+        llvm::Error Parser::lookaheadSkipNewlines() {
+            while (checkLookahead(LexerToken::Type::delimiterNewline)) {
+                if (auto error = advanceLookaheadOne()) return error;
+            }
+
+            return llvm::Error::success();
+        }
+
+        llvm::Expected<const std::unique_ptr<LexerToken> &> Parser::advanceLookahead() {
+            if (auto error = advanceLookaheadOne()) return std::move(error);
+            const auto & token = getPreviousLookaheadToken();
+
+            if (auto error = lookaheadSkipNewlines()) return std::move(error);
+
+            return token;
+        }
+
+        llvm::Expected<bool> Parser::matchLookahead(LexerToken::Type type) {
+            if (checkLookahead(type)) {
+                auto matchedToken = advanceLookahead();
+                if (auto error = matchedToken.takeError()) return std::move(error);
+                
+                return true;
+            }
+            return false;
+        }
+
+        template<typename... T, std::enable_if_t<basic::all_same<LexerToken::Type, T...>::value> *>
+        llvm::Expected<bool> Parser::matchLookahead(LexerToken::Type type, T... types) {
+            auto matched = matchLookahead(type);
+            if (auto error = matched.takeError()) return std::move(error);
+
+            if (*matched) return true;
+
+            return matchLookahead(types...);
+        }
+
+        template<size_t size>
+        llvm::Expected<bool> Parser::matchLookahead(const std::array<LexerToken::Type, size> & types) {
+            for (const auto & type: types) {
+                auto matched = matchLookahead(LexerToken::Type::delimiterLeftParen);
+                if (auto error = matched.takeError()) return std::move(error);
+
+                if (*matched) return true;
+            }
+
+            return false;
+        }
+
 
         llvm::Expected<std::unique_ptr<ast::BlockAST>> Parser::parseBlock(llvm::StringRef name) {
             if (auto error = consume(LexerToken::Type::delimiterLeftBrace,

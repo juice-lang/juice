@@ -13,6 +13,7 @@
 #define JUICE_PARSER_PARSER_H
 
 #include <array>
+#include <deque>
 #include <functional>
 #include <memory>
 #include <tuple>
@@ -99,12 +100,17 @@ namespace juice {
             std::unique_ptr<LexerToken> _currentToken;
             std::unique_ptr<LexerToken> _matchedToken;
 
+            std::deque<std::unique_ptr<LexerToken>> _lookaheadTokens;
+
             bool _inBlock;
             bool _wasNewline;
 
             bool isAtEnd();
 
             const std::unique_ptr<LexerToken> & getPreviousToken();
+            const std::unique_ptr<LexerToken> & getPreviousLookaheadToken();
+            const std::unique_ptr<LexerToken> & getCurrentLookaheadToken();
+            std::unique_ptr<LexerToken> moveFirstLookaheadToken();
 
             bool check(LexerToken::Type type);
 
@@ -131,6 +137,33 @@ namespace juice {
             llvm::Error consume(LexerToken::Type type, llvm::Error errorToReturn);
             llvm::Error consume(LexerToken::Type type, diag::DiagnosticID errorID);
             llvm::Error consume(LexerToken::Type type, diag::DiagnosticID errorID, llvm::StringRef name);
+
+
+            bool lookaheadIsAtEnd();
+
+            bool checkLookahead(LexerToken::Type type);
+
+            template <typename... T, std::enable_if_t<basic::all_same<LexerToken::Type, T...>::value> * = nullptr>
+            bool checkLookahead(LexerToken::Type type, T... types);
+
+            template <size_t size>
+            bool checkLookahead(const std::array<LexerToken::Type, size> & types);
+
+            bool checkPreviousLookahead(LexerToken::Type type);
+
+            llvm::Error advanceLookaheadOne();
+            llvm::Error lookaheadSkipNewlines();
+            llvm::Expected<const std::unique_ptr<LexerToken> &> advanceLookahead();
+
+            llvm::Expected<bool> matchLookahead(LexerToken::Type type);
+
+            template <typename... T, std::enable_if_t<basic::all_same<LexerToken::Type, T...>::value> * = nullptr>
+            llvm::Expected<bool> matchLookahead(LexerToken::Type type, T... types);
+
+            template <size_t size>
+            llvm::Expected<bool> matchLookahead(const std::array<LexerToken::Type, size> & types);
+
+
 
             llvm::Expected<std::unique_ptr<ast::BlockAST>> parseBlock(llvm::StringRef name);
 
