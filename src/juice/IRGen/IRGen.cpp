@@ -48,9 +48,7 @@ namespace juice {
 
             _builder.CreateCall(printfFunction, {stringValue, value}, "printfCall");
 
-            llvm::Value * zero = llvm::ConstantInt::get(_context, llvm::APInt(32, 0, true));
-
-            _builder.CreateRet(zero);
+            _builder.CreateRet(_builder.getInt32(0));
 
             std::string error;
             llvm::raw_string_ostream os(error);

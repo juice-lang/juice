@@ -114,10 +114,10 @@ namespace juice {
 
             bool check(LexerToken::Type type);
 
-            template <typename... T, std::enable_if_t<basic::all_same<LexerToken::Type, T...>::value> * = nullptr>
+            template <typename... T, std::enable_if_t<basic::all_same_v<LexerToken::Type, T...>> * = nullptr>
             bool check(LexerToken::Type type, T... types);
 
-            template <size_t size>
+            template <std::size_t size>
             bool check(const std::array<LexerToken::Type, size> & types);
 
             bool checkPrevious(LexerToken::Type type);
@@ -128,22 +128,23 @@ namespace juice {
 
             llvm::Expected<bool> match(LexerToken::Type type);
 
-            template <typename... T, std::enable_if_t<basic::all_same<LexerToken::Type, T...>::value> * = nullptr>
+            template <typename... T, std::enable_if_t<basic::all_same_v<LexerToken::Type, T...>> * = nullptr>
             llvm::Expected<bool> match(LexerToken::Type type, T... types);
 
             template <size_t size>
             llvm::Expected<bool> match(const std::array<LexerToken::Type, size> & types);
 
             llvm::Error consume(LexerToken::Type type, llvm::Error errorToReturn);
-            llvm::Error consume(LexerToken::Type type, diag::DiagnosticID errorID);
-            llvm::Error consume(LexerToken::Type type, diag::DiagnosticID errorID, llvm::StringRef name);
+            template <typename T, typename... Args,
+                      std::enable_if_t<std::is_base_of<llvm::ErrorInfo<T>, T>::value> * = nullptr>
+            llvm::Error consume(LexerToken::Type type, diag::DiagnosticID diagnosticID, Args &&... args);
 
 
             bool lookaheadIsAtEnd();
 
             bool checkLookahead(LexerToken::Type type);
 
-            template <typename... T, std::enable_if_t<basic::all_same<LexerToken::Type, T...>::value> * = nullptr>
+            template <typename... T, std::enable_if_t<basic::all_same_v<LexerToken::Type, T...>> * = nullptr>
             bool checkLookahead(LexerToken::Type type, T... types);
 
             template <size_t size>
@@ -157,7 +158,7 @@ namespace juice {
 
             llvm::Expected<bool> matchLookahead(LexerToken::Type type);
 
-            template <typename... T, std::enable_if_t<basic::all_same<LexerToken::Type, T...>::value> * = nullptr>
+            template <typename... T, std::enable_if_t<basic::all_same_v<LexerToken::Type, T...>> * = nullptr>
             llvm::Expected<bool> matchLookahead(LexerToken::Type type, T... types);
 
             template <size_t size>

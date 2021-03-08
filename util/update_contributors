@@ -5,7 +5,7 @@ repo_dir="$(dirname "${util_dir}")"
 
 cd "${repo_dir}" || exit
 
-git log --pretty="%ae" | uniq | {
+git log --pretty="%ae" | sort | uniq | {
     while read -r email
     do
         if ! grep -q "${email}" CONTRIBUTORS.txt; then

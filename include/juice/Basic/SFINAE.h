@@ -17,10 +17,10 @@
 namespace juice {
     namespace basic {
         namespace detail {
-            template<bool...> struct bool_pack;
-            template<bool... bs>
-            //if any are false, they'll be shifted in the second version, so types won't match
-            using all_true = std::is_same<bool_pack<bs..., true>, bool_pack<true, bs...>>;
+            template <bool...> struct bool_pack;
+
+            template <bool... booleans>
+            using all_true = std::is_same<bool_pack<booleans..., true>, bool_pack<true, booleans...>>;
         }
 
         template <typename... Ts>
@@ -28,6 +28,9 @@ namespace juice {
 
         template <typename T, typename... Ts>
         using all_same = all_true<std::is_same<T,Ts>...>;
+
+        template <typename T, typename... Ts>
+        constexpr bool all_same_v = all_same<T, Ts...>::value;
     }
 }
 
