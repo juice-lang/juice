@@ -24,7 +24,7 @@ project(juice DESCRIPTION "The juicy programming language" LANGUAGES CXX)
 
 set(JUICE_VERSION "1.0")
 
-set(LLVM_INSTALL_DIR "${PROJECT_SOURCE_DIR}/../juice-llvm/build/install")
+set(LLVM_INSTALL_DIR "${PROJECT_SOURCE_DIR}/../juice-llvm/llvm/build/install")
 
 set(LLVM_CONFIG_CMD "${LLVM_INSTALL_DIR}/bin/llvm-config")
 execute_process(COMMAND ${LLVM_CONFIG_CMD} --cxxflags

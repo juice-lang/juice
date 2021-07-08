@@ -239,7 +239,8 @@ cmake_dir = os.path.join(build_dir, 'cmake')
 bin_dir = os.path.join(build_dir, 'bin')
 
 llvm_repo_dir = os.path.join(root_dir, 'juice-llvm')
-llvm_build_dir = os.path.join(llvm_repo_dir, 'build')
+llvm_llvm_dir = os.path.join(root_dir, 'llvm')
+llvm_build_dir = os.path.join(llvm_llvm_dir, 'build')
 llvm_install_dir = os.path.join(llvm_build_dir, 'install')
 llvm_last_build_hash_file = os.path.join(llvm_build_dir, '.lastbuildhash')
 
@@ -324,7 +325,7 @@ if status == LLVMStatus.error:
 elif status == LLVMStatus.needs_build:
     print('Building the llvm libraries...')
 
-    if not cmake(llvm_repo_dir, llvm_install_dir, llvm_build_dir):
+    if not cmake(llvm_llvm_dir, llvm_install_dir, llvm_build_dir):
         print('Something went wrong while generating the llvm Makefiles.', file=sys.stderr)
         exit(1)
 
