@@ -24,29 +24,37 @@ project(juice DESCRIPTION "The juicy programming language" LANGUAGES CXX)
 
 set(JUICE_VERSION "1.0")
 
+
 set(LLVM_INSTALL_DIR "${PROJECT_SOURCE_DIR}/../juice-llvm/llvm/build/install")
 
-set(LLVM_CONFIG_CMD "${LLVM_INSTALL_DIR}/bin/llvm-config")
-execute_process(COMMAND ${LLVM_CONFIG_CMD} --cxxflags
-        OUTPUT_VARIABLE LLVM_COMPILE_FLAGS
-        OUTPUT_STRIP_TRAILING_WHITESPACE)
 
-string(REPLACE
-        "-std=c++11" "-std=c++14" LLVM_COMPILE_FLAGS "${LLVM_COMPILE_FLAGS}")
-string(REGEX REPLACE
-        "-fno-exceptions ?" "" OTHER_COMPILE_FLAGS "${LLVM_COMPILE_FLAGS}")
+find_package(LLVM REQUIRED CONFIG PATHS ${LLVM_INSTALL_DIR} NO_DEFAULT_PATH)
 
-separate_arguments(LLVM_COMPILE_FLAGS)
-separate_arguments(OTHER_COMPILE_FLAGS)
+message(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION}")
+message(STATUS "Using LLVMConfig.cmake in: ${LLVM_DIR}")
 
-execute_process(COMMAND ${LLVM_CONFIG_CMD} --libfiles
-        OUTPUT_VARIABLE LLVM_LIBS
-        OUTPUT_STRIP_TRAILING_WHITESPACE)
-separate_arguments(LLVM_LIBS)
 
-add_definitions("-fvisibility=hidden")
+set(LLVM_COMPILE_FLAG_LIST "-std=c++14" "-fvisibility=hidden")
+
+if(NOT ${LLVM_ENABLE_RTTI})
+    list(APPEND LLVM_COMPILE_FLAG_LIST "-fno-rtti")
+endif()
+
+set(OTHER_COMPILE_FLAG_LIST ${LLVM_COMPILE_FLAG_LIST})
+
+if(NOT ${LLVM_ENABLE_EH})
+    list(APPEND LLVM_COMPILE_FLAG_LIST "-fno-exceptions")
+endif()
+
+
+separate_arguments(LLVM_DEFINITIONS_LIST NATIVE_COMMAND ${LLVM_DEFINITIONS})
+add_definitions(${LLVM_DEFINITIONS_LIST})
+
+
+llvm_map_components_to_libnames(LLVM_LIB_LIST support core)
+
 
 include_directories(${PROJECT_SOURCE_DIR}/include)
-include_directories(${LLVM_INSTALL_DIR}/include)
+include_directories(${LLVM_INCLUDE_DIRS})
 add_subdirectory(src)
 add_subdirectory(tools)

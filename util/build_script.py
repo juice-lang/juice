@@ -19,6 +19,7 @@ import subprocess
 import sys
 
 from enum import Enum
+from typing import Optional, Callable
 
 
 class GitRemoteStatus(Enum):
@@ -35,7 +36,7 @@ class LLVMStatus(Enum):
     needs_build = 2
 
 
-def _find_getch():
+def _find_getch() -> Callable[[], str]:
     try:
         import termios
     except ImportError:
@@ -47,7 +48,7 @@ def _find_getch():
     import sys
     import tty
 
-    def _getch():
+    def _getch() -> str:
         fd = sys.stdin.fileno()
         old_settings = termios.tcgetattr(fd)
         try:
@@ -134,6 +135,12 @@ def git_pull(cwd: str) -> bool:
     return False
 
 
+def git_checkout(branch: str, cwd: str) -> bool:
+    if is_git_repo(cwd):
+        return subprocess.call(['git', 'checkout', branch], cwd=cwd) == 0
+    return False
+
+
 def git_has_uncommitted_changes(cwd: str) -> bool:
     if is_git_repo(cwd):
         if subprocess.check_output(['git', 'status', '--porcelain'], cwd=cwd):
@@ -143,8 +150,17 @@ def git_has_uncommitted_changes(cwd: str) -> bool:
 
 def git_get_current_hash(cwd: str) -> bytes:
     if is_git_repo(cwd):
-        return subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=cwd)
+        return subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=cwd).strip()
     return b''
+
+
+def git_get_current_branch(cwd: str) -> Optional[str]:
+    if is_git_repo(cwd):
+        git_process = subprocess.run(['git', 'symbolic-ref', '--short', 'HEAD'],
+                                     stdout=subprocess.PIPE, cwd=cwd, encoding='utf-8')
+        if git_process.returncode == 0:
+            return git_process.stdout.strip()
+    return None
 
 
 def cmake(source_dir: str, install_dir: str, cwd: str) -> bool:
@@ -159,36 +175,20 @@ def cmake(source_dir: str, install_dir: str, cwd: str) -> bool:
 
 
 def make_and_install(cwd: str) -> bool:
-    make_process = subprocess.Popen(['make', '-j', str(job_count())],
+    make_process = subprocess.Popen(['make', '-j', str(job_count()), 'install'],
                                     stdout=subprocess.PIPE, cwd=cwd,
                                     universal_newlines=True)
     while True:
         output = make_process.stdout.readline().strip()
-        match = re.match(r'^\[\s*(\d+)%\]', output)
+        match = re.match(r'^\[\s*(\d+)%]', output)
         if match is not None:
             progress = match.group(1)
-            print('\rProgress: ' + progress, end='%')
+            print('\rProgress: ' + progress, end='%', flush=True)
         returncode = make_process.poll()
 
         if returncode is not None:
             print('')
             print('Done!\n')
-            if returncode != 0:
-                return False
-            break
-
-    print('Installing')
-
-    make_install_process = subprocess.Popen(['make', 'install'],
-                                            stdout=subprocess.PIPE, cwd=cwd,
-                                            universal_newlines=True)
-    while True:
-        output = make_install_process.stdout.readline().strip()
-        if output:
-            print(output)
-        returncode = make_install_process.poll()
-
-        if returncode is not None:
             if returncode != 0:
                 return False
             break
@@ -215,7 +215,7 @@ build_type_group.add_argument('-r',
 parser.add_argument('--no-update',
                     action='store_false',
                     dest='should_update',
-                    help="don't auto-update llvm before building")
+                    help="don't auto-update LLVM before building")
 parser.add_argument('--no-rebuild',
                     action='store_false',
                     dest='should_rebuild',
@@ -223,7 +223,11 @@ parser.add_argument('--no-rebuild',
 parser.add_argument('--rebuild-llvm',
                     action='store_true',
                     dest='should_rebuild_llvm',
-                    help='force rebuilding of the llvm libraries')
+                    help='force rebuilding of the LLVM libraries')
+parser.add_argument('--llvm-branch',
+                    default='juice/main',
+                    dest='llvm_branch',
+                    help='the branch of juice-llvm that should be used')
 
 parser.set_defaults(build_type='Release')
 
@@ -239,7 +243,7 @@ cmake_dir = os.path.join(build_dir, 'cmake')
 bin_dir = os.path.join(build_dir, 'bin')
 
 llvm_repo_dir = os.path.join(root_dir, 'juice-llvm')
-llvm_llvm_dir = os.path.join(root_dir, 'llvm')
+llvm_llvm_dir = os.path.join(llvm_repo_dir, 'llvm')
 llvm_build_dir = os.path.join(llvm_llvm_dir, 'build')
 llvm_install_dir = os.path.join(llvm_build_dir, 'install')
 llvm_last_build_hash_file = os.path.join(llvm_build_dir, '.lastbuildhash')
@@ -272,22 +276,41 @@ if os.path.exists(llvm_repo_dir):
     if not git_update(llvm_repo_dir):
         print('The directory seems to not contain a git repository, or the remote is missing.', file=sys.stderr)
         exit(1)
+
+    current_branch = git_get_current_branch(llvm_repo_dir)
+
+    if current_branch is None:
+        print('Could not get the current branch of the LLVM git repository.', file=sys.stderr)
+        exit(1)
+    elif current_branch != args.llvm_branch:
+        print("The LLVM repository is on the wrong branch. Trying to check out '" + args.llvm_branch + "'...")
+        if git_has_uncommitted_changes(llvm_repo_dir):
+            print("Could not check out the branch called '" + args.llvm_branch +
+                  "', because there are uncommitted changes.", file=sys.stderr)
+            print("Commit the changes in the LLVM repository or pass in the current branch using '--llvm_branch'.",
+                  file=sys.stderr)
+            exit(1)
+        if not git_checkout(args.llvm_branch, llvm_repo_dir):
+            print('Something went wrong while checking out the branch.', file=sys.stderr)
+            exit(1)
+
     status = git_remote_status(llvm_repo_dir)
 
     if status == GitRemoteStatus.error:
         print('Something went wrong while checking for git updates.', file=sys.stderr)
         exit(1)
     elif status == GitRemoteStatus.equal:
-        print('The llvm repository is up-to-date with the upstream!')
+        print('The LLVM repository is up-to-date with the upstream!')
     elif status == GitRemoteStatus.remote_ahead:
-        print('The upstream has changes, should llvm be updated automatically (y/n)?', end=' ')
+        print('The upstream has changes, should LLVM be updated automatically (y/n)?', end=' ', flush=True)
+
         answer = getch()
-        while answer.lower() != 'y' and answer.lower() != 'n':
+        while answer.lower().strip() not in ['y', 'yes', 'n', 'no']:
             answer = getch()
 
         print('\n')
 
-        if answer.lower() == 'y':
+        if answer.lower().strip() in ['y', 'yes']:
             print('Pulling git updates...')
 
             git_pull(llvm_repo_dir)
@@ -296,20 +319,24 @@ if os.path.exists(llvm_repo_dir):
         print('The local repository has unpushed changes and is ahead of the upstream.')
     else:
         print('Local repository and upstream have diverged. Consider merging the upstream manually.')
-        print('Should the build process continue (y/n)?', end=' ')
+        print('Should the build process continue (y/n)?', end=' ', flush=True)
+
         answer = getch()
-        while answer.lower() != 'y' and answer.lower() != 'n':
+        while answer.lower().strip() not in ['y', 'yes', 'n', 'no']:
             answer = getch()
 
         print('\n')
 
-        if answer.lower() == 'n':
-            print('You can run the build_script again when you are done merging the upstream of llvm.')
+        if answer.lower().strip() in ['y', 'yes']:
+            print('You can run the build_script again when you are done merging the upstream of LLVM.')
             exit(0)
 else:
     print("Directory '" + llvm_repo_dir + "' wasn't found at the juice root! Cloning from github...")
     if not git_clone('https://github.com/juice-lang/juice-llvm.git', llvm_repo_dir):
-        print('Something went wrong while cloning the llvm repository.', file=sys.stderr)
+        print('Something went wrong while cloning the LLVM repository.', file=sys.stderr)
+        exit(1)
+    if not git_checkout(args.llvm_branch, llvm_repo_dir):
+        print("Something went wrong while checking out the branch '" + args.llvm_branch + "'.", file=sys.stderr)
         exit(1)
 
 if os.path.exists(llvm_build_dir) and args.should_rebuild_llvm:
@@ -320,19 +347,19 @@ os.makedirs(llvm_install_dir, exist_ok=True)
 status = llvm_status()
 
 if status == LLVMStatus.error:
-    print('Something went wrong while checking, if llvm libraries need building.', file=sys.stderr)
+    print('Something went wrong while checking, if LLVM libraries need building.', file=sys.stderr)
     exit(1)
 elif status == LLVMStatus.needs_build:
-    print('Building the llvm libraries...')
+    print('Building and installing the LLVM libraries...')
 
     if not cmake(llvm_llvm_dir, llvm_install_dir, llvm_build_dir):
-        print('Something went wrong while generating the llvm Makefiles.', file=sys.stderr)
+        print('Something went wrong while generating the LLVM Makefiles.', file=sys.stderr)
         exit(1)
 
     make_and_install(llvm_build_dir)
     llvm_save_last_build_hash()
 else:
-    print('The llvm libraries are up-to-date and therefore not rebuilt.')
+    print('The LLVM libraries are up-to-date and will therefore not be rebuilt.')
 
 if args.should_rebuild:
     shutil.rmtree(build_dir)
@@ -340,7 +367,9 @@ if args.should_rebuild:
     os.makedirs(bin_dir)
 
 if not cmake(repo_dir, build_dir, cmake_dir):
-    print('Something went wrong while generating the llvm Makefiles.', file=sys.stderr)
+    print('Something went wrong while generating the juice Makefiles.', file=sys.stderr)
     exit(1)
+
+print('Building and installing juice...')
 
 make_and_install(cmake_dir)

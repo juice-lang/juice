@@ -11,8 +11,9 @@
 
 #include "juice/AST/ExpressionAST.h"
 
+#include <algorithm>
 #include <functional>
-#include <map>
+#include <vector>
 
 #include "juice/AST/Codegen.h"
 #include "juice/AST/CodegenError.h"
@@ -54,21 +55,17 @@ namespace juice {
         }
 
         llvm::Expected<llvm::Value *> BinaryOperatorExpressionAST::codegen(Codegen & state) const {
-            using namespace std::placeholders;
-            using TokenType = parser::LexerToken::Type;
-            using Builder = llvm::IRBuilder<>;
+            llvm::IRBuilder<> & builder = state.getBuilder();
 
-            Builder & builder = state.getBuilder();
-
-            std::map<TokenType, std::function<llvm::Value *(llvm::Value *, llvm::Value *)>> assignmentOperators {
-                {TokenType::operatorEqual, nullptr},
-                {TokenType::operatorPlusEqual, std::bind(&Builder::CreateFAdd, builder, _1, _2, "addtmp", nullptr)},
-                {TokenType::operatorMinusEqual, std::bind(&Builder::CreateFSub, builder, _1, _2, "subtmp", nullptr)},
-                {TokenType::operatorAsteriskEqual, std::bind(&Builder::CreateFMul, builder, _1, _2, "multmp", nullptr)},
-                {TokenType::operatorSlashEqual, std::bind(&Builder::CreateFDiv, builder, _1, _2, "divtmp", nullptr)}
+            std::vector<parser::LexerToken::Type> assignmentOperators {
+                parser::LexerToken::Type::operatorEqual,
+                parser::LexerToken::Type::operatorPlusEqual,
+                parser::LexerToken::Type::operatorMinusEqual,
+                parser::LexerToken::Type::operatorAsteriskEqual,
+                parser::LexerToken::Type::operatorSlashEqual
             };
 
-            auto instruction = assignmentOperators.find(_token->type);
+            auto instruction = std::find(assignmentOperators.begin(), assignmentOperators.end(), _token->type);
 
             if (instruction != assignmentOperators.end()) {
                 auto variable = llvm::dyn_cast_or_null<VariableExpressionAST>(_left.get());
@@ -88,10 +85,22 @@ namespace juice {
 
                 llvm::AllocaInst * alloca = state.getNamedValue(name);
 
-                if (instruction->second != nullptr) {
-                    llvm::Value * variableValue = builder.CreateLoad(alloca, name);
+                if (_token->type != parser::LexerToken::Type::operatorEqual) {
+                    llvm::Value * variableValue = builder.CreateLoad(llvm::Type::getDoubleTy(state.getContext()),
+                                                                     alloca, name);
 
-                    rightValue = instruction->second(variableValue, rightValue);
+                    switch (_token->type) {
+                        case parser::LexerToken::Type::operatorPlusEqual:
+                            rightValue = builder.CreateFAdd(variableValue, rightValue, "addtmp");
+                        case parser::LexerToken::Type::operatorMinusEqual:
+                            rightValue = builder.CreateFSub(variableValue, rightValue, "subtmp");
+                        case parser::LexerToken::Type::operatorAsteriskEqual:
+                            rightValue = builder.CreateFMul(variableValue, rightValue, "multmp");
+                        case parser::LexerToken::Type::operatorSlashEqual:
+                            rightValue = builder.CreateFDiv(variableValue, rightValue, "divtmp");
+                        default:
+                            llvm_unreachable("All assignment operators handled here!");
+                    }
                 }
 
                 builder.CreateStore(rightValue, alloca);
@@ -102,7 +111,8 @@ namespace juice {
             auto left = _left->codegen(state);
             if (auto error = left.takeError()) return std::move(error);
 
-            if (_token->type == TokenType::operatorAndAnd || _token->type == TokenType::operatorPipePipe) {
+            if (_token->type == parser::LexerToken::Type::operatorAndAnd ||
+                _token->type == parser::LexerToken::Type::operatorPipePipe) {
                 auto leftValue = *left;
 
                 if (!leftValue) return nullptr;
@@ -116,7 +126,8 @@ namespace juice {
                 llvm::BasicBlock * rightBlock = llvm::BasicBlock::Create(state.getContext(), "logical", function);
                 llvm::BasicBlock * mergeBlock = llvm::BasicBlock::Create(state.getContext(), "logicalcont");
 
-                if (_token->type == TokenType::operatorAndAnd) builder.CreateCondBr(leftValue, rightBlock, mergeBlock);
+                if (_token->type == parser::LexerToken::Type::operatorAndAnd)
+                    builder.CreateCondBr(leftValue, rightBlock, mergeBlock);
                 else builder.CreateCondBr(leftValue, mergeBlock, rightBlock);
 
                 llvm::BasicBlock * leftBlock = builder.GetInsertBlock();
@@ -159,35 +170,35 @@ namespace juice {
             if (*left == nullptr || *right == nullptr) return nullptr;
 
             switch (_token->type) {
-                case TokenType::operatorPlus:
+                case parser::LexerToken::Type::operatorPlus:
                     return builder.CreateFAdd(*left, *right, "addtmp");
-                case TokenType::operatorMinus:
+                case parser::LexerToken::Type::operatorMinus:
                     return builder.CreateFSub(*left, *right, "subtmp");
-                case TokenType::operatorAsterisk:
+                case parser::LexerToken::Type::operatorAsterisk:
                     return builder.CreateFMul(*left, *right, "multmp");
-                case TokenType::operatorSlash:
+                case parser::LexerToken::Type::operatorSlash:
                     return builder.CreateFDiv(*left, *right, "divtmp");
-                case TokenType::operatorEqualEqual: {
+                case parser::LexerToken::Type::operatorEqualEqual: {
                     auto value = builder.CreateFCmpOEQ(*left, *right, "eqtmp");
                     return builder.CreateUIToFP(value, llvm::Type::getDoubleTy(state.getContext()), "booltmp");
                 }
-                case TokenType::operatorBangEqual: {
+                case parser::LexerToken::Type::operatorBangEqual: {
                     auto value = builder.CreateFCmpONE(*left, *right, "netmp");
                     return builder.CreateUIToFP(value, llvm::Type::getDoubleTy(state.getContext()), "booltmp");
                 }
-                case TokenType::operatorLower: {
+                case parser::LexerToken::Type::operatorLower: {
                     auto value = builder.CreateFCmpOLT(*left, *right, "lttmp");
                     return builder.CreateUIToFP(value, llvm::Type::getDoubleTy(state.getContext()), "booltmp");
                 }
-                case TokenType::operatorLowerEqual: {
+                case parser::LexerToken::Type::operatorLowerEqual: {
                     auto value = builder.CreateFCmpOLE(*left, *right, "letmp");
                     return builder.CreateUIToFP(value, llvm::Type::getDoubleTy(state.getContext()), "booltmp");
                 }
-                case TokenType::operatorGreater: {
+                case parser::LexerToken::Type::operatorGreater: {
                     auto value = builder.CreateFCmpOGT(*left, *right, "gttmp");
                     return builder.CreateUIToFP(value, llvm::Type::getDoubleTy(state.getContext()), "booltmp");
                 }
-                case TokenType::operatorGreaterEqual: {
+                case parser::LexerToken::Type::operatorGreaterEqual: {
                     auto value = builder.CreateFCmpOGE(*left, *right, "getmp");
                     return builder.CreateUIToFP(value, llvm::Type::getDoubleTy(state.getContext()), "booltmp");
                 }
@@ -220,7 +231,7 @@ namespace juice {
             if (state.namedValueExists(name())) {
                 llvm::AllocaInst * alloca = state.getNamedValue(name());
 
-                return state.getBuilder().CreateLoad(alloca, name());
+                return state.getBuilder().CreateLoad(llvm::Type::getDoubleTy(state.getContext()), alloca, name());
             } else {
                 return llvm::make_error<CodegenErrorWithString>(diag::DiagnosticID::unresolved_identifer,
                                                                 getLocation(), name());
