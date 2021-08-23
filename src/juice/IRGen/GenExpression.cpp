@@ -11,12 +11,12 @@
 
 #include "juice/IRGen/IRGen.h"
 
-#include <functional>
 #include <map>
 #include <utility>
 
 #include "juice/Sema/TypeCheckedExpressionAST.h"
 #include "llvm/ADT/APFloat.h"
+#include "llvm/ADT/STLExtras.h"
 #include "llvm/IR/BasicBlock.h"
 #include "llvm/IR/Constants.h"
 #include "llvm/Support/Casting.h"
@@ -57,16 +57,31 @@ namespace juice {
 
         llvm::Value * IRGen::generateBinaryOperatorExpression(
             std::unique_ptr<sema::TypeCheckedBinaryOperatorExpressionAST> expression) {
-            using namespace std::placeholders;
             using TokenType = parser::LexerToken::Type;
-            using Builder = llvm::IRBuilder<>;
+            using AssignmentFunction =
+                llvm::function_ref<llvm::Value * (llvm::IRBuilder<> &, llvm::Value *, llvm::Value *)>;
 
-            std::map<TokenType, std::function<llvm::Value *(llvm::Value *, llvm::Value *)>> assignmentOperators {
-                {TokenType::operatorEqual, nullptr},
-                {TokenType::operatorPlusEqual, [&](auto l, auto r) { return _builder.CreateFAdd(l, r, "addtmp"); }},
-                {TokenType::operatorMinusEqual, [&](auto l, auto r) { return _builder.CreateFSub(l, r, "subtmp"); }},
-                {TokenType::operatorAsteriskEqual, [&](auto l, auto r) { return _builder.CreateFMul(l, r, "multmp"); }},
-                {TokenType::operatorSlashEqual, [&](auto l, auto r) { return _builder.CreateFDiv(l, r, "divtmp"); }}
+            static const std::map<TokenType, AssignmentFunction> assignmentOperators {
+                {
+                    TokenType::operatorEqual,
+                    nullptr
+                },
+                {
+                    TokenType::operatorPlusEqual,
+                    [](auto & builder, auto l, auto r) { return builder.CreateFAdd(l, r, "addtmp"); }
+                },
+                {
+                    TokenType::operatorMinusEqual,
+                    [](auto & builder, auto l, auto r) { return builder.CreateFSub(l, r, "subtmp"); }
+                },
+                {
+                    TokenType::operatorAsteriskEqual,
+                    [](auto & builder, auto l, auto r) { return builder.CreateFMul(l, r, "multmp"); }
+                },
+                {
+                    TokenType::operatorSlashEqual,
+                    [](auto & builder, auto l, auto r) { return builder.CreateFDiv(l, r, "divtmp"); }
+                }
             };
 
             auto instruction = assignmentOperators.find(expression->_token->type);
@@ -80,10 +95,10 @@ namespace juice {
 
                 llvm::AllocaInst * alloca = _allocas.at(variable._index);
 
-                if (instruction->second != nullptr) {
-                    llvm::Value * variableValue = _builder.CreateLoad(alloca, name);
+                if (instruction->second) {
+                    llvm::Value * variableValue = _builder.CreateLoad(llvm::Type::getDoubleTy(_context), alloca, name);
 
-                    right = instruction->second(variableValue, right);
+                    right = instruction->second(_builder, variableValue, right);
                 }
 
                 _builder.CreateStore(right, alloca);
@@ -164,7 +179,7 @@ namespace juice {
         IRGen::generateVariableExpression(std::unique_ptr<sema::TypeCheckedVariableExpressionAST> expression) {
             llvm::AllocaInst * alloca = _allocas.at(expression->_index);
 
-            return _builder.CreateLoad(alloca, expression->name());
+            return _builder.CreateLoad(llvm::Type::getDoubleTy(_context), alloca, expression->name());
         }
 
         llvm::Value *
