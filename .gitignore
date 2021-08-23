@@ -1,3 +1,19 @@
-/build
-.idea
+# Temp files created by most text editors.
+*~
+# Merge files created by git.
+*.orig
+# Byte compiled Python modules.
+*.pyc
+# vim swap files
+.*.sw[a-z]
+.sw?
+
+# Finder metadata
 .DS_Store
+
+# IntelliJ project directory
+.idea
+
+
+# Build directory
+/build

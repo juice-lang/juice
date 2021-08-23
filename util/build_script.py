@@ -11,15 +11,23 @@
 # See https://github.com/juice-lang/juice/blob/master/CONTRIBUTORS.txt for the list of juice project authors
 
 
+from __future__ import absolute_import, print_function, unicode_literals
+
 import argparse
 import os
 import re
+import selectors
 import shutil
 import subprocess
 import sys
 
 from enum import Enum
-from typing import Optional, Callable
+from typing import Optional
+
+
+from packages.progress import Progress
+from packages.io import action, error, note, success, question
+from packages.io import Color, should_style_output
 
 
 class GitRemoteStatus(Enum):
@@ -36,32 +44,10 @@ class LLVMStatus(Enum):
     needs_build = 2
 
 
-def _find_getch() -> Callable[[], str]:
-    try:
-        import termios
-    except ImportError:
-        # Non-POSIX. Return msvcrt's (Windows') getch.
-        import msvcrt
-        return msvcrt.getch
+git_env = os.environ.copy()
+git_env['LANG'] = 'en_US.UTF-8'
 
-    # POSIX system. Create and return a getch that manipulates the tty.
-    import sys
-    import tty
-
-    def _getch() -> str:
-        fd = sys.stdin.fileno()
-        old_settings = termios.tcgetattr(fd)
-        try:
-            tty.setraw(fd)
-            ch = sys.stdin.read(1)
-        finally:
-            termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
-        return ch
-
-    return _getch
-
-
-getch = _find_getch()
+is_tty = sys.stdout.isatty()
 
 
 def job_count() -> int:
@@ -73,50 +59,85 @@ def job_count() -> int:
     return 3
 
 
-git_repos = []
-
-
 def is_git_repo(cwd: str) -> bool:
-    if cwd in git_repos:
-        return True
-    if subprocess.call(['git', 'rev-parse'], cwd=cwd) == 0:
-        git_repos.append(cwd)
-        return True
-    return False
+    try:
+        if cwd in is_git_repo.git_repos:
+            return True
+    except AttributeError:
+        is_git_repo.git_repos = []
+
+    with subprocess.Popen(['git', 'rev-parse'],
+                          stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                          cwd=cwd, env=git_env,
+                          encoding='utf-8') as git_process:
+        while True:
+            print(git_process.stdout.readline().strip())
+
+            returncode = git_process.poll()
+
+            if returncode is not None:
+                if returncode == 0:
+                    is_git_repo.git_repos.append(cwd)
+                    return True
+                return False
 
 
 def git_clone(url: str, cwd: str) -> bool:
-    if subprocess.call(['git', 'clone', url, cwd]) == 0:
-        return True
-    return False
+    with subprocess.Popen(['git', 'clone', url, cwd],
+                          stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                          env=git_env, encoding='utf-8') as clone_process:
+        while True:
+            print(clone_process.stdout.readline().strip())
+
+            returncode = clone_process.poll()
+
+            if returncode is not None:
+                print('')
+                return returncode == 0
 
 
 def git_update(cwd: str) -> bool:
-    if is_git_repo(cwd):
-        if subprocess.call(['git', 'remote', 'update'], cwd=cwd) == 0:
-            return True
-    return False
+    if not is_git_repo(cwd):
+        return False
+
+    with subprocess.Popen(['git', 'remote', 'update'],
+                          stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                          env=git_env, encoding='utf-8') as update_process:
+        while True:
+            print(update_process.stdout.readline().strip())
+
+            returncode = update_process.poll()
+
+            if returncode is not None:
+                print('')
+                return returncode == 0
 
 
 def git_remote_status(cwd: str) -> GitRemoteStatus:
+    def get_git_hash(command: list) -> Optional[bytes]:
+        process = subprocess.run(command,
+                                 stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                                 cwd=cwd, env=git_env)
+        error_output = process.stderr.decode('utf-8').strip()
+        if error_output != '':
+            print(error_output + '\n')
+
+        if process.returncode == 0:
+            return process.stdout
+        return None
+
     if is_git_repo(cwd):
-        local_process = subprocess.run(['git', 'rev-parse', '@'],
-                                       stdout=subprocess.PIPE, cwd=cwd)
-        if local_process.returncode != 0:
+        local_hash = get_git_hash(['git', 'rev-parse', '@'])
+        if local_hash is None:
             return GitRemoteStatus.error
-        local_hash = local_process.stdout
 
-        remote_process = subprocess.run(['git', 'rev-parse', '@{u}'],
-                                        stdout=subprocess.PIPE, cwd=cwd)
-        if remote_process.returncode != 0:
+        remote_hash = get_git_hash(['git', 'rev-parse', '@{u}'])
+        if remote_hash is None:
             return GitRemoteStatus.error
-        remote_hash = remote_process.stdout
 
-        base_process = subprocess.run(['git', 'merge-base', '@', '@{u}'],
-                                      stdout=subprocess.PIPE, cwd=cwd)
-        if base_process.returncode != 0:
+        base_hash = get_git_hash(['git', 'merge-base', '@', '@{u}'])
+        if base_hash is None:
             return GitRemoteStatus.error
-        base_hash = base_process.stdout
 
         if local_hash == remote_hash:
             return GitRemoteStatus.equal
@@ -130,68 +151,128 @@ def git_remote_status(cwd: str) -> GitRemoteStatus:
 
 
 def git_pull(cwd: str) -> bool:
-    if is_git_repo(cwd):
-        return subprocess.call(['git', 'pull'], cwd=cwd) == 0
-    return False
+    if not is_git_repo(cwd):
+        return False
+
+    with subprocess.Popen(['git', 'pull'],
+                          stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                          env=git_env, encoding='utf-8') as pull_process:
+        while True:
+            print(pull_process.stdout.readline().strip())
+
+            returncode = pull_process.poll()
+
+            if returncode is not None:
+                print('')
+                return returncode == 0
 
 
 def git_checkout(branch: str, cwd: str) -> bool:
-    if is_git_repo(cwd):
-        return subprocess.call(['git', 'checkout', branch], cwd=cwd) == 0
-    return False
+    if not is_git_repo(cwd):
+        return False
+
+    with subprocess.Popen(['git', 'checkout', branch],
+                          stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                          env=git_env, encoding='utf-8') as checkout_process:
+        while True:
+            print(checkout_process.stdout.readline().strip())
+
+            returncode = checkout_process.poll()
+
+            if returncode is not None:
+                print('')
+                return returncode == 0
 
 
 def git_has_uncommitted_changes(cwd: str) -> bool:
     if is_git_repo(cwd):
-        if subprocess.check_output(['git', 'status', '--porcelain'], cwd=cwd):
+        if subprocess.check_output(['git', 'status', '--porcelain'],
+                                   cwd=cwd, env=git_env):
             return True
     return False
 
 
 def git_get_current_hash(cwd: str) -> bytes:
     if is_git_repo(cwd):
-        return subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=cwd).strip()
+        return subprocess.check_output(['git', 'rev-parse', 'HEAD'],
+                                       cwd=cwd, env=git_env).strip()
     return b''
 
 
 def git_get_current_branch(cwd: str) -> Optional[str]:
     if is_git_repo(cwd):
         git_process = subprocess.run(['git', 'symbolic-ref', '--short', 'HEAD'],
-                                     stdout=subprocess.PIPE, cwd=cwd, encoding='utf-8')
+                                     stdout=subprocess.PIPE,
+                                     stderr=subprocess.PIPE,
+                                     cwd=cwd, env=git_env, encoding='utf-8')
+        error_output = git_process.stderr.strip()
+        if error_output != '':
+            print(error_output + '\n')
+
         if git_process.returncode == 0:
             return git_process.stdout.strip()
     return None
 
 
 def cmake(source_dir: str, install_dir: str, cwd: str) -> bool:
-    cmake_process = subprocess.run(['cmake', source_dir, '-G', 'Unix Makefiles',
-                                    '-D', 'CMAKE_INSTALL_PREFIX=' + install_dir,
-                                    '-D', 'CMAKE_BUILD_TYPE=' + args.build_type],
-                                   stdout=subprocess.PIPE, cwd=cwd)
-    if cmake_process.returncode != 0:
-        return False
-    cmake_output = cmake_process.stdout
-    return True
+    action('Configuring build...\n')
+
+    cmake_command = ['cmake', source_dir, '-G', 'Unix Makefiles',
+                     '-D', 'CMAKE_INSTALL_PREFIX=' + install_dir,
+                     '-D', 'CMAKE_BUILD_TYPE=' + args.build_type]
+
+    if is_tty:
+        cmake_command.extend(['-D', 'FORCE_COLORED_OUTPUT=TRUE'])
+
+    with subprocess.Popen(cmake_command,
+                          stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                          cwd=cwd, encoding='utf-8') as cmake_process:
+        while True:
+            print(cmake_process.stdout.readline().strip())
+
+            returncode = cmake_process.poll()
+
+            if returncode is not None:
+                print('')
+                return returncode == 0
 
 
 def make_and_install(cwd: str) -> bool:
-    make_process = subprocess.Popen(['make', '-j', str(job_count()), 'install'],
-                                    stdout=subprocess.PIPE, cwd=cwd,
-                                    universal_newlines=True)
-    while True:
-        output = make_process.stdout.readline().strip()
-        match = re.match(r'^\[\s*(\d+)%]', output)
-        if match is not None:
-            progress = match.group(1)
-            print('\rProgress: ' + progress, end='%', flush=True)
-        returncode = make_process.poll()
+    action('Starting build...\n')
 
-        if returncode is not None:
-            print('')
-            print('Done!\n')
-            if returncode != 0:
+    progress = Progress(is_tty)
+
+    with subprocess.Popen(['make', '-j', '{}'.format(job_count()), 'install'],
+                          stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                          cwd=cwd, encoding='utf-8') as make_process:
+        progress.start()
+
+        sel = selectors.DefaultSelector()
+        sel.register(make_process.stdout, selectors.EVENT_READ)
+        sel.register(make_process.stderr, selectors.EVENT_READ)
+
+        while True:
+            for key, _ in sel.select():
+                if key.fileobj is make_process.stdout:
+                    output = key.fileobj.readline().strip()
+                    match = re.match(r'^\[\s*(\d+)%]', output)
+                    if match is not None:
+                        percent = int(match.group(1))
+                        progress.update(percent)
+                else:
+                    output = key.fileobj.readline().strip()
+                    if output != '':
+                        print(output, flush=True)
+
+            returncode = make_process.poll()
+
+            if returncode is not None:
+                print('\n')
+
+                if returncode == 0:
+                    success('Done!\n')
+                    return True
                 return False
-            break
 
 
 parser = argparse.ArgumentParser(prog='juice_build_script',
@@ -271,105 +352,148 @@ def llvm_save_last_build_hash() -> bool:
     return False
 
 
-if os.path.exists(llvm_repo_dir):
-    print("Directory '" + llvm_repo_dir + "' does already exist. Checking for git updates...")
-    if not git_update(llvm_repo_dir):
-        print('The directory seems to not contain a git repository, or the remote is missing.', file=sys.stderr)
-        exit(1)
+def main() -> int:
+    if not is_tty:
+        should_style_output(False)
 
-    current_branch = git_get_current_branch(llvm_repo_dir)
+    success('Building the juice compiler!\n', prefix='\n ')
 
-    if current_branch is None:
-        print('Could not get the current branch of the LLVM git repository.', file=sys.stderr)
-        exit(1)
-    elif current_branch != args.llvm_branch:
-        print("The LLVM repository is on the wrong branch. Trying to check out '" + args.llvm_branch + "'...")
-        if git_has_uncommitted_changes(llvm_repo_dir):
-            print("Could not check out the branch called '" + args.llvm_branch +
-                  "', because there are uncommitted changes.", file=sys.stderr)
-            print("Commit the changes in the LLVM repository or pass in the current branch using '--llvm_branch'.",
-                  file=sys.stderr)
-            exit(1)
-        if not git_checkout(args.llvm_branch, llvm_repo_dir):
-            print('Something went wrong while checking out the branch.', file=sys.stderr)
-            exit(1)
+    note('Building in ' + Color.magenta + args.build_type.upper()
+         + Color.blue + ' mode.\n')
 
-    status = git_remote_status(llvm_repo_dir)
+    action('Checking for LLVM repository...')
 
-    if status == GitRemoteStatus.error:
-        print('Something went wrong while checking for git updates.', file=sys.stderr)
-        exit(1)
-    elif status == GitRemoteStatus.equal:
-        print('The LLVM repository is up-to-date with the upstream!')
-    elif status == GitRemoteStatus.remote_ahead:
-        print('The upstream has changes, should LLVM be updated automatically (y/n)?', end=' ', flush=True)
+    if os.path.exists(llvm_repo_dir):
+        note('Directory ' + Color.magenta + "'" + llvm_repo_dir + "'"
+             + Color.blue + ' does already exist.\n')
 
-        answer = getch()
-        while answer.lower().strip() not in ['y', 'yes', 'n', 'no']:
-            answer = getch()
+        action('Checking for git updates...\n')
 
-        print('\n')
+        if not git_update(llvm_repo_dir):
+            error('Something went wrong while checking for git updates.')
+            return 1
 
-        if answer.lower().strip() in ['y', 'yes']:
-            print('Pulling git updates...')
+        current_branch = git_get_current_branch(llvm_repo_dir)
 
-            git_pull(llvm_repo_dir)
+        if current_branch is None:
+            error('Could not get the current branch of the LLVM repository.')
+            return 1
+        elif current_branch != args.llvm_branch:
+            note('The LLVM repository is on the wrong branch.\n')
+            action('Trying to check out '
+                   + Color.magenta + "'" + args.llvm_branch + "'"
+                   + Color.cyan + '...\n')
 
-    elif status == GitRemoteStatus.local_ahead:
-        print('The local repository has unpushed changes and is ahead of the upstream.')
+            if git_has_uncommitted_changes(llvm_repo_dir):
+                error('Could not check out the branch called '
+                      + Color.magenta + "'" + args.llvm_branch + "'"
+                      + Color.red + ', because there are uncommitted changes.')
+                error('Commit the changes in the LLVM '
+                      + 'repository or pass in the current branch using '
+                      + Color.magenta + "'--llvm_branch'"
+                      + Color.red + '.', prefix=' -> ')
+                return 1
+
+            if not git_checkout(args.llvm_branch, llvm_repo_dir):
+                error('Something went wrong while checking out the branch.')
+                return 1
+
+        status = git_remote_status(llvm_repo_dir)
+
+        if status == GitRemoteStatus.error:
+            error('Something went wrong while checking for git updates.')
+            return 1
+        elif status == GitRemoteStatus.equal:
+            note('The LLVM repository is up-to-date with the upstream!')
+        elif status == GitRemoteStatus.remote_ahead:
+            if question('The upstream has changes, should LLVM be updated '
+                        + 'automatically', Color.blue):
+                action('Pulling git updates...\n')
+
+                if not git_pull(llvm_repo_dir):
+                    error('Something went wrong while pulling the git updates.')
+                    return 1
+
+        elif status == GitRemoteStatus.local_ahead:
+            note('The local repository has unpushed changes and is ahead of '
+                 + 'the upstream.')
+        else:
+            note('Local repository and upstream have diverged. Consider '
+                 + 'merging the upstream manually.')
+            if not question('Should the build process continue', Color.blue):
+                note('You can run ' + Color.magenta + os.path.basename(__file__)
+                     + Color.blue + ' again when you are done merging the '
+                     + 'upstream of LLVM.')
+                return 0
     else:
-        print('Local repository and upstream have diverged. Consider merging the upstream manually.')
-        print('Should the build process continue (y/n)?', end=' ', flush=True)
+        note('Directory ' + Color.magenta + "'" + llvm_repo_dir + "'"
+             + Color.blue + " wasn't found!\n")
+        action('Cloning from github...\n')
 
-        answer = getch()
-        while answer.lower().strip() not in ['y', 'yes', 'n', 'no']:
-            answer = getch()
+        if not git_clone('https://github.com/juice-lang/juice-llvm.git',
+                         llvm_repo_dir):
+            error('Something went wrong while cloning the LLVM repository.')
+            return 1
 
-        print('\n')
+        if not git_checkout(args.llvm_branch, llvm_repo_dir):
+            error('Something went wrong while checking out the branch '
+                  + Color.magenta + "'" + args.llvm_branch + "'"
+                  + Color.red + '.')
+            return 1
 
-        if answer.lower().strip() in ['y', 'yes']:
-            print('You can run the build_script again when you are done merging the upstream of LLVM.')
-            exit(0)
-else:
-    print("Directory '" + llvm_repo_dir + "' wasn't found at the juice root! Cloning from github...")
-    if not git_clone('https://github.com/juice-lang/juice-llvm.git', llvm_repo_dir):
-        print('Something went wrong while cloning the LLVM repository.', file=sys.stderr)
-        exit(1)
-    if not git_checkout(args.llvm_branch, llvm_repo_dir):
-        print("Something went wrong while checking out the branch '" + args.llvm_branch + "'.", file=sys.stderr)
-        exit(1)
+    if os.path.exists(llvm_build_dir) and args.should_rebuild_llvm:
+        shutil.rmtree(llvm_build_dir)
 
-if os.path.exists(llvm_build_dir) and args.should_rebuild_llvm:
-    shutil.rmtree(llvm_build_dir)
+    os.makedirs(llvm_install_dir, exist_ok=True)
 
-os.makedirs(llvm_install_dir, exist_ok=True)
+    status = llvm_status()
 
-status = llvm_status()
+    if status == LLVMStatus.error:
+        error('Something went wrong while checking, if the LLVM libraries need '
+              + 'a rebuild.')
+        return 1
+    elif status == LLVMStatus.needs_build:
+        note('The LLVM libraries need to be built.\n')
+        action('Building the LLVM libraries...\n')
 
-if status == LLVMStatus.error:
-    print('Something went wrong while checking, if LLVM libraries need building.', file=sys.stderr)
-    exit(1)
-elif status == LLVMStatus.needs_build:
-    print('Building and installing the LLVM libraries...')
+        if not cmake(llvm_llvm_dir, llvm_install_dir, llvm_build_dir):
+            error('Something went wrong while generating the LLVM Makefiles.')
+            return 1
 
-    if not cmake(llvm_llvm_dir, llvm_install_dir, llvm_build_dir):
-        print('Something went wrong while generating the LLVM Makefiles.', file=sys.stderr)
-        exit(1)
+        if not make_and_install(llvm_build_dir):
+            error('Something went wrong while building the LLVM libraries.')
+            return 1
 
-    make_and_install(llvm_build_dir)
-    llvm_save_last_build_hash()
-else:
-    print('The LLVM libraries are up-to-date and will therefore not be rebuilt.')
+        llvm_save_last_build_hash()
+    else:
+        note('The LLVM libraries are up-to-date and will therefore not be '
+             + 'rebuilt.')
 
-if args.should_rebuild:
-    shutil.rmtree(build_dir)
-    os.makedirs(cmake_dir)
-    os.makedirs(bin_dir)
+    if args.should_rebuild:
+        shutil.rmtree(build_dir)
+        os.makedirs(cmake_dir)
+        os.makedirs(bin_dir)
 
-if not cmake(repo_dir, build_dir, cmake_dir):
-    print('Something went wrong while generating the juice Makefiles.', file=sys.stderr)
-    exit(1)
+    action('Building juice...\n', prefix='\n -> ')
 
-print('Building and installing juice...')
+    if not cmake(repo_dir, build_dir, cmake_dir):
+        error('Something went wrong while generating the juice Makefiles.')
+        return 1
 
-make_and_install(cmake_dir)
+    if not make_and_install(cmake_dir):
+        error('Something went wrong while building the juice compiler.')
+        return 1
+
+    success('Finished building the juice compiler!\n')
+
+    note('The executables have been installed under '
+         + Color.magenta + "'" + bin_dir + "'" + Color.blue + '.\n')
+
+    return 0
+
+
+if __name__ == "__main__":
+    try:
+        sys.exit(main())
+    except KeyboardInterrupt:
+        sys.exit(1)
