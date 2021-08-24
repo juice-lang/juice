@@ -102,7 +102,8 @@ def git_update(cwd: str) -> bool:
 
     with subprocess.Popen(['git', 'remote', 'update'],
                           stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
-                          env=git_env, encoding='utf-8') as update_process:
+                          cwd=cwd, env=git_env,
+                          encoding='utf-8') as update_process:
         while True:
             print(update_process.stdout.readline().strip())
 
@@ -156,7 +157,8 @@ def git_pull(cwd: str) -> bool:
 
     with subprocess.Popen(['git', 'pull'],
                           stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
-                          env=git_env, encoding='utf-8') as pull_process:
+                          cwd=cwd, env=git_env,
+                          encoding='utf-8') as pull_process:
         while True:
             print(pull_process.stdout.readline().strip())
 
@@ -173,7 +175,8 @@ def git_checkout(branch: str, cwd: str) -> bool:
 
     with subprocess.Popen(['git', 'checkout', branch],
                           stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
-                          env=git_env, encoding='utf-8') as checkout_process:
+                          cwd=cwd, env=git_env,
+                          encoding='utf-8') as checkout_process:
         while True:
             print(checkout_process.stdout.readline().strip())
 
@@ -199,15 +202,24 @@ def git_get_current_hash(cwd: str) -> bytes:
     return b''
 
 
+def git_is_branch(branch: str, cwd: str) -> bool:
+    if is_git_repo(cwd):
+        git_command = ['git', 'show-ref', '--verify', '-q',
+                       'refs/heads/' + branch]
+
+        git_process = subprocess.run(git_command, cwd=cwd, env=git_env)
+
+        return git_process.returncode == 0
+
+    return False
+
+
 def git_get_current_branch(cwd: str) -> Optional[str]:
     if is_git_repo(cwd):
-        git_process = subprocess.run(['git', 'symbolic-ref', '--short', 'HEAD'],
-                                     stdout=subprocess.PIPE,
-                                     stderr=subprocess.PIPE,
+        git_command = ['git', 'symbolic-ref', '--short', '-q', 'HEAD']
+
+        git_process = subprocess.run(git_command, stdout=subprocess.PIPE,
                                      cwd=cwd, env=git_env, encoding='utf-8')
-        error_output = git_process.stderr.strip()
-        if error_output != '':
-            print(error_output + '\n')
 
         if git_process.returncode == 0:
             return git_process.stdout.strip()
@@ -367,64 +379,72 @@ def main() -> int:
         note('Directory ' + Color.magenta + "'" + llvm_repo_dir + "'"
              + Color.blue + ' does already exist.\n')
 
-        action('Checking for git updates...\n')
+        if args.should_update:
+            action('Checking for git updates...\n')
 
-        if not git_update(llvm_repo_dir):
-            error('Something went wrong while checking for git updates.')
-            return 1
-
-        current_branch = git_get_current_branch(llvm_repo_dir)
-
-        if current_branch is None:
-            error('Could not get the current branch of the LLVM repository.')
-            return 1
-        elif current_branch != args.llvm_branch:
-            note('The LLVM repository is on the wrong branch.\n')
-            action('Trying to check out '
-                   + Color.magenta + "'" + args.llvm_branch + "'"
-                   + Color.cyan + '...\n')
-
-            if git_has_uncommitted_changes(llvm_repo_dir):
-                error('Could not check out the branch called '
-                      + Color.magenta + "'" + args.llvm_branch + "'"
-                      + Color.red + ', because there are uncommitted changes.')
-                error('Commit the changes in the LLVM '
-                      + 'repository or pass in the current branch using '
-                      + Color.magenta + "'--llvm_branch'"
-                      + Color.red + '.', prefix=' -> ')
+            if not git_update(llvm_repo_dir):
+                error('Something went wrong while checking for git updates.')
                 return 1
 
-            if not git_checkout(args.llvm_branch, llvm_repo_dir):
-                error('Something went wrong while checking out the branch.')
-                return 1
+            current_branch = git_get_current_branch(llvm_repo_dir)
 
-        status = git_remote_status(llvm_repo_dir)
+            if current_branch is None or current_branch != args.llvm_branch:
+                note('The LLVM repository is on the wrong branch.\n')
+                action('Trying to check out '
+                       + Color.magenta + "'" + args.llvm_branch + "'"
+                       + Color.cyan + '...\n')
 
-        if status == GitRemoteStatus.error:
-            error('Something went wrong while checking for git updates.')
-            return 1
-        elif status == GitRemoteStatus.equal:
-            note('The LLVM repository is up-to-date with the upstream!')
-        elif status == GitRemoteStatus.remote_ahead:
-            if question('The upstream has changes, should LLVM be updated '
-                        + 'automatically', Color.blue):
-                action('Pulling git updates...\n')
-
-                if not git_pull(llvm_repo_dir):
-                    error('Something went wrong while pulling the git updates.')
+                if not git_is_branch(args.llvm_branch, llvm_repo_dir):
+                    error('There is no branch called '
+                          + Color.magenta + "'" + args.llvm_branch + "'"
+                          + Color.red + ' in the juice-llvm repository.')
                     return 1
 
-        elif status == GitRemoteStatus.local_ahead:
-            note('The local repository has unpushed changes and is ahead of '
-                 + 'the upstream.')
-        else:
-            note('Local repository and upstream have diverged. Consider '
-                 + 'merging the upstream manually.')
-            if not question('Should the build process continue', Color.blue):
-                note('You can run ' + Color.magenta + os.path.basename(__file__)
-                     + Color.blue + ' again when you are done merging the '
-                     + 'upstream of LLVM.')
-                return 0
+                if git_has_uncommitted_changes(llvm_repo_dir):
+                    error('Could not check out the branch called '
+                          + Color.magenta + "'" + args.llvm_branch + "'"
+                          + Color.red
+                          + ', because there are uncommitted changes.')
+                    error('Commit the changes in the LLVM repository or pass in'
+                          'the current branch using '
+                          + Color.magenta + "'--llvm_branch'"
+                          + Color.red + '.', prefix=' -> ')
+                    return 1
+
+                if not git_checkout(args.llvm_branch, llvm_repo_dir):
+                    error('Something went wrong while checking out the branch.')
+                    return 1
+
+            status = git_remote_status(llvm_repo_dir)
+
+            if status == GitRemoteStatus.error:
+                error('Something went wrong while checking for git updates.')
+                return 1
+            elif status == GitRemoteStatus.equal:
+                note('The LLVM repository is up-to-date with the upstream!')
+            elif status == GitRemoteStatus.remote_ahead:
+                if question('The upstream has changes, should LLVM be updated '
+                            'automatically', Color.blue):
+                    action('Pulling git updates...\n')
+
+                    if not git_pull(llvm_repo_dir):
+                        error('Something went wrong while pulling the git '
+                              'updates.')
+                        return 1
+
+            elif status == GitRemoteStatus.local_ahead:
+                note('The local repository has unpushed changes and is ahead '
+                     'of the upstream.')
+            else:
+                note('Local repository and upstream have diverged. Consider '
+                     'merging the upstream manually.')
+                if not question('Should the build process continue',
+                                Color.blue):
+                    note('You can run '
+                         + Color.magenta + os.path.basename(__file__)
+                         + Color.blue + ' again when you are done merging the '
+                         'upstream of LLVM.')
+                    return 0
     else:
         note('Directory ' + Color.magenta + "'" + llvm_repo_dir + "'"
              + Color.blue + " wasn't found!\n")
@@ -433,6 +453,16 @@ def main() -> int:
         if not git_clone('https://github.com/juice-lang/juice-llvm.git',
                          llvm_repo_dir):
             error('Something went wrong while cloning the LLVM repository.')
+            return 1
+
+        action('Trying to check out '
+               + Color.magenta + "'" + args.llvm_branch + "'"
+               + Color.cyan + '...\n')
+
+        if not git_is_branch(args.llvm_branch, llvm_repo_dir):
+            error('There is no branch called '
+                  + Color.magenta + "'" + args.llvm_branch + "'"
+                  + Color.red + ' in the juice-llvm repository.')
             return 1
 
         if not git_checkout(args.llvm_branch, llvm_repo_dir):
@@ -450,7 +480,7 @@ def main() -> int:
 
     if status == LLVMStatus.error:
         error('Something went wrong while checking, if the LLVM libraries need '
-              + 'a rebuild.')
+              'a rebuild.')
         return 1
     elif status == LLVMStatus.needs_build:
         note('The LLVM libraries need to be built.\n')
@@ -467,7 +497,7 @@ def main() -> int:
         llvm_save_last_build_hash()
     else:
         note('The LLVM libraries are up-to-date and will therefore not be '
-             + 'rebuilt.')
+             'rebuilt.')
 
     if args.should_rebuild:
         shutil.rmtree(build_dir)

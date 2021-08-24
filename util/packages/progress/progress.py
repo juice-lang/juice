@@ -65,15 +65,13 @@ class Progress:
 
     @staticmethod
     def _duration_string(duration: float) -> str:
-        milliseconds = int(duration * 1000) % 1000
         seconds = int(duration) % 60
         minutes = int(duration / 60) % 60
         hours = int(duration / (60 * 60))
 
         if hours > 0:
-            return '{}:{:0>2}:{:0>2}.{:0>3}'.format(hours, minutes, seconds,
-                                                    milliseconds)
-        return '{:0>2}:{:0>2}.{:0>3}'.format(minutes, seconds, milliseconds)
+            return '{}:{:0>2}:{:0>2}'.format(hours, minutes, seconds)
+        return '{:0>2}:{:0>2}'.format(minutes, seconds)
 
     def _highlight_done(self, repeat: int) -> str:
         if self.pretty_output:
