@@ -30,7 +30,8 @@ namespace juice {
         class DriverTask {
         public:
             enum class Kind {
-                input
+                input,
+                compilation
             };
 
         private:
@@ -78,6 +79,27 @@ namespace juice {
         public:
             static bool classof(const DriverTask * task) {
                 return task->getKind() == Kind::input;
+            }
+        };
+
+        class CompilationTask: public DriverTask {
+        private:
+            CompilationTask(std::string executablePath, llvm::SmallVector<llvm::StringRef, 16> arguments,
+                            llvm::SmallVectorImpl<std::unique_ptr<DriverTask>> && inputs,
+                            std::string outputPath, bool outputIsTemporary);
+
+        public:
+            CompilationTask() = delete;
+
+            static llvm::Expected<std::unique_ptr<CompilationTask>>
+            create(const char * firstArg, std::unique_ptr<InputTask> input);
+            static std::unique_ptr<CompilationTask>
+            create(const char * firstArg, std::unique_ptr<InputTask> input, std::string outputPath,
+                   bool outputIsTemporary = false);
+
+
+            static bool classof(const DriverTask * task) {
+                return task->getKind() == Kind::compilation;
             }
         };
     }

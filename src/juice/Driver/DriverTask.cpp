@@ -118,5 +118,43 @@ namespace juice {
 
             return status.getLastModificationTime() > timePoint;
         }
+
+        CompilationTask::CompilationTask(std::string executablePath, llvm::SmallVector<llvm::StringRef, 16> arguments,
+                                         llvm::SmallVectorImpl<std::unique_ptr<DriverTask>> && inputs,
+                                         std::string outputPath, bool outputIsTemporary):
+            DriverTask(Kind::compilation, std::move(executablePath), std::move(arguments), std::move(inputs),
+                       std::move(outputPath), outputIsTemporary) {}
+
+        llvm::Expected<std::unique_ptr<CompilationTask>>
+        CompilationTask::create(const char * firstArg, std::unique_ptr<InputTask> input) {
+            llvm::StringRef inputBaseName = llvm::sys::path::stem(input->getOutput());
+
+            llvm::SmallString<128> tempOutputPath;
+            if (auto errorCode = llvm::sys::fs::createTemporaryFile(inputBaseName, "o", tempOutputPath)) {
+                return basic::createError<diag::StaticDiagnosticError>(diag::DiagnosticID::error_creating_temporary,
+                                                                       inputBaseName, errorCode);
+            }
+
+            return CompilationTask::create(firstArg, std::move(input), std::string(tempOutputPath), true);
+        }
+
+        std::unique_ptr<CompilationTask>
+        CompilationTask::create(const char * firstArg, std::unique_ptr<InputTask> input,
+                                std::string outputPath, bool outputIsTemporary) {
+            std::string executablePath = basic::getMainExecutablePath(firstArg);
+
+            llvm::SmallVector<llvm::StringRef, 16> arguments = {
+                "frontend",
+                "--input-file",
+                input->getOutput()
+            };
+
+            llvm::SmallVector<std::unique_ptr<DriverTask>, 4> inputs;
+            inputs.push_back(std::move(input));
+
+            return std::unique_ptr<CompilationTask>(
+                new CompilationTask(std::move(executablePath), std::move(arguments), std::move(inputs),
+                                    std::move(outputPath), outputIsTemporary));
+        }
     }
 }

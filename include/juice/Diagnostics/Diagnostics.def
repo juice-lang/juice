@@ -32,6 +32,7 @@
 ERROR(invalid_diagnostic, "INTERNAL ERROR: this diagnostic should not be produced", true)
 
 // Driver
+ERROR(error_creating_temporary, "could not create temporary file '%0.o': %1", true)
 ERROR(error_executing, "error while executing program '%0'", true)
 ERROR(error_parsing_args, "error while parsing commandline arguments:\n%0", true)
 ERROR(file_not_found, "no such file or directory: '%0'", true)
