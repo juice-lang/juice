@@ -59,7 +59,7 @@ namespace juice {
             llvm::StringRef getExecutablePath() const { return _executablePath; }
             llvm::ArrayRef<llvm::StringRef> getArguments() const { return _arguments; }
             llvm::ArrayRef<std::unique_ptr<DriverTask>> getInputs() const { return _inputs; }
-            llvm::StringRef getOutput() const { return _outputPath; }
+            llvm::StringRef getOutputPath() const { return _outputPath; }
 
         private:
             llvm::Expected<bool> executeInputs(llvm::sys::TimePoint<> timePoint);

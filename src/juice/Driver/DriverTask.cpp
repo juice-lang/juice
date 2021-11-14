@@ -37,10 +37,10 @@ namespace juice {
             if (auto errorCode = llvm::sys::fs::status(_outputPath, status)) {
                 if (errorCode != std::errc::no_such_file_or_directory)
                     return basic::createError<diag::StaticDiagnosticError>(diag::DiagnosticID::file_status_error,
-                                                                           _outputPath, errorCode);
+                                                                           getOutputPath(), errorCode);
             } else if (!llvm::sys::fs::is_regular_file(status)) {
                 return basic::createError<diag::StaticDiagnosticError>(diag::DiagnosticID::file_not_regular,
-                                                                       _outputPath);
+                                                                       getOutputPath());
             } else if (!_outputIsTemporary) {
                 auto modificationTime = status.getLastModificationTime();
 
@@ -66,7 +66,7 @@ namespace juice {
 
             if (result != 0) {
                 return basic::createError<diag::StaticDiagnosticError>(diag::DiagnosticID::error_executing,
-                                                                       _executablePath);
+                                                                       getExecutablePath());
             }
 
             return true;
@@ -106,14 +106,14 @@ namespace juice {
             if (auto errorCode = llvm::sys::fs::status(_outputPath, status)) {
                 if (errorCode == std::errc::no_such_file_or_directory)
                     return basic::createError<diag::StaticDiagnosticError>(diag::DiagnosticID::file_not_found,
-                                                                           _outputPath);
+                                                                           getOutputPath());
                 return basic::createError<diag::StaticDiagnosticError>(diag::DiagnosticID::file_status_error,
-                                                                       _outputPath, errorCode);
+                                                                       getOutputPath(), errorCode);
             }
 
             if (!llvm::sys::fs::is_regular_file(status)) {
                 return basic::createError<diag::StaticDiagnosticError>(diag::DiagnosticID::file_not_regular,
-                                                                       _outputPath);
+                                                                       getOutputPath());
             }
 
             return status.getLastModificationTime() > timePoint;
@@ -127,7 +127,7 @@ namespace juice {
 
         llvm::Expected<std::unique_ptr<CompilationTask>>
         CompilationTask::create(const char * firstArg, std::unique_ptr<InputTask> input) {
-            llvm::StringRef inputBaseName = llvm::sys::path::stem(input->getOutput());
+            llvm::StringRef inputBaseName = llvm::sys::path::stem(input->getOutputPath());
 
             llvm::SmallString<128> tempOutputPath;
             if (auto errorCode = llvm::sys::fs::createTemporaryFile(inputBaseName, "o", tempOutputPath)) {
@@ -146,7 +146,9 @@ namespace juice {
             llvm::SmallVector<llvm::StringRef, 16> arguments = {
                 "frontend",
                 "--input-file",
-                input->getOutput()
+                input->getOutputPath(),
+                "--output-file",
+                outputPath
             };
 
             llvm::SmallVector<std::unique_ptr<DriverTask>, 4> inputs;

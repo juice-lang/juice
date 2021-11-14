@@ -55,7 +55,7 @@ namespace juice {
 
             if (llvm::verifyFunction(*mainFunction, &os)) {
                 os.flush();
-                _diagnostics->diagnose(diag::DiagnosticID::function_verification_error, error);
+                _diagnostics->diagnose(diag::DiagnosticID::function_verification_error, error.c_str());
                 return false;
             }
 

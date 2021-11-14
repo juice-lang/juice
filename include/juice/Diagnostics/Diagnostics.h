@@ -14,6 +14,7 @@
 
 #include <cstdint>
 #include <memory>
+#include <string>
 #include <system_error>
 #include <vector>
 
@@ -122,6 +123,9 @@ namespace juice {
             explicit DiagnosticArg(const basic::Color color): _kind(Kind::color), _color(color) {}
             explicit DiagnosticArg(sema::Type type): _kind(Kind::type), _type(type) {}
             explicit DiagnosticArg(std::error_code errorCode): _kind(Kind::errorCode), _errorCode(errorCode) {}
+
+            explicit DiagnosticArg(const std::string & string) = delete;
+
 
             static void getAllInto(std::vector<DiagnosticArg> & vector) {}
 
