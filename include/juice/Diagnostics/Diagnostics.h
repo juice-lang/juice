@@ -112,6 +112,8 @@ namespace juice {
             explicit DiagnosticArg(unsigned int integer): _kind(Kind::integer), _integer(integer) {}
             explicit DiagnosticArg(double doubleValue): _kind(Kind::doubleValue), _double(doubleValue) {}
             explicit DiagnosticArg(bool boolean): _kind(Kind::boolean), _boolean(boolean) {}
+            explicit DiagnosticArg(const char * cString): _kind(Kind::string), _string(cString) {}
+            explicit DiagnosticArg(char * cString): _kind(Kind::string), _string(cString) {}
             explicit DiagnosticArg(llvm::StringRef string): _kind(Kind::string), _string(string) {}
             explicit DiagnosticArg(const parser::LexerToken * lexerToken): _kind(Kind::lexerToken), _lexerToken(lexerToken) {}
             explicit DiagnosticArg(const basic::Color color): _kind(Kind::color), _color(color) {}

@@ -143,24 +143,18 @@ namespace juice {
             return false;
         }
 
-        llvm::Error Parser::consume(LexerToken::Type type, llvm::Error errorToReturn) {
+        template <typename... Args>
+        llvm::Error Parser::consume(LexerToken::Type type, diag::DiagnosticID diagnosticID, Args &&... args) {
             if (check(type)) {
                 auto matchedToken = advance();
                 if (auto error = matchedToken.takeError()) return error;
 
                 _matchedToken = std::move(*matchedToken);
-                
-                llvm::consumeError(std::move(errorToReturn));
 
                 return llvm::Error::success();
             }
 
-            return std::move(errorToReturn);
-        }
-
-        template <typename... Args>
-        llvm::Error Parser::consume(LexerToken::Type type, diag::DiagnosticID diagnosticID, Args &&... args) {
-            return consume(type, createError(diagnosticID, std::forward<Args>(args)...));
+            return createError(diagnosticID, std::forward<Args>(args)...);
         }
 
         bool Parser::lookaheadIsAtEnd() {

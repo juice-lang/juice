@@ -92,7 +92,6 @@ namespace juice {
             template <size_t size>
             llvm::Expected<bool> match(const std::array<LexerToken::Type, size> & types);
 
-            llvm::Error consume(LexerToken::Type type, llvm::Error errorToReturn);
             template <typename... Args>
             llvm::Error consume(LexerToken::Type type, diag::DiagnosticID diagnosticID, Args &&... args);
 
