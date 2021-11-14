@@ -40,8 +40,6 @@ if(NOT ${LLVM_ENABLE_RTTI})
     list(APPEND LLVM_COMPILE_FLAG_LIST "-fno-rtti")
 endif()
 
-set(OTHER_COMPILE_FLAG_LIST ${LLVM_COMPILE_FLAG_LIST})
-
 if(NOT ${LLVM_ENABLE_EH})
     list(APPEND LLVM_COMPILE_FLAG_LIST "-fno-exceptions")
 endif()

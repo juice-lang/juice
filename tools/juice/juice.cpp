@@ -9,17 +9,15 @@
 // See https://github.com/juice-lang/juice/blob/master/CONTRIBUTORS.txt for the list of juice project authors
 
 
-#include <string>
-#include <vector>
-
 #include "juice/Driver/Driver.h"
+#include "juice/Driver/VersionPrinter.h"
+#include "llvm/Support/CommandLine.h"
 
-using namespace juice::driver;
+int main(int argc, const char * const * argv) {
+    llvm::cl::SetVersionPrinter(juice::driver::VersionPrinter::print);
+    llvm::cl::ParseCommandLineOptions(argc, argv, "The juice-lang compiler", nullptr, nullptr, true);
 
-int main(int argc, char ** argv) {
-    std::vector<std::string> args(argv, argv + argc);
-
-    Driver * driver = Driver::withArguments(args);
+    juice::driver::Driver * driver = juice::driver::Driver::create(argv[0]);
     int returnValue = driver->execute();
 
     delete driver;

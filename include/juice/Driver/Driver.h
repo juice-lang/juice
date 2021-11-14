@@ -12,9 +12,6 @@
 #ifndef JUICE_DRIVER_DRIVER_H
 #define JUICE_DRIVER_DRIVER_H
 
-#include <vector>
-#include <string>
-
 namespace juice {
     namespace driver {
         class Driver {
@@ -23,7 +20,7 @@ namespace juice {
 
             virtual int execute() = 0;
 
-            static Driver * withArguments(std::vector<std::string> & args);
+            static Driver * create(const char * firstArg);
         };
     }
 }
