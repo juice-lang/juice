@@ -9,25 +9,6 @@
 # See https://github.com/juice-lang/juice/blob/master/CONTRIBUTORS.txt for the list of juice project authors
 
 
-string(REGEX REPLACE "([0-9]+)\\.[0-9]+(\\.[0-9]+)?" "\\1" JUICE_VERSION_MAJOR ${JUICE_VERSION})
-string(REGEX REPLACE "[0-9]+\\.([0-9]+)(\\.[0-9]+)?" "\\1" JUICE_VERSION_MINOR ${JUICE_VERSION})
-
-set_property(SOURCE Version.cpp APPEND_STRING PROPERTY COMPILE_FLAGS
-        " -DJUICE_VERSION=${JUICE_VERSION} -DJUICE_VERSION_MAJOR=${JUICE_VERSION_MAJOR} -DJUICE_VERSION_MINOR=${JUICE_VERSION_MINOR}")
-
-if ("${JUICE_VERSION}" MATCHES "[0-9]+\\.[0-9]+\\.[0-9]+")
-    string(REGEX REPLACE "[0-9]+\\.[0-9]+\\.([0-9]+)" "\\1" JUICE_VERSION_PATCHLEVEL
-            ${JUICE_VERSION})
-    set_property(SOURCE Version.cpp APPEND_STRING PROPERTY COMPILE_FLAGS
-            " -DJUICE_HAS_VERSION_PATCHLEVEL=1 -DJUICE_VERSION_PATCHLEVEL=${JUICE_VERSION_PATCHLEVEL}")
-else()
-    set_property(SOURCE Version.cpp APPEND_STRING PROPERTY COMPILE_FLAGS
-            " -DJUICE_HAS_VERSION_PATCHLEVEL=0")
-endif()
-
-
-add_compile_options(${LLVM_COMPILE_FLAG_LIST})
-
 add_library(juiceBasic STATIC
         Error.cpp
         RawStreamHelpers.cpp
@@ -35,3 +16,27 @@ add_library(juiceBasic STATIC
         SourceManager.cpp
         StringHelpers.cpp
         Version.cpp)
+
+target_compile_options(juiceBasic PRIVATE ${LLVM_COMPILE_FLAG_LIST})
+
+
+string(REGEX REPLACE "([0-9]+)\\.[0-9]+(\\.[0-9]+)?" "\\1" JUICE_VERSION_MAJOR ${JUICE_VERSION})
+string(REGEX REPLACE "[0-9]+\\.([0-9]+)(\\.[0-9]+)?" "\\1" JUICE_VERSION_MINOR ${JUICE_VERSION})
+
+target_compile_definitions(juiceBasic PRIVATE
+        JUICE_VERSION=${JUICE_VERSION}
+        JUICE_VERSION_MAJOR=${JUICE_VERSION_MAJOR}
+        JUICE_VERSION_MINOR=${JUICE_VERSION_MINOR})
+
+if("${JUICE_VERSION}" MATCHES "[0-9]+\\.[0-9]+\\.[0-9]+")
+    string(REGEX REPLACE "[0-9]+\\.[0-9]+\\.([0-9]+)" "\\1" JUICE_VERSION_PATCHLEVEL
+            ${JUICE_VERSION})
+    target_compile_definitions(juiceBasic PRIVATE
+            JUICE_HAS_VERSION_PATCHLEVEL=1
+            JUICE_VERSION_PATCHLEVEL=${JUICE_VERSION_PATCHLEVEL})
+else()
+    target_compile_definitions(juiceBasic PRIVATE
+            JUICE_HAS_VERSION_PATCHLEVEL=0)
+endif()
+
+

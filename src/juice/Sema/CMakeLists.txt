@@ -9,8 +9,6 @@
 # See https://github.com/juice-lang/juice/blob/master/CONTRIBUTORS.txt for the list of juice project authors
 
 
-add_compile_options(${LLVM_COMPILE_FLAGS})
-
 add_library(juiceSema STATIC
         BuiltinType.cpp
         Type.cpp
@@ -19,3 +17,5 @@ add_library(juiceSema STATIC
         TypeCheckedExpressionAST.cpp
         TypeCheckedStatementAST.cpp
         TypeChecker.cpp)
+
+target_compile_options(juiceSema PRIVATE ${LLVM_COMPILE_FLAG_LIST})

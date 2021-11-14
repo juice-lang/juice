@@ -39,7 +39,7 @@ namespace juice {
             _major(major), _minor(minor), _patch(patch) {}
 
         Version Version::getCurrent() {
-            #if JUICE_VERSION_PATCHLEVEL
+            #if JUICE_HAS_VERSION_PATCHLEVEL
                 return {JUICE_VERSION_MAJOR, JUICE_VERSION_MINOR, JUICE_VERSION_PATCHLEVEL};
             #else
                 return {JUICE_VERSION_MAJOR, JUICE_VERSION_MINOR};

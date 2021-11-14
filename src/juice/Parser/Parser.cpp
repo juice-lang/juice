@@ -14,14 +14,19 @@
 #include <string>
 #include <utility>
 
+#include "juice/Diagnostics/DiagnosticError.h"
 #include "juice/Basic/Error.h"
 #include "juice/Basic/SourceLocation.h"
 
 namespace juice {
     namespace parser {
-        char Parser::LexerError::ID = 0;
-        char Parser::Error::ID = 0;
-        char Parser::ErrorWithString::ID = 0;
+        const char Parser::LexerError::ID = 0;
+
+        template <typename... Args>
+        llvm::Error Parser::createError(diag::DiagnosticID diagnosticID, Args &&... args) {
+            basic::SourceLocation location(_currentToken->string.begin());
+            return basic::createError<diag::DiagnosticError>(location, diagnosticID, std::forward<Args>(args)...);
+        }
 
         bool Parser::isAtEnd() {
             return _currentToken == nullptr || _currentToken->type == LexerToken::Type::eof;
@@ -79,7 +84,7 @@ namespace juice {
         }
 
         llvm::Error Parser::advanceOne() {
-            if (isAtEnd()) return llvm::make_error<Error>(diag::DiagnosticID::unexpected_parser_error);
+            if (isAtEnd()) return createError(diag::DiagnosticID::unexpected_parser_error);
             _previousToken = std::move(_currentToken);
             if (_previousToken) _wasNewline = (_previousToken->type == LexerToken::Type::delimiterNewline);
             _currentToken = _lookaheadTokens.empty() ? _lexer->nextToken() : moveFirstLookaheadToken();
@@ -153,9 +158,9 @@ namespace juice {
             return std::move(errorToReturn);
         }
 
-        template <typename T, typename... Args, std::enable_if_t<std::is_base_of<llvm::ErrorInfo<T>, T>::value> *>
+        template <typename... Args>
         llvm::Error Parser::consume(LexerToken::Type type, diag::DiagnosticID diagnosticID, Args &&... args) {
-            return consume(type, llvm::make_error<T>(diagnosticID, std::forward<Args>(args)...));
+            return consume(type, createError(diagnosticID, std::forward<Args>(args)...));
         }
 
         bool Parser::lookaheadIsAtEnd() {
@@ -189,7 +194,7 @@ namespace juice {
         }
 
         llvm::Error Parser::advanceLookaheadOne() {
-            if (lookaheadIsAtEnd()) return llvm::make_error<Error>(diag::DiagnosticID::unexpected_parser_error);
+            if (lookaheadIsAtEnd()) return createError(diag::DiagnosticID::unexpected_parser_error);
             _lookaheadTokens.push_back(_lexer->nextToken());
             if (checkLookahead(LexerToken::Type::error)) return llvm::make_error<LexerError>();
 
@@ -247,8 +252,8 @@ namespace juice {
 
 
         llvm::Expected<std::unique_ptr<ast::BlockAST>> Parser::parseBlock(llvm::StringRef name) {
-            if (auto error = consume<ErrorWithString>(LexerToken::Type::delimiterLeftBrace,
-                                                      diag::DiagnosticID::expected_left_brace, name))
+            if (auto error = consume(LexerToken::Type::delimiterLeftBrace,
+                                     diag::DiagnosticID::expected_left_brace, name))
                 return std::move(error);
 
             auto block = std::make_unique<ast::BlockAST>(std::move(_matchedToken));
@@ -260,9 +265,8 @@ namespace juice {
                 return parser->isAtEnd() || parser->check(LexerToken::Type::delimiterRightBrace);
             })) return std::move(error);
 
-            if (auto error =
-                consume(LexerToken::Type::delimiterRightBrace,
-                        llvm::make_error<ErrorWithString>(diag::DiagnosticID::expected_right_brace, name)))
+            if (auto error = consume(LexerToken::Type::delimiterRightBrace,
+                                     diag::DiagnosticID::expected_right_brace, name))
                 return std::move(error);
 
             _inBlock = wasInBlock;
@@ -279,9 +283,8 @@ namespace juice {
                 return std::make_unique<ast::ControlFlowBodyAST>(std::move(keyword), std::move(*block));
             }
 
-            if (auto error = consume<ErrorWithString>(LexerToken::Type::delimiterColon,
-                                                      diag::DiagnosticID::expected_left_brace_or_colon,
-                                                      keyword->string))
+            if (auto error = consume(LexerToken::Type::delimiterColon,
+                                     diag::DiagnosticID::expected_left_brace_or_colon, keyword->string))
                 return std::move(error);
 
             auto expression = parseExpression();
@@ -341,7 +344,7 @@ namespace juice {
             }
 
 
-            if (auto error = consume<Error>(LexerToken::Type::keywordElse, diag::DiagnosticID::expected_else))
+            if (auto error = consume(LexerToken::Type::keywordElse, diag::DiagnosticID::expected_else))
                 return std::move(error);
 
             auto elseKeyword = std::move(_matchedToken);
@@ -364,14 +367,14 @@ namespace juice {
                 auto expression = parseExpression();
                 if (auto error = expression.takeError()) return std::move(error);
 
-                if (auto error = consume<Error>(LexerToken::Type::delimiterRightParen,
-                                                diag::DiagnosticID::expected_right_paren))
+                if (auto error = consume(LexerToken::Type::delimiterRightParen,
+                                         diag::DiagnosticID::expected_right_paren))
                     return std::move(error);
 
                 return std::make_unique<ast::GroupingExpressionAST>(std::move(token), std::move(*expression));
             }
 
-            return llvm::make_error<Error>(diag::DiagnosticID::expected_expression);
+            return createError(diag::DiagnosticID::expected_expression);
         }
 
         llvm::Expected<std::unique_ptr<ast::ExpressionAST>> Parser::parsePrimaryExpression() {
@@ -468,7 +471,7 @@ namespace juice {
 
                 if (check(LexerToken::Type::operatorLower, LexerToken::Type::operatorLowerEqual,
                           LexerToken::Type::operatorGreater, LexerToken::Type::operatorGreaterEqual))
-                    return llvm::make_error<ErrorWithString>(diag::DiagnosticID::unexpected_operator, "comparison");
+                    return createError(diag::DiagnosticID::unexpected_operator, "comparison");
             }
 
             return node;
@@ -492,7 +495,7 @@ namespace juice {
                 if (auto error = node.takeError()) return std::move(error);
 
                 if (check(LexerToken::Type::operatorEqualEqual, LexerToken::Type::operatorBangEqual))
-                    return llvm::make_error<ErrorWithString>(diag::DiagnosticID::unexpected_operator, "equality");
+                    return createError(diag::DiagnosticID::unexpected_operator, "equality");
             }
 
             return node;
@@ -583,9 +586,8 @@ namespace juice {
             if (auto error = expression.takeError()) return std::move(error);
 
             if (!_wasNewline && !(_inBlock && check(LexerToken::Type::delimiterRightBrace))) {
-                if (auto error = consume<ErrorWithString>(LexerToken::Type::delimiterSemicolon,
-                                                          diag::DiagnosticID::expected_newline_or_semicolon,
-                                                          "expression"))
+                if (auto error = consume(LexerToken::Type::delimiterSemicolon,
+                                         diag::DiagnosticID::expected_newline_or_semicolon, "expression"))
                     return std::move(error);
             }
 
@@ -621,22 +623,21 @@ namespace juice {
         llvm::Expected<std::unique_ptr<ast::VariableDeclarationAST>> Parser::parseVariableDeclaration() {
             auto keyword = std::move(_matchedToken);
 
-            if (auto error = consume<Error>(LexerToken::Type::identifier, diag::DiagnosticID::expected_variable_name))
+            if (auto error = consume(LexerToken::Type::identifier, diag::DiagnosticID::expected_variable_name))
                 return std::move(error);
 
             auto name = std::move(_matchedToken);
 
-            if (auto error = consume<Error>(LexerToken::Type::operatorEqual,
-                                            diag::DiagnosticID::expected_variable_initialization))
+            if (auto error = consume(LexerToken::Type::operatorEqual,
+                                     diag::DiagnosticID::expected_variable_initialization))
                 return std::move(error);
 
             auto initialization = parseExpression();
             if (auto error = initialization.takeError()) return std::move(error);
 
             if (!_wasNewline && !(_inBlock && check(LexerToken::Type::delimiterRightBrace))) {
-                if (auto error = consume<ErrorWithString>(LexerToken::Type::delimiterSemicolon,
-                                                          diag::DiagnosticID::expected_newline_or_semicolon,
-                                                          "variable declaration"))
+                if (auto error = consume(LexerToken::Type::delimiterSemicolon,
+                                         diag::DiagnosticID::expected_newline_or_semicolon, "variable declaration"))
                     return std::move(error);
             }
 
@@ -696,19 +697,11 @@ namespace juice {
         std::unique_ptr<ast::ModuleAST> Parser::parseModule() {
             auto module = std::make_unique<ast::ModuleAST>();
 
-            if (auto error = llvm::handleErrors(parseContainer(*module), [this](const ErrorWithString & error) {
-                    basic::SourceLocation location(_currentToken->string.begin());
-                    _diagnostics->diagnose(location, error.getDiagnosticID(), error.getName());
-                    return llvm::make_error<basic::ReturningError>();
-                }, [this](const Error & error) {
-                    basic::SourceLocation location(_currentToken->string.begin());
-                    _diagnostics->diagnose(location, error.getDiagnosticID());
-                    return llvm::make_error<basic::ReturningError>();
-                }, [this](const LexerError & error) {
-                    _currentToken->diagnoseInto(*_diagnostics);
-                    return llvm::make_error<basic::ReturningError>();
-                })) {
-                llvm::consumeError(std::move(error));
+            if (basic::handleAllErrors(parseContainer(*module), [this](const diag::DiagnosticError & error) {
+                error.diagnoseInto(*_diagnostics);
+            }, [this](const LexerError &) {
+                _currentToken->diagnoseInto(*_diagnostics);
+            })) {
                 return nullptr;
             }
 

@@ -1,4 +1,4 @@
-// src/juice/Basic/Error.cpp - Helper classes for working with llvm Errors
+// src/juice/Basic/Error.cpp - Helpers for working with llvm Errors
 //
 // This source file is part of the juice open source project
 //
@@ -12,6 +12,6 @@
 
 namespace juice {
     namespace basic {
-        char ReturningError::ID = 0;
+        const char DummyError::ID = 0;
     }
 }

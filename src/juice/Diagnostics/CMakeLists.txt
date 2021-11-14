@@ -9,7 +9,8 @@
 # See https://github.com/juice-lang/juice/blob/master/CONTRIBUTORS.txt for the list of juice project authors
 
 
-add_compile_options(${LLVM_COMPILE_FLAG_LIST})
-
 add_library(juiceDiagnostics STATIC
+        DiagnosticError.cpp
         Diagnostics.cpp)
+
+target_compile_options(juiceDiagnostics PRIVATE ${LLVM_COMPILE_FLAG_LIST})

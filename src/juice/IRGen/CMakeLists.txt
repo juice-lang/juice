@@ -9,10 +9,10 @@
 # See https://github.com/juice-lang/juice/blob/master/CONTRIBUTORS.txt for the list of juice project authors
 
 
-add_compile_options(${LLVM_COMPILE_FLAGS})
-
 add_library(juiceIRGen STATIC
         GenDeclaration.cpp
         GenExpression.cpp
         GenStatement.cpp
         IRGen.cpp)
+
+target_compile_options(juiceIRGen PRIVATE ${LLVM_COMPILE_FLAG_LIST})

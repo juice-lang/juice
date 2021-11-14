@@ -36,55 +36,10 @@ namespace juice {
         class Parser {
             class LexerError: public llvm::ErrorInfo<LexerError> {
             public:
-                static char ID;
+                static const char ID;
 
                 void log(llvm::raw_ostream & os) const override {
                     os << "LexerError";
-                }
-
-                std::error_code convertToErrorCode() const override {
-                    return llvm::inconvertibleErrorCode();
-                }
-            };
-
-            class Error: public llvm::ErrorInfo<Error> {
-                diag::DiagnosticID _diagnosticID;
-
-            public:
-                static char ID;
-
-                Error() = delete;
-
-                explicit Error(diag::DiagnosticID diagnosticID): _diagnosticID(diagnosticID) {}
-
-                diag::DiagnosticID getDiagnosticID() const { return _diagnosticID; }
-
-                void log(llvm::raw_ostream & os) const override {
-                    os << "Error";
-                }
-
-                std::error_code convertToErrorCode() const override {
-                    return llvm::inconvertibleErrorCode();
-                }
-            };
-
-            class ErrorWithString: public llvm::ErrorInfo<ErrorWithString> {
-                diag::DiagnosticID _diagnosticID;
-                llvm::StringRef _name;
-
-            public:
-                static char ID;
-
-                ErrorWithString() = delete;
-
-                ErrorWithString(diag::DiagnosticID diagnosticID, llvm::StringRef name):
-                    _diagnosticID(diagnosticID), _name(name) {}
-
-                diag::DiagnosticID getDiagnosticID() const { return _diagnosticID; }
-                llvm::StringRef getName() const { return _name; }
-
-                void log(llvm::raw_ostream & os) const override {
-                    os << "ErrorWithString";
                 }
 
                 std::error_code convertToErrorCode() const override {
@@ -104,6 +59,9 @@ namespace juice {
 
             bool _inBlock;
             bool _wasNewline;
+
+            template <typename... Args>
+            llvm::Error createError(diag::DiagnosticID diagnosticID, Args &&... args);
 
             bool isAtEnd();
 
@@ -135,8 +93,7 @@ namespace juice {
             llvm::Expected<bool> match(const std::array<LexerToken::Type, size> & types);
 
             llvm::Error consume(LexerToken::Type type, llvm::Error errorToReturn);
-            template <typename T, typename... Args,
-                      std::enable_if_t<std::is_base_of<llvm::ErrorInfo<T>, T>::value> * = nullptr>
+            template <typename... Args>
             llvm::Error consume(LexerToken::Type type, diag::DiagnosticID diagnosticID, Args &&... args);
 
 

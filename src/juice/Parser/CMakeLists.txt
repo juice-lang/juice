@@ -9,10 +9,10 @@
 # See https://github.com/juice-lang/juice/blob/master/CONTRIBUTORS.txt for the list of juice project authors
 
 
-add_compile_options(${LLVM_COMPILE_FLAG_LIST})
-
 add_library(juiceParser STATIC
         FSM.cpp
         Lexer.cpp
         LexerToken.cpp
         Parser.cpp)
+
+target_compile_options(juiceParser PRIVATE ${LLVM_COMPILE_FLAG_LIST})
