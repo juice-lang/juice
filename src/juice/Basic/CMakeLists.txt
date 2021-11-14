@@ -40,3 +40,13 @@ else()
 endif()
 
 
+if(DEFINED LLVM_PACKAGE_VERSION)
+    target_compile_definitions(juiceBasic PRIVATE
+            JUICE_HAS_LLVM_VERSION=1
+            JUICE_LLVM_VERSION_MAJOR=${LLVM_VERSION_MAJOR}
+            JUICE_LLVM_VERSION_MINOR=${LLVM_VERSION_MINOR}
+            JUICE_LLVM_VERSION_PATCHLEVEL=${LLVM_VERSION_PATCH})
+else()
+    target_compile_definitions(juiceBasic PRIVATE
+            JUICE_HAS_LLVM_VERSION=0)
+endif()

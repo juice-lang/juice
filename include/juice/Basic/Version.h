@@ -12,6 +12,7 @@
 #ifndef JUICE_BASIC_VERSION_H
 #define JUICE_BASIC_VERSION_H
 
+#include "llvm/ADT/Optional.h"
 #include "llvm/Support/raw_ostream.h"
 
 namespace juice {
@@ -22,6 +23,8 @@ namespace juice {
             Version(int major, int minor, int patch = -1);
             static Version getCurrent();
             static std::string getCurrentString();
+
+            static llvm::Optional<Version> getLLVM();
 
             std::string getString() const;
 

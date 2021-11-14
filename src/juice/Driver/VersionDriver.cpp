@@ -17,8 +17,17 @@
 namespace juice {
     namespace driver {
         int VersionDriver::execute() {
+            auto & os = llvm::outs();
+
             auto currentVersion = basic::Version::getCurrent();
-            llvm::outs() << "juice version " << currentVersion << '\n';
+            os << "juice version " << currentVersion;
+
+            if (auto llvmVersion = basic::Version::getLLVM()) {
+                os << " (using LLVM version " << llvmVersion << ")";
+            }
+
+            os << "\n";
+
             return 0;
         }
     }
