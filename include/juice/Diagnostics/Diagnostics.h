@@ -14,6 +14,7 @@
 
 #include <cstdint>
 #include <memory>
+#include <system_error>
 #include <vector>
 
 #include "juice/Basic/RawStreamHelpers.h"
@@ -91,7 +92,8 @@ namespace juice {
                 string,
                 lexerToken,
                 color,
-                type
+                type,
+                errorCode
             };
 
         private:
@@ -104,6 +106,7 @@ namespace juice {
                 const parser::LexerToken * _lexerToken;
                 const basic::Color _color;
                 sema::Type _type;
+                std::error_code _errorCode;
             };
 
         public:
@@ -118,6 +121,7 @@ namespace juice {
             explicit DiagnosticArg(const parser::LexerToken * lexerToken): _kind(Kind::lexerToken), _lexerToken(lexerToken) {}
             explicit DiagnosticArg(const basic::Color color): _kind(Kind::color), _color(color) {}
             explicit DiagnosticArg(sema::Type type): _kind(Kind::type), _type(type) {}
+            explicit DiagnosticArg(std::error_code errorCode): _kind(Kind::errorCode), _errorCode(errorCode) {}
 
             static void getAllInto(std::vector<DiagnosticArg> & vector) {}
 
@@ -141,6 +145,7 @@ namespace juice {
             const parser::LexerToken * getAsLexerToken() const { return _lexerToken; }
             basic::Color getAsColor() const { return _color; }
             sema::Type getAsType() const { return _type; }
+            std::error_code getAsErrorCode() const { return _errorCode; }
         };
 
         class DiagnosticEngine {

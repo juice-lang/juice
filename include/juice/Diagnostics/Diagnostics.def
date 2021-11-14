@@ -32,8 +32,11 @@
 ERROR(invalid_diagnostic, "INTERNAL ERROR: this diagnostic should not be produced", true)
 
 // Driver
+ERROR(error_executing, "error while executing program '%0'", true)
 ERROR(error_parsing_args, "error while parsing commandline arguments:\n%0", true)
 ERROR(file_not_found, "no such file or directory: '%0'", true)
+ERROR(file_not_regular, "'%0': is not a regular file", true)
+ERROR(file_status_error, "could not get status of file '%0': %1", true)
 
 //Lexer
 ERROR(expected_digit_decimal_sign, "expected a digit after decimal sign", true)

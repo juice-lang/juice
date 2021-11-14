@@ -210,6 +210,11 @@ namespace juice {
                     out << arg.getAsType();
                     break;
                 }
+                case DiagnosticArg::Kind::errorCode: {
+                    assert(modifier.empty() && "Improper modifier for error_code argument");
+                    out << arg.getAsErrorCode().message();
+                    break;
+                }
             }
         }
 

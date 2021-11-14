@@ -11,6 +11,7 @@
 
 add_library(juiceBasic STATIC
         Error.cpp
+        Process.cpp
         RawStreamHelpers.cpp
         SourceBuffer.cpp
         SourceManager.cpp

@@ -12,6 +12,7 @@
 add_library(juiceDriver STATIC
         CompilerDriver.cpp
         Driver.cpp
+        DriverTask.cpp
         ErrorDriver.cpp
         REPLDriver.cpp
         UsageDriver.cpp
