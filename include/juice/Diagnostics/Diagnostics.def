@@ -34,6 +34,7 @@ ERROR(invalid_diagnostic, "INTERNAL ERROR: this diagnostic should not be produce
 // Driver
 ERROR(error_creating_temporary, "could not create temporary file '%0.o': %1", true)
 ERROR(error_executing, "error while executing program '%0'", true)
+ERROR(error_finding_program, "could not find program '%0' in path: %1", true)
 ERROR(error_parsing_args, "error while parsing commandline arguments:\n%0", true)
 ERROR(file_not_found, "no such file or directory: '%0'", true)
 ERROR(file_not_regular, "'%0': is not a regular file", true)
@@ -104,9 +105,6 @@ ERROR(expression_not_assignable, "expression is not assignable", true)
 
 ERROR(expected_block_yield, "expected yield in %0 block", true)
 
-ERROR(codegen_error, "could not generate any code: %0", true)
-ERROR(function_verification_error, "error while validating llvm-function: %0", true)
-
 //Sema
 ERROR(module_ast_expected_type, "expected return type '%0' in module", true)
 ERROR(block_ast_expected_type, "expected yield of type '%0' in block", true)
@@ -142,6 +140,15 @@ OUTPUT(type_checked_if_body_ast_block, "%0IfBodyAST[%1](\n%indent2  keyword: %re
 OUTPUT(type_checked_if_body_ast_expression, "%0IfBodyAST[%1](\n%indent2  keyword: %reset%3\n%0%indent2  expression: ", false)
 
 OUTPUT(output, "%0", true)
+
+
+//IRGen
+ERROR(codegen_error, "could not generate any code: %0", true)
+ERROR(error_opening_output_file, "could not open file '%0' for writing: %1", true)
+ERROR(function_verification_error, "error while validating LLVM-function: %0", true)
+ERROR(module_verification_error, "error while validating LLVM-module: %0", true)
+ERROR(target_lookup_error, "could not lookup target '%0': %1", true)
+
 
 #if defined(DIAG)
 #undef DIAG

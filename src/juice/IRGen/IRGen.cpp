@@ -18,8 +18,16 @@
 #include "juice/Sema/TypeCheckedStatementAST.h"
 #include "llvm/IR/BasicBlock.h"
 #include "llvm/IR/DerivedTypes.h"
+#include "llvm/IR/LegacyPassManager.h"
 #include "llvm/IR/Verifier.h"
+#include "llvm/Support/CodeGen.h"
+#include "llvm/Support/FileSystem.h"
+#include "llvm/Support/Host.h"
 #include "llvm/Support/raw_ostream.h"
+#include "llvm/Support/TargetRegistry.h"
+#include "llvm/Support/TargetSelect.h"
+#include "llvm/Target/TargetMachine.h"
+#include "llvm/Target/TargetOptions.h"
 
 namespace juice {
     namespace irgen {
@@ -59,6 +67,12 @@ namespace juice {
                 return false;
             }
 
+            if (llvm::verifyModule(*_module, &os)) {
+                os.flush();
+                _diagnostics->diagnose(diag::DiagnosticID::module_verification_error, error.c_str());
+                return false;
+            }
+
             return true;
         }
 
@@ -68,6 +82,54 @@ namespace juice {
             os << basic::Color::bold;
             _module->print(os, nullptr);
             os << basic::Color::reset;
+        }
+
+        bool IRGen::emitObject(llvm::StringRef filePath) {
+            llvm::InitializeAllTargetInfos();
+            llvm::InitializeAllTargets();
+            llvm::InitializeAllTargetMCs();
+            llvm::InitializeAllAsmParsers();
+            llvm::InitializeAllAsmPrinters();
+
+            std::string targetTriple = llvm::sys::getDefaultTargetTriple();
+            _module->setTargetTriple(targetTriple);
+
+            std::string errorString;
+            const llvm::Target * target = llvm::TargetRegistry::lookupTarget(targetTriple, errorString);
+
+            if (!target) {
+                _diagnostics->diagnose(diag::DiagnosticID::target_lookup_error,
+                                       targetTriple.c_str(), errorString.c_str());
+                return false;
+            }
+
+            llvm::TargetOptions options;
+            auto relocationModel = llvm::Optional<llvm::Reloc::Model>();
+            auto targetMachine = target->createTargetMachine(targetTriple, "generic", "", options, relocationModel);
+
+            _module->setDataLayout(targetMachine->createDataLayout());
+
+
+            std::error_code errorCode;
+            llvm::raw_fd_ostream outputFileStream(filePath, errorCode);
+
+            if (errorCode) {
+                _diagnostics->diagnose(diag::DiagnosticID::error_opening_output_file, filePath, errorCode);
+                return false;
+            }
+
+            llvm::legacy::PassManager outputPassManager;
+            auto outputFileType = llvm::CGFT_ObjectFile;
+
+            if (targetMachine->addPassesToEmitFile(outputPassManager, outputFileStream, nullptr, outputFileType)) {
+                llvm::errs() << "Target machine cannot emit a file of this type";
+                return false;
+            }
+
+            outputPassManager.run(*_module);
+            outputFileStream.flush();
+
+            return true;
         }
 
         llvm::Value * IRGen::generateModule() {

@@ -28,17 +28,22 @@ namespace juice {
     namespace driver {
         llvm::cl::SubCommand frontendSubcommand("frontend");
 
-        static llvm::cl::opt<std::string> inputFilename(
+        static llvm::cl::opt<std::string> inputPath(
             "input-file",
             llvm::cl::sub(frontendSubcommand)
         );
 
-        int FrontendDriver::execute() {
-            llvm::StringRef filename(inputFilename);
+        static llvm::cl::opt<std::string> outputPath(
+            "output-file",
+            llvm::cl::sub(frontendSubcommand)
+        );
 
-            auto manager = basic::SourceManager::mainFile(filename);
+        int FrontendDriver::execute() {
+            llvm::StringRef filePath(inputPath);
+
+            auto manager = basic::SourceManager::mainFile(filePath);
             if (manager == nullptr) {
-                diag::DiagnosticEngine::diagnose(diag::DiagnosticID::file_not_found, filename);
+                diag::DiagnosticEngine::diagnose(diag::DiagnosticID::file_not_found, filePath);
                 return 1;
             }
 
@@ -67,7 +72,9 @@ namespace juice {
                         llvm::outs() << basic::Color::bold << "\n\n=== LLVM IR ===\n\n" << basic::Color::reset;
                         codegen.dumpProgram();
 
-                        return 0;
+                        if (codegen.emitObject(outputPath)) {
+                            return 0;
+                        }
                     }
                 }
             }

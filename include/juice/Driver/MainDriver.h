@@ -25,6 +25,8 @@ namespace juice {
     namespace driver {
         class MainDriver: public Driver {
             static llvm::cl::opt<std::string> inputFilename;
+            static llvm::cl::opt<std::string> outputFilename;
+            static llvm::cl::alias outputFilenameAlias;
 
 
             const char * _firstArg;

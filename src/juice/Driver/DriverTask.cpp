@@ -158,5 +158,39 @@ namespace juice {
                 new CompilationTask(std::move(executablePath), std::move(arguments), std::move(inputs),
                                     std::move(outputPath), outputIsTemporary));
         }
+
+        LinkingTask::LinkingTask(std::string executablePath, llvm::SmallVector<llvm::StringRef, 16> arguments,
+                                 llvm::SmallVectorImpl<std::unique_ptr<DriverTask>> && inputs,
+                                 std::string outputPath):
+            DriverTask(Kind::linking, std::move(executablePath), std::move(arguments), std::move(inputs),
+                       std::move(outputPath), false) {}
+
+        llvm::Expected<std::unique_ptr<LinkingTask>>
+        LinkingTask::create(llvm::SmallVectorImpl<std::unique_ptr<DriverTask>> && inputs,
+                            std::string outputPath) {
+            auto executablePath = llvm::sys::findProgramByName("ld");
+            if (std::error_code errorCode = executablePath.getError()) {
+                return basic::createError<diag::StaticDiagnosticError>(diag::DiagnosticID::error_finding_program,
+                                                                       "ld", errorCode);
+            }
+
+            // TODO: make this work for other computers than my own as well...
+            llvm::SmallVector<llvm::StringRef, 16> arguments = {
+                "-syslibroot",
+                "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk",
+                "-lSystem"
+            };
+
+            for (const auto & input: inputs) {
+                arguments.push_back(input->getOutputPath());
+            }
+
+            arguments.push_back("-o");
+            arguments.push_back(outputPath);
+
+            return std::unique_ptr<LinkingTask>(
+                new LinkingTask(std::move(*executablePath), std::move(arguments), std::move(inputs),
+                                std::move(outputPath)));
+        }
     }
 }

@@ -65,6 +65,8 @@ namespace juice {
             bool generate();
             void dumpProgram();
 
+            bool emitObject(llvm::StringRef filePath);
+
         private:
             llvm::Value * generateModule();
 
