@@ -38,6 +38,11 @@ namespace juice {
                 if (errorCode != std::errc::no_such_file_or_directory)
                     return basic::createError<diag::StaticDiagnosticError>(diag::DiagnosticID::file_status_error,
                                                                            getOutputPath(), errorCode);
+
+                auto inputsWereExecuted = executeInputs(timePoint);
+                if (auto error = inputsWereExecuted.takeError())
+                    return std::move(error);
+
             } else if (!llvm::sys::fs::is_regular_file(status)) {
                 return basic::createError<diag::StaticDiagnosticError>(diag::DiagnosticID::file_not_regular,
                                                                        getOutputPath());
