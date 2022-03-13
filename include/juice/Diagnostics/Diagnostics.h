@@ -155,10 +155,12 @@ namespace juice {
         class DiagnosticEngine {
             std::unique_ptr<basic::SourceManager> _sourceManager;
 
+            llvm::raw_ostream & _outputOS;
+
             bool _hadError = false;
 
         public:
-            explicit DiagnosticEngine(std::unique_ptr<basic::SourceManager> sourceManager);
+            DiagnosticEngine(std::unique_ptr<basic::SourceManager> sourceManager, llvm::raw_ostream & outputOS);
 
             bool hadError() const { return _hadError; }
             std::shared_ptr<basic::SourceBuffer> getBuffer() const { return _sourceManager->getMainBuffer(); }

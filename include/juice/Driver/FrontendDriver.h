@@ -15,16 +15,38 @@
 #include "Driver.h"
 
 #include "llvm/Support/CommandLine.h"
+#include "llvm/Support/Error.h"
+#include "llvm/Support/raw_ostream.h"
 
 namespace juice {
     namespace driver {
         extern llvm::cl::SubCommand frontendSubcommand;
 
         class FrontendDriver: public Driver {
+            enum class Action: uint8_t {
+                dumpParse,
+                dumpAST,
+                emitIR,
+                emitObject
+            };
+
+            static llvm::cl::opt<std::string> inputFile;
+            static llvm::cl::opt<std::string> outputFile;
+
+            static llvm::cl::opt<Action> action;
+
+
+            llvm::raw_pwrite_stream * _outputOS = nullptr;
+
         public:
             FrontendDriver() = default;
 
+            ~FrontendDriver() override;
+
             int execute() override;
+
+        private:
+            llvm::Expected<llvm::raw_pwrite_stream &> getOutputOS();
         };
     }
 }

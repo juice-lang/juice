@@ -16,8 +16,6 @@
 #include "juice/Basic/Error.h"
 #include "juice/Diagnostics/DiagnosticError.h"
 #include "llvm/ADT/SmallString.h"
-#include "llvm/Support/Path.h"
-#include "llvm/Support/raw_ostream.h"
 
 namespace juice {
     namespace driver {
@@ -38,6 +36,20 @@ namespace juice {
             llvm::cl::desc("Alias for -o"),
             llvm::cl::value_desc("file"),
             llvm::cl::aliasopt(outputFilename)
+        );
+
+        llvm::cl::opt<DriverAction::Kind> MainDriver::action(
+            llvm::cl::desc("Choose action"),
+            llvm::cl::values(
+                clEnumValN(DriverAction::dumpParse, "dump-parse", "Parse input file and dump AST"),
+                clEnumValN(DriverAction::dumpAST, "dump-ast", "Parse and type-check input file and dump AST"),
+                clEnumValN(DriverAction::emitIR, "emit-ir", "Compile input file and emit generated LLVM IR"),
+                clEnumValN(DriverAction::emitObject, "emit-object",
+                           "Compile input file and emit generated object file"),
+                clEnumValN(DriverAction::emitExecutable, "emit-exec",
+                           "Compile input file and emit generated executable")
+            ),
+            llvm::cl::init(DriverAction::emitExecutable)
         );
 
 
@@ -61,23 +73,33 @@ namespace juice {
         }
 
         llvm::Expected<std::unique_ptr<DriverTask>> MainDriver::parseOptions() {
-            llvm::SmallString<128> outputFile(outputFilename);
-            if (outputFile.empty()) {
-                outputFile = inputFilename;
-                llvm::sys::path::replace_extension(outputFile, "");
-            }
-
             auto inputTask = std::make_unique<InputTask>(inputFilename);
 
-            auto compilationTask = CompilationTask::create(_firstArg, std::move(inputTask));
-            if (auto error = compilationTask.takeError())
-                return std::move(error);
+            auto outputFile = getAction().outputFile(inputFilename, outputFilename);
 
+            if (outputFile.hasValue()) {
+                if (action == DriverAction::emitExecutable) {
+                    auto compilationTask = CompilationTask::create(_firstArg, getAction(), std::move(inputTask));
+                    if (auto error = compilationTask.takeError())
+                        return std::move(error);
 
-            llvm::SmallVector<std::unique_ptr<DriverTask>, 4> linkerInputs;
-            linkerInputs.push_back(std::move(*compilationTask));
+                    llvm::SmallVector<std::unique_ptr<DriverTask>, 4> linkerInputs;
+                    linkerInputs.push_back(std::move(*compilationTask));
 
-            return LinkingTask::create(std::move(linkerInputs), outputFile.c_str());
+                    return LinkingTask::create(std::move(linkerInputs), (std::string)outputFile.getValue());
+                } else {
+                    return CompilationTask::create(_firstArg, getAction(), std::move(inputTask),
+                                                   (std::string)outputFile.getValue());
+                }
+            } else {
+                if (action == DriverAction::emitExecutable) {
+                    return basic::createError<diag::StaticDiagnosticError>(diag::DiagnosticID::linker_output_to_stdout);
+                } else if (action == DriverAction::emitObject) {
+                    return basic::createError<diag::StaticDiagnosticError>(diag::DiagnosticID::object_to_stdout);
+                } else {
+                    return CompilationTask::create(_firstArg, getAction(), std::move(inputTask), "-");
+                }
+            }
         }
     }
 }

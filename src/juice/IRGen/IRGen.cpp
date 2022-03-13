@@ -76,15 +76,13 @@ namespace juice {
             return true;
         }
 
-        void IRGen::dumpProgram() {
-            llvm::raw_ostream & os = llvm::outs();
-
+        void IRGen::dumpProgram(llvm::raw_ostream & os) {
             os << basic::Color::bold;
             _module->print(os, nullptr);
             os << basic::Color::reset;
         }
 
-        bool IRGen::emitObject(llvm::StringRef filePath) {
+        bool IRGen::emitObject(llvm::raw_pwrite_stream & os) {
             llvm::InitializeAllTargetInfos();
             llvm::InitializeAllTargets();
             llvm::InitializeAllTargetMCs();
@@ -110,24 +108,16 @@ namespace juice {
             _module->setDataLayout(targetMachine->createDataLayout());
 
 
-            std::error_code errorCode;
-            llvm::raw_fd_ostream outputFileStream(filePath, errorCode);
-
-            if (errorCode) {
-                _diagnostics->diagnose(diag::DiagnosticID::error_opening_output_file, filePath, errorCode);
-                return false;
-            }
-
             llvm::legacy::PassManager outputPassManager;
             auto outputFileType = llvm::CGFT_ObjectFile;
 
-            if (targetMachine->addPassesToEmitFile(outputPassManager, outputFileStream, nullptr, outputFileType)) {
+            if (targetMachine->addPassesToEmitFile(outputPassManager, os, nullptr, outputFileType)) {
                 llvm::errs() << "Target machine cannot emit a file of this type";
                 return false;
             }
 
             outputPassManager.run(*_module);
-            outputFileStream.flush();
+            os.flush();
 
             return true;
         }

@@ -23,55 +23,65 @@
 
 namespace juice {
     namespace driver {
-        DriverTask::DriverTask(Kind kind, std::string executablePath, llvm::SmallVector<llvm::StringRef, 16> arguments,
+        DriverTask::DriverTask(Kind kind, std::string executablePath, llvm::SmallVector<std::string, 16> arguments,
                                llvm::SmallVectorImpl<std::unique_ptr<DriverTask>> && inputs,
                                std::string outputPath, bool outputIsTemporary):
             _kind(kind), _executablePath(std::move(executablePath)), _arguments(std::move(arguments)),
-            _inputs(std::move(inputs)), _outputPath(std::move(outputPath)), _outputIsTemporary(outputIsTemporary) {
-            _arguments.insert(_arguments.begin(), executablePath);
-        }
+            _inputs(std::move(inputs)), _outputPath(std::move(outputPath)), _outputIsTemporary(outputIsTemporary) {}
 
         llvm::Expected<bool> DriverTask::executeIfNecessary(llvm::sys::TimePoint<> timePoint) {
-            llvm::sys::fs::file_status status;
-
-            if (auto errorCode = llvm::sys::fs::status(_outputPath, status)) {
-                if (errorCode != std::errc::no_such_file_or_directory)
-                    return basic::createError<diag::StaticDiagnosticError>(diag::DiagnosticID::file_status_error,
-                                                                           getOutputPath(), errorCode);
-
-                auto inputsWereExecuted = executeInputs(timePoint);
-                if (auto error = inputsWereExecuted.takeError())
+            if (_outputPath == "-") {
+                if (auto error = executeInputs(timePoint).takeError())
                     return std::move(error);
+            } else {
+                llvm::sys::fs::file_status status;
 
-            } else if (!llvm::sys::fs::is_regular_file(status)) {
-                return basic::createError<diag::StaticDiagnosticError>(diag::DiagnosticID::file_not_regular,
-                                                                       getOutputPath());
-            } else if (!_outputIsTemporary) {
-                auto modificationTime = status.getLastModificationTime();
+                if (auto errorCode = llvm::sys::fs::status(_outputPath, status)) {
+                    if (errorCode != std::errc::no_such_file_or_directory)
+                        return basic::createError<diag::StaticDiagnosticError>(diag::DiagnosticID::file_status_error,
+                                                                               getOutputPathRef(),
+                                                                               errorCode);
 
-                auto inputsWereExecuted = executeInputs(modificationTime);
-                if (auto error = inputsWereExecuted.takeError())
-                    return std::move(error);
+                    if (auto error = executeInputs(timePoint).takeError())
+                        return std::move(error);
+                } else if (!llvm::sys::fs::is_regular_file(status)) {
+                    return basic::createError<diag::StaticDiagnosticError>(diag::DiagnosticID::file_not_regular,
+                                                                           getOutputPathRef());
+                } else if (!_outputIsTemporary) {
+                    auto modificationTime = status.getLastModificationTime();
 
-                if (!inputsWereExecuted) {
-                    return modificationTime < timePoint;
-                }
-            } else { // output is temporary
-                auto inputsWereExecuted = executeInputs(timePoint);
-                if (auto error = inputsWereExecuted.takeError())
-                    return std::move(error);
+                    auto inputsWereExecuted = executeInputs(modificationTime);
+                    if (auto error = inputsWereExecuted.takeError())
+                        return std::move(error);
 
-                if (!inputsWereExecuted) {
-                    llvm::sys::fs::remove(_outputPath);
-                    return false;
+                    if (!inputsWereExecuted) {
+                        return modificationTime < timePoint;
+                    }
+                } else { // output is temporary
+                    auto inputsWereExecuted = executeInputs(timePoint);
+                    if (auto error = inputsWereExecuted.takeError())
+                        return std::move(error);
+
+                    if (!inputsWereExecuted) {
+                        llvm::sys::fs::remove(_outputPath);
+                        return false;
+                    }
                 }
             }
 
-            int result = llvm::sys::ExecuteAndWait(_executablePath, _arguments);
+
+            llvm::SmallVector<llvm::StringRef, 16> arguments = {
+                _executablePath
+            };
+
+            for (const std::string & argument: _arguments)
+                arguments.emplace_back(argument);
+
+            int result = llvm::sys::ExecuteAndWait(_executablePath, arguments);
 
             if (result != 0) {
                 return basic::createError<diag::StaticDiagnosticError>(diag::DiagnosticID::error_executing,
-                                                                       getExecutablePath());
+                                                                       getExecutablePathRef());
             }
 
             return true;
@@ -111,28 +121,28 @@ namespace juice {
             if (auto errorCode = llvm::sys::fs::status(_outputPath, status)) {
                 if (errorCode == std::errc::no_such_file_or_directory)
                     return basic::createError<diag::StaticDiagnosticError>(diag::DiagnosticID::file_not_found,
-                                                                           getOutputPath());
+                                                                           getOutputPathRef());
                 return basic::createError<diag::StaticDiagnosticError>(diag::DiagnosticID::file_status_error,
-                                                                       getOutputPath(), errorCode);
+                                                                       getOutputPathRef(), errorCode);
             }
 
             if (!llvm::sys::fs::is_regular_file(status)) {
                 return basic::createError<diag::StaticDiagnosticError>(diag::DiagnosticID::file_not_regular,
-                                                                       getOutputPath());
+                                                                       getOutputPathRef());
             }
 
             return status.getLastModificationTime() > timePoint;
         }
 
-        CompilationTask::CompilationTask(std::string executablePath, llvm::SmallVector<llvm::StringRef, 16> arguments,
+        CompilationTask::CompilationTask(std::string executablePath, llvm::SmallVector<std::string, 16> arguments,
                                          llvm::SmallVectorImpl<std::unique_ptr<DriverTask>> && inputs,
                                          std::string outputPath, bool outputIsTemporary):
             DriverTask(Kind::compilation, std::move(executablePath), std::move(arguments), std::move(inputs),
                        std::move(outputPath), outputIsTemporary) {}
 
         llvm::Expected<std::unique_ptr<CompilationTask>>
-        CompilationTask::create(const char * firstArg, std::unique_ptr<InputTask> input) {
-            llvm::StringRef inputBaseName = llvm::sys::path::stem(input->getOutputPath());
+        CompilationTask::create(const char * firstArg, DriverAction action, std::unique_ptr<InputTask> input) {
+            llvm::StringRef inputBaseName = llvm::sys::path::stem(input->getOutputPathRef());
 
             llvm::SmallString<128> tempOutputPath;
             if (auto errorCode = llvm::sys::fs::createTemporaryFile(inputBaseName, "o", tempOutputPath)) {
@@ -140,16 +150,34 @@ namespace juice {
                                                                        inputBaseName, errorCode);
             }
 
-            return CompilationTask::create(firstArg, std::move(input), std::string(tempOutputPath), true);
+            return CompilationTask::create(firstArg, action, std::move(input), std::string(tempOutputPath), true);
         }
 
         std::unique_ptr<CompilationTask>
-        CompilationTask::create(const char * firstArg, std::unique_ptr<InputTask> input,
+        CompilationTask::create(const char * firstArg, DriverAction action, std::unique_ptr<InputTask> input,
                                 std::string outputPath, bool outputIsTemporary) {
             std::string executablePath = basic::getMainExecutablePath(firstArg);
 
-            llvm::SmallVector<llvm::StringRef, 16> arguments = {
+            std::string actionString;
+            switch (action) {
+                case DriverAction::dumpParse:
+                    actionString = "--dump-parse";
+                    break;
+                case DriverAction::dumpAST:
+                    actionString = "--dump-ast";
+                    break;
+                case DriverAction::emitIR:
+                    actionString = "--emit-ir";
+                    break;
+                case DriverAction::emitObject:
+                case DriverAction::emitExecutable:
+                    actionString = "--emit-object";
+                    break;
+            }
+
+            llvm::SmallVector<std::string, 16> arguments = {
                 "frontend",
+                actionString,
                 "--input-file",
                 input->getOutputPath(),
                 "--output-file",
@@ -164,7 +192,7 @@ namespace juice {
                                     std::move(outputPath), outputIsTemporary));
         }
 
-        LinkingTask::LinkingTask(std::string executablePath, llvm::SmallVector<llvm::StringRef, 16> arguments,
+        LinkingTask::LinkingTask(std::string executablePath, llvm::SmallVector<std::string, 16> arguments,
                                  llvm::SmallVectorImpl<std::unique_ptr<DriverTask>> && inputs,
                                  std::string outputPath):
             DriverTask(Kind::linking, std::move(executablePath), std::move(arguments), std::move(inputs),
@@ -180,7 +208,7 @@ namespace juice {
             }
 
             // TODO: make this work for other computers than my own as well...
-            llvm::SmallVector<llvm::StringRef, 16> arguments = {
+            llvm::SmallVector<std::string, 16> arguments = {
                 "-syslibroot",
                 "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk",
                 "-lSystem"

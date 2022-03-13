@@ -11,7 +11,6 @@
 
 add_executable(juice juice.cpp)
 
-target_link_libraries(juice ncurses)
 target_link_libraries(juice
         juiceAST
         juiceBasic

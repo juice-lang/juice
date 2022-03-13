@@ -38,7 +38,7 @@ namespace juice {
         }
 
         void SourceManager::printDiagnostic(llvm::Twine message, diag::DiagnosticKind kind, SourceLocation location) {
-            llvm::raw_ostream & os = kind == diag::DiagnosticKind::error ? llvm::errs() : llvm::outs();
+            llvm::raw_ostream & os = llvm::errs();
 
             llvm::SMDiagnostic diagnostic = _sourceMgr.GetMessage(location.llvm(), kind.llvm(), message);
 

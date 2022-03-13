@@ -16,6 +16,7 @@
 #include <string>
 #include <system_error>
 
+#include "DriverAction.h"
 #include "juice/Diagnostics/Diagnostics.h"
 #include "llvm/ADT/SmallString.h"
 #include "llvm/ADT/SmallVector.h"
@@ -40,7 +41,7 @@ namespace juice {
 
         protected:
             std::string _executablePath;
-            llvm::SmallVector<llvm::StringRef, 16> _arguments;
+            llvm::SmallVector<std::string, 16> _arguments;
             llvm::SmallVector<std::unique_ptr<DriverTask>, 4> _inputs;
             std::string _outputPath;
             bool _outputIsTemporary;
@@ -48,7 +49,7 @@ namespace juice {
         public:
             DriverTask() = delete;
 
-            DriverTask(Kind kind, std::string executablePath, llvm::SmallVector<llvm::StringRef, 16> arguments,
+            DriverTask(Kind kind, std::string executablePath, llvm::SmallVector<std::string, 16> arguments,
                        llvm::SmallVectorImpl<std::unique_ptr<DriverTask>> && inputs, std::string outputPath,
                        bool outputIsTemporary);
 
@@ -57,10 +58,11 @@ namespace juice {
             llvm::Error execute();
 
 
-            llvm::StringRef getExecutablePath() const { return _executablePath; }
-            llvm::ArrayRef<llvm::StringRef> getArguments() const { return _arguments; }
+            llvm::StringRef getExecutablePathRef() const { return _executablePath; }
+            llvm::ArrayRef<std::string> getArguments() const { return _arguments; }
             llvm::ArrayRef<std::unique_ptr<DriverTask>> getInputs() const { return _inputs; }
-            llvm::StringRef getOutputPath() const { return _outputPath; }
+            const std::string & getOutputPath() const { return _outputPath; }
+            llvm::StringRef getOutputPathRef() const { return _outputPath; }
 
         private:
             llvm::Expected<bool> executeInputs(llvm::sys::TimePoint<> timePoint);
@@ -84,8 +86,7 @@ namespace juice {
         };
 
         class CompilationTask: public DriverTask {
-        private:
-            CompilationTask(std::string executablePath, llvm::SmallVector<llvm::StringRef, 16> arguments,
+            CompilationTask(std::string executablePath, llvm::SmallVector<std::string, 16> arguments,
                             llvm::SmallVectorImpl<std::unique_ptr<DriverTask>> && inputs,
                             std::string outputPath, bool outputIsTemporary);
 
@@ -93,9 +94,9 @@ namespace juice {
             CompilationTask() = delete;
 
             static llvm::Expected<std::unique_ptr<CompilationTask>>
-            create(const char * firstArg, std::unique_ptr<InputTask> input);
+            create(const char * firstArg, DriverAction action, std::unique_ptr<InputTask> input);
             static std::unique_ptr<CompilationTask>
-            create(const char * firstArg, std::unique_ptr<InputTask> input, std::string outputPath,
+            create(const char * firstArg, DriverAction action, std::unique_ptr<InputTask> input, std::string outputPath,
                    bool outputIsTemporary = false);
 
 
@@ -105,8 +106,7 @@ namespace juice {
         };
 
         class LinkingTask: public DriverTask {
-        private:
-            LinkingTask(std::string executablePath, llvm::SmallVector<llvm::StringRef, 16> arguments,
+            LinkingTask(std::string executablePath, llvm::SmallVector<std::string, 16> arguments,
                         llvm::SmallVectorImpl<std::unique_ptr<DriverTask>> && inputs,
                         std::string outputPath);
 

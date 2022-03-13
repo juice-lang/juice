@@ -15,8 +15,10 @@
 #include <string>
 #include <utility>
 
+#include "juice/Basic/Error.h"
 #include "juice/Basic/RawStreamHelpers.h"
 #include "juice/Basic/SourceManager.h"
+#include "juice/Diagnostics/DiagnosticError.h"
 #include "juice/Diagnostics/Diagnostics.h"
 #include "juice/IRGen/IRGen.h"
 #include "juice/Parser/Parser.h"
@@ -28,18 +30,37 @@ namespace juice {
     namespace driver {
         llvm::cl::SubCommand frontendSubcommand("frontend");
 
-        static llvm::cl::opt<std::string> inputPath(
+        llvm::cl::opt<std::string> FrontendDriver::inputFile(
+            llvm::cl::sub(frontendSubcommand),
             "input-file",
-            llvm::cl::sub(frontendSubcommand)
+            llvm::cl::Required
         );
 
-        static llvm::cl::opt<std::string> outputPath(
+        llvm::cl::opt<std::string> FrontendDriver::outputFile(
+            llvm::cl::sub(frontendSubcommand),
             "output-file",
-            llvm::cl::sub(frontendSubcommand)
+            llvm::cl::Required
         );
+
+        llvm::cl::opt<FrontendDriver::Action> FrontendDriver::action(
+            llvm::cl::sub(frontendSubcommand),
+            llvm::cl::values(
+                clEnumValN(Action::dumpParse, "dump-parse", ""),
+                clEnumValN(Action::dumpAST, "dump-ast", ""),
+                clEnumValN(Action::emitIR, "emit-ir", ""),
+                clEnumValN(Action::emitObject, "emit-object", "")
+            ),
+            llvm::cl::Required
+        );
+
+
+        FrontendDriver::~FrontendDriver() {
+            delete _outputOS;
+        }
+
 
         int FrontendDriver::execute() {
-            llvm::StringRef filePath(inputPath);
+            llvm::StringRef filePath(inputFile);
 
             auto manager = basic::SourceManager::mainFile(filePath);
             if (manager == nullptr) {
@@ -47,32 +68,48 @@ namespace juice {
                 return 1;
             }
 
-            auto diagnostics = std::make_shared<diag::DiagnosticEngine>(std::move(manager));
+            auto expectedOutputOS = getOutputOS();
+            if (basic::handleAllErrors(expectedOutputOS.takeError(), [](const diag::StaticDiagnosticError & error) {
+                error.diagnose();
+            })) {
+                return 1;
+            }
+
+            llvm::raw_pwrite_stream & outputOS = expectedOutputOS.get();
+
+            auto diagnostics = std::make_shared<diag::DiagnosticEngine>(std::move(manager), outputOS);
 
             parser::Parser juiceParser(diagnostics);
 
             auto ast = juiceParser.parseModule();
 
             if (ast) {
-                llvm::outs() << basic::Color::bold << "=== AST ===\n" << basic::Color::reset;
-                ast->diagnoseInto(*diagnostics, 0);
+                if (action == Action::dumpParse) {
+                    ast->diagnoseInto(*diagnostics, 0);
+
+                    return 0;
+                }
 
                 sema::TypeChecker typeChecker(std::move(ast), diagnostics);
                 auto typeCheckResult = typeChecker.typeCheck();
 
                 if (!diagnostics->hadError()) {
-                    llvm::outs() << basic::Color::bold << "\n\n=== TypeCheckedAST ===\n" << basic::Color::reset;
-                    typeCheckResult.ast->diagnoseInto(*diagnostics, 0);
+                    if (action == Action::dumpAST) {
+                        typeCheckResult.ast->diagnoseInto(*diagnostics, 0);
 
-                    llvm::outs() << "\n\nAllocaVectorSize: " << typeCheckResult.allocaVectorSize << "\n";
+                        return 0;
+                    }
 
                     irgen::IRGen codegen(std::move(typeCheckResult), diagnostics);
 
                     if (codegen.generate()) {
-                        llvm::outs() << basic::Color::bold << "\n\n=== LLVM IR ===\n\n" << basic::Color::reset;
-                        codegen.dumpProgram();
+                        if (action == Action::emitIR) {
+                            codegen.dumpProgram(outputOS);
 
-                        if (codegen.emitObject(outputPath)) {
+                            return 0;
+                        }
+
+                        if (codegen.emitObject(outputOS)) {
                             return 0;
                         }
                     }
@@ -80,6 +117,23 @@ namespace juice {
             }
 
             return 1;
+        }
+
+        llvm::Expected<llvm::raw_pwrite_stream &> FrontendDriver::getOutputOS() {
+            if (outputFile == "-") {
+                return llvm::outs();
+            } else if (_outputOS) {
+                return *_outputOS;
+            } else {
+                std::error_code errorCode;
+                _outputOS = new llvm::raw_fd_ostream(outputFile, errorCode);
+
+                if (errorCode)
+                    return basic::createError<diag::StaticDiagnosticError>(
+                        diag::DiagnosticID::error_opening_output_file, (llvm::StringRef)outputFile, errorCode);
+
+                return *_outputOS;
+            }
         }
     }
 }

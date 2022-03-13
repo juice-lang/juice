@@ -11,6 +11,7 @@
 
 add_library(juiceDriver STATIC
         Driver.cpp
+        DriverAction.cpp
         DriverTask.cpp
         FrontendDriver.cpp
         MainDriver.cpp

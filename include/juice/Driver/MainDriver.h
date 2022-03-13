@@ -17,6 +17,7 @@
 #include <memory>
 #include <string>
 
+#include "DriverAction.h"
 #include "DriverTask.h"
 #include "llvm/Support/CommandLine.h"
 #include "llvm/Support/Error.h"
@@ -27,6 +28,11 @@ namespace juice {
             static llvm::cl::opt<std::string> inputFilename;
             static llvm::cl::opt<std::string> outputFilename;
             static llvm::cl::alias outputFilenameAlias;
+
+            static llvm::cl::opt<DriverAction::Kind> action;
+
+            static DriverAction getAction() { return action.getValue(); }
+
 
 
             const char * _firstArg;

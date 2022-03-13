@@ -10,6 +10,7 @@
 
 
 add_library(juiceBasic STATIC
+        ColoredStringStream.cpp
         Error.cpp
         Process.cpp
         RawStreamHelpers.cpp
