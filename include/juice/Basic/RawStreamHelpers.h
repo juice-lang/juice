@@ -34,8 +34,10 @@ namespace juice {
             };
 
             Color() = default;
-            /* implicit */ constexpr Color(Value value) : _value(value) {}
+            // NOLINTNEXTLINE(google-explicit-constructor)
+            /* implicit */ constexpr Color(Value value): _value(value) {}
 
+            // NOLINTNEXTLINE(google-explicit-constructor)
             /* implicit */ constexpr operator Value() const { return _value; }
 
             explicit operator bool() = delete;

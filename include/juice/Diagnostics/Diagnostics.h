@@ -62,8 +62,10 @@ namespace juice {
             };
 
             DiagnosticKind() = default;
+            // NOLINTNEXTLINE(google-explicit-constructor)
             /* implicit */ constexpr DiagnosticKind(Kind kind) : _kind(kind) {}
 
+            // NOLINTNEXTLINE(google-explicit-constructor)
             /* implicit */ constexpr operator Kind() const { return _kind; }
 
             explicit operator bool() = delete;
@@ -113,16 +115,19 @@ namespace juice {
         public:
             DiagnosticArg() = delete;
 
+            // NOLINTBEGIN(cppcoreguidelines-pro-type-member-init)
             explicit DiagnosticArg(unsigned int integer): _kind(Kind::integer), _integer(integer) {}
             explicit DiagnosticArg(double doubleValue): _kind(Kind::doubleValue), _double(doubleValue) {}
             explicit DiagnosticArg(bool boolean): _kind(Kind::boolean), _boolean(boolean) {}
             explicit DiagnosticArg(const char * cString): _kind(Kind::string), _string(cString) {}
             explicit DiagnosticArg(char * cString): _kind(Kind::string), _string(cString) {}
             explicit DiagnosticArg(llvm::StringRef string): _kind(Kind::string), _string(string) {}
-            explicit DiagnosticArg(const parser::LexerToken * lexerToken): _kind(Kind::lexerToken), _lexerToken(lexerToken) {}
+            explicit DiagnosticArg(const parser::LexerToken * lexerToken):
+                _kind(Kind::lexerToken), _lexerToken(lexerToken) {}
             explicit DiagnosticArg(const basic::Color color): _kind(Kind::color), _color(color) {}
             explicit DiagnosticArg(sema::Type type): _kind(Kind::type), _type(type) {}
             explicit DiagnosticArg(std::error_code errorCode): _kind(Kind::errorCode), _errorCode(errorCode) {}
+            // NOLINTEND(cppcoreguidelines-pro-type-member-init)
 
             explicit DiagnosticArg(const std::string & string) = delete;
 

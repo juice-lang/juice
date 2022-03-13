@@ -31,7 +31,7 @@ namespace juice {
             llvm::cl::value_desc("file")
         );
 
-        llvm::cl::alias MainDriver::outputFilenameAlias(
+        __attribute__((unused)) llvm::cl::alias MainDriver::outputFilenameAlias(
             "output-file",
             llvm::cl::desc("Alias for -o"),
             llvm::cl::value_desc("file"),

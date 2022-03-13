@@ -27,7 +27,7 @@ namespace juice {
         class MainDriver: public Driver {
             static llvm::cl::opt<std::string> inputFilename;
             static llvm::cl::opt<std::string> outputFilename;
-            static llvm::cl::alias outputFilenameAlias;
+            __attribute__((unused)) static llvm::cl::alias outputFilenameAlias;
 
             static llvm::cl::opt<DriverAction::Kind> action;
 
@@ -40,7 +40,7 @@ namespace juice {
         public:
             MainDriver() = delete;
 
-            MainDriver(const char * firstArg);
+            explicit MainDriver(const char * firstArg);
 
             int execute() override;
 
