@@ -18,6 +18,7 @@ target_link_libraries(juice
         juiceDriver
         juiceIRGen
         juiceParser
+        juicePlatform
         juiceSema)
 target_link_libraries(juice ${LLVM_LIB_LIST})
 

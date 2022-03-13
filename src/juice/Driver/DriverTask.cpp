@@ -17,9 +17,14 @@
 #include "juice/Basic/Error.h"
 #include "juice/Basic/Process.h"
 #include "juice/Diagnostics/DiagnosticError.h"
+#include "juice/Platform/Macros.h"
 #include "llvm/Support/FileSystem.h"
 #include "llvm/Support/Path.h"
 #include "llvm/Support/Program.h"
+
+#if OS_MAC
+#include "juice/Platform/MacOS/SDKPath.h"
+#endif
 
 namespace juice {
     namespace driver {
@@ -207,11 +212,20 @@ namespace juice {
                                                                        "ld", errorCode);
             }
 
-            // TODO: make this work for other computers than my own as well...
+            #if OS_MAC
+            auto sdkPath = platform::macOS::getSDKPath();
+            if (auto error = sdkPath.takeError()) {
+                return std::move(error);
+            }
+            #endif
+
+            // TODO: make this work for other OSs than macOS as well...
             llvm::SmallVector<std::string, 16> arguments = {
+            #if OS_MAC
                 "-syslibroot",
-                "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk",
+                *sdkPath,
                 "-lSystem"
+            #endif
             };
 
             for (const auto & input: inputs) {
