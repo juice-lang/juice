@@ -1,4 +1,4 @@
-// include/juice/Driver/VersionDriver.h - Driver subclass for -v and --version arguments
+// include/juice/Driver/VersionPrinter.h - CommandLine Handler for -v and --version arguments
 //
 // This source file is part of the juice open source project
 //
@@ -9,20 +9,20 @@
 // See https://github.com/juice-lang/juice/blob/master/CONTRIBUTORS.txt for the list of juice project authors
 
 
-#ifndef JUICE_DRIVER_VERSIONDRIVER_H
-#define JUICE_DRIVER_VERSIONDRIVER_H
+#ifndef JUICE_DRIVER_VERSIONPRINTER_H
+#define JUICE_DRIVER_VERSIONPRINTER_H
 
-#include "Driver.h"
+#include "llvm/Support/raw_ostream.h"
 
 namespace juice {
     namespace driver {
-        class VersionDriver: public Driver {
+        class VersionPrinter {
         public:
-            VersionDriver() = default;
+            VersionPrinter() = delete;
 
-            int execute() override;
+            static void print(llvm::raw_ostream & os);
         };
     }
 }
 
-#endif //JUICE_DRIVER_VERSIONDRIVER_H
+#endif //JUICE_DRIVER_VERSIONPRINTER_H

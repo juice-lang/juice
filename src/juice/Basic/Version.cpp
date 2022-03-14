@@ -51,6 +51,17 @@ namespace juice {
             return current.getString();
         }
 
+        llvm::Optional<Version> Version::getLLVM() {
+            #if JUICE_HAS_LLVM_VERSION
+                return {llvm::in_place,
+                        JUICE_LLVM_VERSION_MAJOR,
+                        JUICE_LLVM_VERSION_MINOR,
+                        JUICE_LLVM_VERSION_PATCHLEVEL};
+            #else
+                return {};
+            #endif
+        }
+
         std::string Version::getString() const {
             std::ostringstream oss;
             oss << _major << '.' << _minor;

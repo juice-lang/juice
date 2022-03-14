@@ -14,6 +14,8 @@
 
 #include <cstdint>
 #include <memory>
+#include <string>
+#include <system_error>
 #include <vector>
 
 #include "juice/Basic/RawStreamHelpers.h"
@@ -60,8 +62,10 @@ namespace juice {
             };
 
             DiagnosticKind() = default;
+            // NOLINTNEXTLINE(google-explicit-constructor)
             /* implicit */ constexpr DiagnosticKind(Kind kind) : _kind(kind) {}
 
+            // NOLINTNEXTLINE(google-explicit-constructor)
             /* implicit */ constexpr operator Kind() const { return _kind; }
 
             explicit operator bool() = delete;
@@ -91,7 +95,8 @@ namespace juice {
                 string,
                 lexerToken,
                 color,
-                type
+                type,
+                errorCode
             };
 
         private:
@@ -104,20 +109,28 @@ namespace juice {
                 const parser::LexerToken * _lexerToken;
                 const basic::Color _color;
                 sema::Type _type;
+                std::error_code _errorCode;
             };
 
         public:
             DiagnosticArg() = delete;
 
+            // NOLINTBEGIN(cppcoreguidelines-pro-type-member-init)
             explicit DiagnosticArg(unsigned int integer): _kind(Kind::integer), _integer(integer) {}
             explicit DiagnosticArg(double doubleValue): _kind(Kind::doubleValue), _double(doubleValue) {}
             explicit DiagnosticArg(bool boolean): _kind(Kind::boolean), _boolean(boolean) {}
             explicit DiagnosticArg(const char * cString): _kind(Kind::string), _string(cString) {}
             explicit DiagnosticArg(char * cString): _kind(Kind::string), _string(cString) {}
             explicit DiagnosticArg(llvm::StringRef string): _kind(Kind::string), _string(string) {}
-            explicit DiagnosticArg(const parser::LexerToken * lexerToken): _kind(Kind::lexerToken), _lexerToken(lexerToken) {}
+            explicit DiagnosticArg(const parser::LexerToken * lexerToken):
+                _kind(Kind::lexerToken), _lexerToken(lexerToken) {}
             explicit DiagnosticArg(const basic::Color color): _kind(Kind::color), _color(color) {}
             explicit DiagnosticArg(sema::Type type): _kind(Kind::type), _type(type) {}
+            explicit DiagnosticArg(std::error_code errorCode): _kind(Kind::errorCode), _errorCode(errorCode) {}
+            // NOLINTEND(cppcoreguidelines-pro-type-member-init)
+
+            explicit DiagnosticArg(const std::string & string) = delete;
+
 
             static void getAllInto(std::vector<DiagnosticArg> & vector) {}
 
@@ -141,15 +154,18 @@ namespace juice {
             const parser::LexerToken * getAsLexerToken() const { return _lexerToken; }
             basic::Color getAsColor() const { return _color; }
             sema::Type getAsType() const { return _type; }
+            std::error_code getAsErrorCode() const { return _errorCode; }
         };
 
         class DiagnosticEngine {
             std::unique_ptr<basic::SourceManager> _sourceManager;
 
+            llvm::raw_ostream & _outputOS;
+
             bool _hadError = false;
 
         public:
-            explicit DiagnosticEngine(std::unique_ptr<basic::SourceManager> sourceManager);
+            DiagnosticEngine(std::unique_ptr<basic::SourceManager> sourceManager, llvm::raw_ostream & outputOS);
 
             bool hadError() const { return _hadError; }
             std::shared_ptr<basic::SourceBuffer> getBuffer() const { return _sourceManager->getMainBuffer(); }

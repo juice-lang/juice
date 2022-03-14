@@ -10,11 +10,12 @@
 
 
 add_library(juiceDriver STATIC
-        CompilerDriver.cpp
         Driver.cpp
-        ErrorDriver.cpp
+        DriverAction.cpp
+        DriverTask.cpp
+        FrontendDriver.cpp
+        MainDriver.cpp
         REPLDriver.cpp
-        UsageDriver.cpp
-        VersionDriver.cpp)
+        VersionPrinter.cpp)
 
-target_compile_options(juiceDriver PRIVATE ${OTHER_COMPILE_FLAG_LIST})
+target_compile_options(juiceDriver PRIVATE ${LLVM_COMPILE_FLAG_LIST})

@@ -11,46 +11,28 @@
 
 #include "juice/Driver/Driver.h"
 
-#include "juice/Driver/CompilerDriver.h"
-#include "juice/Driver/ErrorDriver.h"
-#include "juice/Driver/REPLDriver.h"
-#include "juice/Driver/UsageDriver.h"
-#include "juice/Driver/VersionDriver.h"
-#include "tclap/CmdLine.h"
+#include "juice/Driver/FrontendDriver.h"
+#include "juice/Driver/MainDriver.h"
+#include "llvm/Support/CommandLine.h"
 
 namespace juice {
     namespace driver {
-        Driver * Driver::withArguments(std::vector<std::string> & args) {
-
+        Driver * Driver::create(const char * firstArg) {
             Driver * driver = nullptr;
 
-            try {
-                TCLAP::CmdLine cmd("", ' ', "", false);
-
-                cmd.setExceptionHandling(false);
-
-                TCLAP::SwitchArg helpArg("h", "help", "Displays usage information and exits", cmd);
-                TCLAP::SwitchArg versionArg("v", "version", "Displays version information and exits", cmd);
-                TCLAP::UnlabeledValueArg<std::string> filenameArg("filename", "The file to compile", false,
-                                                                  "example.juice", "string", cmd);
-
-                cmd.parse(args);
-
-                bool help = helpArg.getValue();
-                bool version = versionArg.getValue();
-
-                if (help) driver = new UsageDriver(false);
-                else if (version) driver = new VersionDriver;
-                else {
-                    if (!filenameArg.isSet()) driver = new REPLDriver();
-                    else {
-                        std::string filename = filenameArg.getValue();
-                        driver = new CompilerDriver(filename);
+            for (auto * subcommand: llvm::cl::getRegisteredSubcommands()) {
+                if (*subcommand) {
+                    if (subcommand == &frontendSubcommand) {
+                        driver = new FrontendDriver();
+                    } else if (subcommand == &*llvm::cl::TopLevelSubCommand) {
+                        driver = new MainDriver(firstArg);
+                    } else {
+                        llvm_unreachable("All subcommands should be handled here!");
                     }
                 }
-            } catch (const TCLAP::ArgException & e) {
-                driver = new ErrorDriver(e.error() + " for arg " + e.argId());
             }
+
+            assert(driver != nullptr);
 
             return driver;
         }

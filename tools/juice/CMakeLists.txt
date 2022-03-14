@@ -11,7 +11,6 @@
 
 add_executable(juice juice.cpp)
 
-target_link_libraries(juice ncurses)
 target_link_libraries(juice
         juiceAST
         juiceBasic
@@ -19,6 +18,7 @@ target_link_libraries(juice
         juiceDriver
         juiceIRGen
         juiceParser
+        juicePlatform
         juiceSema)
 target_link_libraries(juice ${LLVM_LIB_LIST})
 

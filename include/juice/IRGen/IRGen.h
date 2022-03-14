@@ -24,6 +24,7 @@
 #include "llvm/IR/LLVMContext.h"
 #include "llvm/IR/Module.h"
 #include "llvm/IR/Type.h"
+#include "llvm/Support/raw_ostream.h"
 
 namespace juice {
     namespace sema {
@@ -63,7 +64,9 @@ namespace juice {
             IRGen(sema::TypeChecker::Result typeCheckResult, std::shared_ptr<diag::DiagnosticEngine> diagnostics);
 
             bool generate();
-            void dumpProgram();
+            void dumpProgram(llvm::raw_ostream & os);
+
+            bool emitObject(llvm::raw_pwrite_stream & os);
 
         private:
             llvm::Value * generateModule();

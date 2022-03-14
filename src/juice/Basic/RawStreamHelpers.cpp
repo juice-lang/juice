@@ -22,6 +22,8 @@ namespace juice {
         };
 
         llvm::raw_ostream & operator<<(llvm::raw_ostream & os, Color::Value color) {
+            if (!os.has_colors()) return os;
+
             switch (color) {
                 case Color::black: return os << "\033[30m";
                 case Color::red: return os << "\033[31m";

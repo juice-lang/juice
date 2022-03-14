@@ -14,6 +14,7 @@
 #include <string>
 #include <utility>
 
+#include "juice/Basic/ColoredStringStream.h"
 #include "juice/Basic/StringHelpers.h"
 #include "llvm/Support/FormatVariadic.h"
 #include "llvm/Support/FormatAdapters.h"
@@ -37,8 +38,9 @@ namespace juice {
             #include "juice/Diagnostics/Diagnostics.def"
         };
 
-        DiagnosticEngine::DiagnosticEngine(std::unique_ptr<basic::SourceManager> sourceManager):
-                _sourceManager(std::move(sourceManager)) {}
+        DiagnosticEngine::DiagnosticEngine(std::unique_ptr<basic::SourceManager> sourceManager,
+                                           llvm::raw_ostream & outputOS):
+                _sourceManager(std::move(sourceManager)), _outputOS(outputOS) {}
 
         void DiagnosticEngine::diagnose(basic::SourceLocation location, DiagnosticID id,
                                         const std::vector<DiagnosticArg> & args) {
@@ -49,8 +51,20 @@ namespace juice {
             if (kind == DiagnosticKind::error) _hadError = true;
 
 
+            bool coloredOutput;
+            switch (kind) {
+                case DiagnosticKind::error:
+                case DiagnosticKind::warning:
+                    coloredOutput = llvm::errs().has_colors();
+                    break;
+                case DiagnosticKind::output:
+                    coloredOutput = _outputOS.has_colors();
+                    break;
+            }
+
+
             std::string message;
-            llvm::raw_string_ostream os(message);
+            basic::ColoredStringStream os(message, coloredOutput);
 
             os << basic::Color::bold;
 
@@ -62,7 +76,7 @@ namespace juice {
 
             os.flush();
 
-            if (kind == DiagnosticKind::output) llvm::outs() << message;
+            if (kind == DiagnosticKind::output) _outputOS << message;
             else {
                 _sourceManager->printDiagnostic(message, kind, location);
             }
@@ -208,6 +222,11 @@ namespace juice {
                 case DiagnosticArg::Kind::type: {
                     assert(modifier.empty() && "Improper modifier for Type argument");
                     out << arg.getAsType();
+                    break;
+                }
+                case DiagnosticArg::Kind::errorCode: {
+                    assert(modifier.empty() && "Improper modifier for error_code argument");
+                    out << arg.getAsErrorCode().message();
                     break;
                 }
             }
