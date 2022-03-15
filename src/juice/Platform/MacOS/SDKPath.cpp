@@ -53,11 +53,11 @@ namespace juice {
                     "--show-sdk-path"
                 };
 
-                int xcrunReturn = llvm::sys::ExecuteAndWait(*xcrunPath, xcrunArguments, llvm::None,
+                int exitCode = llvm::sys::ExecuteAndWait(*xcrunPath, xcrunArguments, llvm::None,
                                                             {llvm::None, {tempFilePath}, llvm::None});
-                if (xcrunReturn) {
-                    return basic::createError<diag::StaticDiagnosticError>(diag::DiagnosticID::error_executing,
-                                                                           (llvm::StringRef)*xcrunPath);
+                if (exitCode) {
+                    return basic::createError<diag::StaticDiagnosticError>(diag::DiagnosticID::execution_failed,
+                                                                           (llvm::StringRef)*xcrunPath, exitCode);
                 }
 
 

@@ -39,7 +39,6 @@ namespace juice {
         private:
             const Kind _kind;
 
-        protected:
             std::string _executablePath;
             llvm::SmallVector<std::string, 16> _arguments;
             llvm::SmallVector<std::unique_ptr<DriverTask>, 4> _inputs;
@@ -53,7 +52,10 @@ namespace juice {
                        llvm::SmallVectorImpl<std::unique_ptr<DriverTask>> && inputs, std::string outputPath,
                        bool outputIsTemporary);
 
+            virtual ~DriverTask() = default;
+
             virtual llvm::Expected<bool> executeIfNecessary(llvm::sys::TimePoint<> timePoint);
+            virtual llvm::Error createExecutionError(int exitCode);
 
             llvm::Error execute();
 
@@ -98,6 +100,9 @@ namespace juice {
             static std::unique_ptr<CompilationTask>
             create(const char * firstArg, DriverAction action, std::unique_ptr<InputTask> input, std::string outputPath,
                    bool outputIsTemporary = false);
+
+
+            llvm::Error createExecutionError(int exitCode) override;
 
 
             static bool classof(const DriverTask * task) {

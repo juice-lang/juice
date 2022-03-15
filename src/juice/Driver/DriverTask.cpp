@@ -82,14 +82,18 @@ namespace juice {
             for (const std::string & argument: _arguments)
                 arguments.emplace_back(argument);
 
-            int result = llvm::sys::ExecuteAndWait(_executablePath, arguments);
+            int exitCode = llvm::sys::ExecuteAndWait(_executablePath, arguments);
 
-            if (result != 0) {
-                return basic::createError<diag::StaticDiagnosticError>(diag::DiagnosticID::error_executing,
-                                                                       getExecutablePathRef());
+            if (exitCode != 0) {
+                return createExecutionError(exitCode);
             }
 
             return true;
+        }
+
+        llvm::Error DriverTask::createExecutionError(int exitCode) {
+            return basic::createError<diag::StaticDiagnosticError>(diag::DiagnosticID::execution_failed,
+                                                                   getExecutablePathRef(), exitCode);
         }
 
         llvm::Error DriverTask::execute() {
@@ -123,7 +127,7 @@ namespace juice {
         llvm::Expected<bool> InputTask::executeIfNecessary(llvm::sys::TimePoint<> timePoint) {
             llvm::sys::fs::file_status status;
 
-            if (auto errorCode = llvm::sys::fs::status(_outputPath, status)) {
+            if (auto errorCode = llvm::sys::fs::status(getOutputPathRef(), status)) {
                 if (errorCode == std::errc::no_such_file_or_directory)
                     return basic::createError<diag::StaticDiagnosticError>(diag::DiagnosticID::file_not_found,
                                                                            getOutputPathRef());
@@ -195,6 +199,10 @@ namespace juice {
             return std::unique_ptr<CompilationTask>(
                 new CompilationTask(std::move(executablePath), std::move(arguments), std::move(inputs),
                                     std::move(outputPath), outputIsTemporary));
+        }
+
+        llvm::Error CompilationTask::createExecutionError(int exitCode) {
+            return llvm::make_error<basic::AlreadyHandledError>();
         }
 
         LinkingTask::LinkingTask(std::string executablePath, llvm::SmallVector<std::string, 16> arguments,

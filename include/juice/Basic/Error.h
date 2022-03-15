@@ -32,6 +32,20 @@ namespace juice {
             }
         };
 
+        class AlreadyHandledError: public llvm::ErrorInfo<AlreadyHandledError> {
+        public:
+            static const char ID;
+
+            void log(llvm::raw_ostream & os) const override {
+                os << "AlreadyHandledError";
+            }
+
+            std::error_code convertToErrorCode() const override {
+                return llvm::inconvertibleErrorCode();
+            }
+        };
+
+
         template <typename Error, typename... Args>
         llvm::Error createError(Args &&... args) {
             return llvm::Error(Error::create(std::forward<Args>(args)...));
@@ -46,22 +60,12 @@ namespace juice {
         class ErrorHandlerTraits<void (&)(Error &)> {
         public:
             typedef Error ErrorType;
-
-            template <typename Handler>
-            void apply(std::unique_ptr<ErrorType> error, Handler && handler) {
-                handler(*error);
-            }
         };
 
         template <typename Error>
         class ErrorHandlerTraits<void (&)(std::unique_ptr<Error>)> {
         public:
             typedef Error ErrorType;
-
-            template <typename Handler>
-            void apply(std::unique_ptr<ErrorType> error, Handler && handler) {
-                handler(std::move(error));
-            }
         };
 
         template <typename Class, typename Error>
@@ -86,11 +90,14 @@ namespace juice {
 
         template <typename... Handlers>
         bool handleAllErrors(llvm::Error error, Handlers &&... handlers) {
-            if (auto dummyError = llvm::handleErrors(std::move(error),
-                                                     ([&](typename ErrorHandlerTraits<Handlers>::ErrorType & errors) {
-                handlers(errors);
-                return llvm::make_error<basic::DummyError>();
-            })...)) {
+            auto dummyError =
+                llvm::handleErrors(std::move(error), ([&](typename ErrorHandlerTraits<Handlers>::ErrorType & errors) {
+                     handlers(errors);
+                     return llvm::make_error<basic::DummyError>();
+                })..., [](AlreadyHandledError & error) {
+                    return llvm::make_error<basic::DummyError>();
+                });
+            if (dummyError) {
                 llvm::consumeError(std::move(dummyError));
                 return true;
             } else {
