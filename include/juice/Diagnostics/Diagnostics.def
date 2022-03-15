@@ -62,6 +62,8 @@ ERROR(expected_right_paren, "expected closing parenthesis after expression", tru
 
 ERROR(unexpected_operator, "unexpected %0 precedence operator", true)
 
+ERROR(expected_type, "expected type", true)
+
 ERROR(expected_variable_name, "expected variable name", true)
 ERROR(expected_variable_initialization, "expected initialization after variable declaration", true)
 
@@ -79,7 +81,7 @@ OUTPUT(binary_operator_expression_ast_1, "%0%indent1  right: ", false)
 OUTPUT(number_expression_ast, "%0NumberExpressionAST(\n%indent1  token: %reset%2\n%0%indent1  number: %reset%3\n%0%indent1)", true)
 OUTPUT(variable_expression_ast, "%0VariableExpressionAST(token: %reset%1%0)", true)
 
-OUTPUT(variable_declaration_ast, "%0VariableDeclarationAST(\n%indent1  name: %reset%2\n%0%indent1  initialization: ", false)
+OUTPUT(variable_declaration_ast, "%0VariableDeclarationAST(\n%indent1  name: %reset%2\n%0%indent1  type annotation: %reset%3\n%0%indent1  initialization: ", false)
 
 OUTPUT(if_expression_ast_0, "%0IfExpressionAST(\n%indent1  token: %reset%2\n%0%indent1  if condition: ", false)
 OUTPUT(if_statement_ast_0, "%0IfStatementAST(\n%indent1  token: %reset%2\n%0%indent1  if condition: ", false)

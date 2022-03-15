@@ -15,6 +15,7 @@
 
 #include "ExpressionAST.h"
 #include "StatementAST.h"
+#include "TypeRepr.h"
 #include "juice/Parser/LexerToken.h"
 
 namespace juice {
@@ -41,6 +42,7 @@ namespace juice {
 
         class VariableDeclarationAST: public DeclarationAST {
             std::unique_ptr<parser::LexerToken> _keyword, _name;
+            std::unique_ptr<TypeRepr> _typeAnnotation;
             std::unique_ptr<ExpressionAST> _initialization;
 
             friend class sema::TypeCheckedVariableDeclarationAST;
@@ -50,6 +52,7 @@ namespace juice {
 
             VariableDeclarationAST(std::unique_ptr<parser::LexerToken> keyword,
                                    std::unique_ptr<parser::LexerToken> name,
+                                   std::unique_ptr<TypeRepr> typeAnnotation,
                                    std::unique_ptr<ExpressionAST> initialization);
 
             ~VariableDeclarationAST() override = default;

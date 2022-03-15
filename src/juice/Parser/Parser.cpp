@@ -614,6 +614,25 @@ namespace juice {
             return std::make_unique<ast::BlockStatementAST>(std::move(*block));
         }
 
+        llvm::Expected<std::unique_ptr<ast::TypeRepr>> Parser::parseIdentifierType() {
+            return std::make_unique<ast::IdentifierTypeRepr>(std::move(_matchedToken));
+        }
+
+        llvm::Expected<std::unique_ptr<ast::TypeRepr>> Parser::parseType() {
+            auto matchedIdentifier = match(LexerToken::Type::identifier);
+            if (auto error = matchedIdentifier.takeError()) return std::move(error);
+
+            if (*matchedIdentifier) {
+                return parseIdentifierType();
+            }
+
+            return createError(diag::DiagnosticID::expected_type);
+        }
+
+        llvm::Expected<std::unique_ptr<ast::TypeRepr>> Parser::parseTypeAnnotation() {
+            return parseType();
+        }
+
         llvm::Expected<std::unique_ptr<ast::VariableDeclarationAST>> Parser::parseVariableDeclaration() {
             auto keyword = std::move(_matchedToken);
 
@@ -621,6 +640,17 @@ namespace juice {
                 return std::move(error);
 
             auto name = std::move(_matchedToken);
+
+            auto matchedColon = match(LexerToken::Type::delimiterColon);
+            if (auto error = matchedColon.takeError()) return std::move(error);
+
+            std::unique_ptr<ast::TypeRepr> typeAnnotation;
+            if (*matchedColon) {
+                auto type = parseTypeAnnotation();
+                if (auto error = type.takeError()) return std::move(error);
+
+                typeAnnotation = std::move(*type);
+            }
 
             if (auto error = consume(LexerToken::Type::operatorEqual,
                                      diag::DiagnosticID::expected_variable_initialization))
@@ -636,7 +666,7 @@ namespace juice {
             }
 
             return std::make_unique<ast::VariableDeclarationAST>(std::move(keyword), std::move(name),
-                                                                 std::move(*initialization));
+                                                                 std::move(typeAnnotation), std::move(*initialization));
         }
 
         llvm::Expected<std::unique_ptr<ast::StatementAST>> Parser::parseStatement() {

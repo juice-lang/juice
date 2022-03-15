@@ -104,7 +104,7 @@ namespace juice {
         }
 
         llvm::raw_ostream & operator<<(std::unique_ptr<LexerTokenStream> tokenStream,
-                                  const basic::SourceManager * sourceManager) {
+                                       const basic::SourceManager * sourceManager) {
             llvm::raw_ostream & os = tokenStream->getOS();
             const LexerToken * token = tokenStream->getToken();
 

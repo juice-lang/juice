@@ -22,9 +22,10 @@
 #include "Lexer.h"
 #include "LexerToken.h"
 #include "juice/AST/AST.h"
+#include "juice/AST/DeclarationAST.h"
 #include "juice/AST/ExpressionAST.h"
 #include "juice/AST/StatementAST.h"
-#include "juice/AST/DeclarationAST.h"
+#include "juice/AST/TypeRepr.h"
 #include "juice/Basic/SFINAE.h"
 #include "juice/Diagnostics/Diagnostics.h"
 #include "llvm/ADT/StringRef.h"
@@ -146,6 +147,10 @@ namespace juice {
             llvm::Expected<std::unique_ptr<ast::WhileStatementAST>> parseWhileStatement();
             llvm::Expected<std::unique_ptr<ast::IfStatementAST>> parseIfStatement();
             llvm::Expected<std::unique_ptr<ast::BlockStatementAST>> parseBlockStatement();
+
+            llvm::Expected<std::unique_ptr<ast::TypeRepr>> parseIdentifierType();
+            llvm::Expected<std::unique_ptr<ast::TypeRepr>> parseType();
+            llvm::Expected<std::unique_ptr<ast::TypeRepr>> parseTypeAnnotation();
 
             llvm::Expected<std::unique_ptr<ast::VariableDeclarationAST>> parseVariableDeclaration();
 

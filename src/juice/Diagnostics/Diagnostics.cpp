@@ -224,6 +224,11 @@ namespace juice {
                     out << arg.getAsType();
                     break;
                 }
+                case DiagnosticArg::Kind::typeRepr: {
+                    assert(modifier.empty() && "Improper modifier for TypeRepr argument");
+                    out << arg.getAsTypeRepr();
+                    break;
+                }
                 case DiagnosticArg::Kind::errorCode: {
                     assert(modifier.empty() && "Improper modifier for error_code argument");
                     out << arg.getAsErrorCode().message();

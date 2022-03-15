@@ -28,6 +28,12 @@
 #include "llvm/Support/SourceMgr.h"
 
 namespace juice {
+    namespace ast {
+        class TypeRepr;
+
+        llvm::raw_ostream & operator<<(llvm::raw_ostream & os, const TypeRepr * typeRepr);
+    }
+
     namespace parser {
         struct LexerToken;
 
@@ -96,6 +102,7 @@ namespace juice {
                 lexerToken,
                 color,
                 type,
+                typeRepr,
                 errorCode
             };
 
@@ -109,6 +116,7 @@ namespace juice {
                 const parser::LexerToken * _lexerToken;
                 const basic::Color _color;
                 sema::Type _type;
+                const ast::TypeRepr * _typeRepr;
                 std::error_code _errorCode;
             };
 
@@ -126,6 +134,7 @@ namespace juice {
                 _kind(Kind::lexerToken), _lexerToken(lexerToken) {}
             explicit DiagnosticArg(const basic::Color color): _kind(Kind::color), _color(color) {}
             explicit DiagnosticArg(sema::Type type): _kind(Kind::type), _type(type) {}
+            explicit DiagnosticArg(const ast::TypeRepr * typeRepr): _kind(Kind::typeRepr), _typeRepr(typeRepr) {}
             explicit DiagnosticArg(std::error_code errorCode): _kind(Kind::errorCode), _errorCode(errorCode) {}
             // NOLINTEND(cppcoreguidelines-pro-type-member-init)
 
@@ -154,6 +163,7 @@ namespace juice {
             const parser::LexerToken * getAsLexerToken() const { return _lexerToken; }
             basic::Color getAsColor() const { return _color; }
             sema::Type getAsType() const { return _type; }
+            const ast::TypeRepr * getAsTypeRepr() const { return _typeRepr; }
             std::error_code getAsErrorCode() const { return _errorCode; }
         };
 
