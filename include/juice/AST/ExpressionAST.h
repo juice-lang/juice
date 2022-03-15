@@ -24,6 +24,7 @@ namespace juice {
     namespace sema {
         class TypeCheckedBinaryOperatorExpressionAST;
         class TypeCheckedNumberExpressionAST;
+        class TypeCheckedBooleanLiteralExpressionAST;
         class TypeCheckedVariableExpressionAST;
         class TypeCheckedGroupingExpressionAST;
         class TypeCheckedIfExpressionAST;
@@ -35,6 +36,7 @@ namespace juice {
             enum class Kind {
                 binaryOperator,
                 number,
+                booleanLiteral,
                 variable,
                 grouping,
                 _if
@@ -94,6 +96,24 @@ namespace juice {
 
             static bool classof(const ExpressionAST * ast) {
                 return ast->getKind() == Kind::number;
+            }
+        };
+
+        class BooleanLiteralExpressionAST: public ExpressionAST {
+            bool _value;
+
+            friend class sema::TypeCheckedBooleanLiteralExpressionAST;
+
+        public:
+            BooleanLiteralExpressionAST() = delete;
+
+            BooleanLiteralExpressionAST(std::unique_ptr<parser::LexerToken> token, bool value);
+
+            void diagnoseInto(diag::DiagnosticEngine & diagnostics, unsigned int level) const override;
+
+
+            static bool classof(const ExpressionAST * ast) {
+                return ast->getKind() == Kind::booleanLiteral;
             }
         };
 

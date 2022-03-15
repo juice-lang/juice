@@ -45,6 +45,14 @@ namespace juice {
                                  _token.get(), _value);
         }
 
+        BooleanLiteralExpressionAST::BooleanLiteralExpressionAST(std::unique_ptr<parser::LexerToken> token, bool value):
+            ExpressionAST(Kind::booleanLiteral, std::move(token)), _value(value) {}
+
+        void BooleanLiteralExpressionAST::diagnoseInto(diag::DiagnosticEngine & diagnostics, unsigned int level) const {
+            diagnostics.diagnose(getLocation(), diag::DiagnosticID::boolean_literal_expression_ast, getColor(level),
+                                 level, _token.get(), _value);
+        }
+
         VariableExpressionAST::VariableExpressionAST(std::unique_ptr<parser::LexerToken> token):
                 ExpressionAST(Kind::variable, std::move(token)) {}
 

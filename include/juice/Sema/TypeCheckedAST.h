@@ -51,6 +51,7 @@ namespace juice {
                 expression,
                 binaryOperatorExpression,
                 numberExpression,
+                booleanLiteralExpression,
                 variableExpression,
                 groupingExpression,
                 ifExpression,

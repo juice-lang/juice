@@ -35,6 +35,11 @@ namespace juice {
                         llvm::cast<sema::TypeCheckedNumberExpressionAST>(expression.release()));
                     return generateNumberExpression(std::move(number));
                 }
+                case sema::TypeCheckedAST::Kind::booleanLiteralExpression: {
+                    auto literal = std::unique_ptr<sema::TypeCheckedBooleanLiteralExpressionAST>(
+                        llvm::cast<sema::TypeCheckedBooleanLiteralExpressionAST>(expression.release()));
+                    return generateBooleanLiteralExpression(std::move(literal));
+                }
                 case sema::TypeCheckedAST::Kind::variableExpression: {
                     auto variable = std::unique_ptr<sema::TypeCheckedVariableExpressionAST>(
                         llvm::cast<sema::TypeCheckedVariableExpressionAST>(expression.release()));
@@ -173,6 +178,12 @@ namespace juice {
         llvm::Value *
         IRGen::generateNumberExpression(std::unique_ptr<sema::TypeCheckedNumberExpressionAST> expression) {
             return llvm::ConstantFP::get(_context, llvm::APFloat(expression->_value));
+        }
+
+        llvm::Value *
+        IRGen::generateBooleanLiteralExpression(
+            std::unique_ptr<sema::TypeCheckedBooleanLiteralExpressionAST> expression) {
+            return _builder.getInt1(expression->_value);
         }
 
         llvm::Value *

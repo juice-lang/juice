@@ -43,6 +43,12 @@ namespace juice {
                     return TypeCheckedNumberExpressionAST::createByTypeChecking(std::move(number), hint, state,
                                                                                 diagnostics);
                 }
+                case ast::ExpressionAST::Kind::booleanLiteral: {
+                    auto literal = std::unique_ptr<ast::BooleanLiteralExpressionAST>(
+                        llvm::cast<ast::BooleanLiteralExpressionAST>(ast.release()));
+                    return TypeCheckedBooleanLiteralExpressionAST::createByTypeChecking(std::move(literal), hint, state,
+                                                                                        diagnostics);
+                }
                 case ast::ExpressionAST::Kind::variable: {
                     auto variable = std::unique_ptr<ast::VariableExpressionAST>(
                         llvm::cast<ast::VariableExpressionAST>(ast.release()));
@@ -304,6 +310,53 @@ namespace juice {
 
             return std::unique_ptr<TypeCheckedNumberExpressionAST>(
                 new TypeCheckedNumberExpressionAST(type, std::move(ast->_token), ast->_value));
+        }
+
+        TypeCheckedBooleanLiteralExpressionAST
+            ::TypeCheckedBooleanLiteralExpressionAST(Type type, std::unique_ptr<parser::LexerToken> token, bool value):
+            TypeCheckedExpressionAST(Kind::booleanLiteralExpression, type, std::move(token)), _value(value) {}
+
+        void TypeCheckedBooleanLiteralExpressionAST ::diagnoseInto(diag::DiagnosticEngine & diagnostics,
+                                                                   unsigned int level) const {
+            diagnostics.diagnose(getLocation(), diag::DiagnosticID::type_checked_boolean_literal_expression_ast,
+                                 getColor(level), getType(), level, _token.get(), _value);
+        }
+
+        std::unique_ptr<TypeCheckedBooleanLiteralExpressionAST>
+        TypeCheckedBooleanLiteralExpressionAST
+            ::createByTypeChecking(std::unique_ptr<ast::BooleanLiteralExpressionAST> ast, const TypeHint & hint,
+                                   TypeChecker::State & state, diag::DiagnosticEngine & diagnostics) {
+            basic::SourceLocation location(ast->getLocation());
+
+            Type type = BuiltinIntegerType::getBool();
+
+            if (hint.requiresLValue()) {
+                switch (hint.getKind()) {
+                    case TypeHint::Kind::none: break;
+                    case TypeHint::Kind::unknown: {
+                        diagnostics.diagnose(location, diag::DiagnosticID::expression_ast_expected_lvalue_unknown_type,
+                                             "boolean literal");
+                        break;
+                    }
+                    case TypeHint::Kind::expected: {
+                        Type expectedType = llvm::cast<ExpectedTypeHint>(hint).getType();
+                        diagnostics.diagnose(location, diag::DiagnosticID::expression_ast_expected_lvalue,
+                                             expectedType, "boolean literal");
+                        break;
+                    }
+                }
+            }
+
+            if (llvm::isa<ExpectedTypeHint>(hint)) {
+                Type expectedType = llvm::cast<ExpectedTypeHint>(hint).getType();
+
+                if (expectedType != type) diagnostics.diagnose(location,
+                                                               diag::DiagnosticID::expression_ast_expected_type,
+                                                               expectedType, type);
+            }
+
+            return std::unique_ptr<TypeCheckedBooleanLiteralExpressionAST>(
+                new TypeCheckedBooleanLiteralExpressionAST(type, std::move(ast->_token), ast->_value));
         }
 
         TypeCheckedVariableExpressionAST::TypeCheckedVariableExpressionAST(Type type,

@@ -97,6 +97,28 @@ namespace juice {
             }
         };
 
+        class TypeCheckedBooleanLiteralExpressionAST: public TypeCheckedExpressionAST {
+            bool _value;
+
+            TypeCheckedBooleanLiteralExpressionAST(Type type, std::unique_ptr<parser::LexerToken> token, bool value);
+
+            friend class irgen::IRGen;
+
+        public:
+            TypeCheckedBooleanLiteralExpressionAST() = delete;
+
+            void diagnoseInto(diag::DiagnosticEngine & diagnostics, unsigned int level) const override;
+
+            static std::unique_ptr<TypeCheckedBooleanLiteralExpressionAST>
+            createByTypeChecking(std::unique_ptr<ast::BooleanLiteralExpressionAST> ast, const TypeHint & hint,
+                                 TypeChecker::State & state, diag::DiagnosticEngine & diagnostics);
+
+
+            static bool classof(const TypeCheckedAST * ast) {
+                return ast->getKind() == Kind::booleanLiteralExpression;
+            }
+        };
+
         class TypeCheckedVariableExpressionAST: public TypeCheckedExpressionAST {
             size_t _index;
 

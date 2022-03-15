@@ -102,10 +102,10 @@ namespace juice {
         }
 
         llvm::Expected<std::unique_ptr<LexerToken>> Parser::advance() {
-            if (auto error = advanceOne()) return std::move(error);
+            if (auto error = advanceOne()) return error;
             auto token = std::move(_previousToken);
 
-            if (auto error = skipNewlines()) return std::move(error);
+            if (auto error = skipNewlines()) return error;
 
             return token;
         }
@@ -113,7 +113,7 @@ namespace juice {
         llvm::Expected<bool> Parser::match(LexerToken::Type type) {
             if (check(type)) {
                 auto matchedToken = advance();
-                if (auto error = matchedToken.takeError()) return std::move(error);
+                if (auto error = matchedToken.takeError()) return error;
 
                 _matchedToken = std::move(*matchedToken);
                 return true;
@@ -124,7 +124,7 @@ namespace juice {
         template<typename... T, std::enable_if_t<basic::all_same_v<LexerToken::Type, T...>> *>
         llvm::Expected<bool> Parser::match(LexerToken::Type type, T... types) {
             auto matched = match(type);
-            if (auto error = matched.takeError()) return std::move(error);
+            if (auto error = matched.takeError()) return error;
 
             if (*matched) return true;
 
@@ -135,7 +135,7 @@ namespace juice {
         llvm::Expected<bool> Parser::match(const std::array<LexerToken::Type, size> & types) {
             for (const auto & type: types) {
                 auto matched = match(LexerToken::Type::delimiterLeftParen);
-                if (auto error = matched.takeError()) return std::move(error);
+                if (auto error = matched.takeError()) return error;
 
                 if (*matched) return true;
             }
@@ -204,10 +204,10 @@ namespace juice {
         }
 
         llvm::Expected<const std::unique_ptr<LexerToken> &> Parser::advanceLookahead() {
-            if (auto error = advanceLookaheadOne()) return std::move(error);
+            if (auto error = advanceLookaheadOne()) return error;
             const auto & token = getPreviousLookaheadToken();
 
-            if (auto error = lookaheadSkipNewlines()) return std::move(error);
+            if (auto error = lookaheadSkipNewlines()) return error;
 
             return token;
         }
@@ -215,7 +215,7 @@ namespace juice {
         llvm::Expected<bool> Parser::matchLookahead(LexerToken::Type type) {
             if (checkLookahead(type)) {
                 auto matchedToken = advanceLookahead();
-                if (auto error = matchedToken.takeError()) return std::move(error);
+                if (auto error = matchedToken.takeError()) return error;
                 
                 return true;
             }
@@ -225,7 +225,7 @@ namespace juice {
         template<typename... T, std::enable_if_t<basic::all_same_v<LexerToken::Type, T...>> *>
         llvm::Expected<bool> Parser::matchLookahead(LexerToken::Type type, T... types) {
             auto matched = matchLookahead(type);
-            if (auto error = matched.takeError()) return std::move(error);
+            if (auto error = matched.takeError()) return error;
 
             if (*matched) return true;
 
@@ -236,7 +236,7 @@ namespace juice {
         llvm::Expected<bool> Parser::matchLookahead(const std::array<LexerToken::Type, size> & types) {
             for (const auto & type: types) {
                 auto matched = matchLookahead(LexerToken::Type::delimiterLeftParen);
-                if (auto error = matched.takeError()) return std::move(error);
+                if (auto error = matched.takeError()) return error;
 
                 if (*matched) return true;
             }
@@ -248,7 +248,7 @@ namespace juice {
         llvm::Expected<std::unique_ptr<ast::BlockAST>> Parser::parseBlock(llvm::StringRef name) {
             if (auto error = consume(LexerToken::Type::delimiterLeftBrace,
                                      diag::DiagnosticID::expected_left_brace, name))
-                return std::move(error);
+                return error;
 
             auto block = std::make_unique<ast::BlockAST>(std::move(_matchedToken));
 
@@ -257,11 +257,11 @@ namespace juice {
 
             if (auto error = parseContainer(*block, [](Parser * parser) {
                 return parser->isAtEnd() || parser->check(LexerToken::Type::delimiterRightBrace);
-            })) return std::move(error);
+            })) return error;
 
             if (auto error = consume(LexerToken::Type::delimiterRightBrace,
                                      diag::DiagnosticID::expected_right_brace, name))
-                return std::move(error);
+                return error;
 
             _inBlock = wasInBlock;
 
@@ -272,17 +272,17 @@ namespace juice {
         Parser::parseControlFlowBody(std::unique_ptr<LexerToken> keyword) {
             if (check(LexerToken::Type::delimiterLeftBrace)) {
                 auto block = parseBlock(keyword->string);
-                if (auto error = block.takeError()) return std::move(error);
+                if (auto error = block.takeError()) return error;
 
                 return std::make_unique<ast::ControlFlowBodyAST>(std::move(keyword), std::move(*block));
             }
 
             if (auto error = consume(LexerToken::Type::delimiterColon,
                                      diag::DiagnosticID::expected_left_brace_or_colon, keyword->string))
-                return std::move(error);
+                return error;
 
             auto expression = parseExpression();
-            if (auto error = expression.takeError()) return std::move(error);
+            if (auto error = expression.takeError()) return error;
 
             return std::make_unique<ast::ControlFlowBodyAST>(std::move(keyword), std::move(*expression));
         }
@@ -291,35 +291,35 @@ namespace juice {
             auto ifKeyword = std::move(_matchedToken);
 
             auto ifCondition = parseExpression();
-            if (auto error = ifCondition.takeError()) return std::move(error);
+            if (auto error = ifCondition.takeError()) return error;
 
             auto ifBody = parseControlFlowBody(std::move(ifKeyword));
-            if (auto error = ifBody.takeError()) return std::move(error);
+            if (auto error = ifBody.takeError()) return error;
 
             ast::IfExpressionAST::ElifVector elifConditionsAndBodies;
 
             auto matchedElif = match(LexerToken::Type::keywordElif);
-            if (auto error = matchedElif.takeError()) return std::move(error);
+            if (auto error = matchedElif.takeError()) return error;
 
             while (*matchedElif) {
                 auto elifKeyword = std::move(_matchedToken);
 
                 auto elifCondition = parseExpression();
-                if (auto error = elifCondition.takeError()) return std::move(error);
+                if (auto error = elifCondition.takeError()) return error;
 
                 auto elifBody = parseControlFlowBody(std::move(elifKeyword));
-                if (auto error = elifBody.takeError()) return std::move(error);
+                if (auto error = elifBody.takeError()) return error;
 
                 elifConditionsAndBodies.emplace_back(std::move(*elifCondition), std::move(*elifBody));
 
                 matchedElif = match(LexerToken::Type::keywordElif);
-                if (auto error = matchedElif.takeError()) return std::move(error);
+                if (auto error = matchedElif.takeError()) return error;
             }
 
 
             if (isStatement) {
                 auto matchedElse = match(LexerToken::Type::keywordElse);
-                if (auto error = matchedElse.takeError()) return std::move(error);
+                if (auto error = matchedElse.takeError()) return error;
 
                 std::unique_ptr<ast::ControlFlowBodyAST> elseBody = nullptr;
 
@@ -327,7 +327,7 @@ namespace juice {
                     auto elseKeyword = std::move(_matchedToken);
 
                     auto expectedElseBody = parseControlFlowBody(std::move(elseKeyword));
-                    if (auto error = expectedElseBody.takeError()) return std::move(error);
+                    if (auto error = expectedElseBody.takeError()) return error;
 
                     elseBody = std::move(*expectedElseBody);
                 }
@@ -339,12 +339,12 @@ namespace juice {
 
 
             if (auto error = consume(LexerToken::Type::keywordElse, diag::DiagnosticID::expected_else))
-                return std::move(error);
+                return error;
 
             auto elseKeyword = std::move(_matchedToken);
 
             auto elseBody = parseControlFlowBody(std::move(elseKeyword));
-            if (auto error = elseBody.takeError()) return std::move(error);
+            if (auto error = elseBody.takeError()) return error;
 
             return std::make_unique<ast::IfExpressionAST>(std::move(*ifCondition), std::move(*ifBody),
                                                           std::move(elifConditionsAndBodies), std::move(*elseBody),
@@ -353,17 +353,17 @@ namespace juice {
 
         llvm::Expected<std::unique_ptr<ast::ExpressionAST>> Parser::parseGroupedExpression() {
             auto matched = match(LexerToken::Type::delimiterLeftParen);
-            if (auto error = matched.takeError()) return std::move(error);
+            if (auto error = matched.takeError()) return error;
 
             if (*matched) {
                 auto token = std::move(_matchedToken);
 
                 auto expression = parseExpression();
-                if (auto error = expression.takeError()) return std::move(error);
+                if (auto error = expression.takeError()) return error;
 
                 if (auto error = consume(LexerToken::Type::delimiterRightParen,
                                          diag::DiagnosticID::expected_right_paren))
-                    return std::move(error);
+                    return error;
 
                 return std::make_unique<ast::GroupingExpressionAST>(std::move(token), std::move(*expression));
             }
@@ -373,16 +373,25 @@ namespace juice {
 
         llvm::Expected<std::unique_ptr<ast::ExpressionAST>> Parser::parsePrimaryExpression() {
             auto matchedNumber = match(LexerToken::Type::integerLiteral, LexerToken::Type::decimalLiteral);
-            if (auto error = matchedNumber.takeError()) return std::move(error);
+            if (auto error = matchedNumber.takeError()) return error;
 
             if (*matchedNumber) {
                 auto token = std::move(_matchedToken);
                 double number = std::stod(token->string.str());
                 return std::make_unique<ast::NumberExpressionAST>(std::move(token), number);
             }
+            
+            auto matchedBooleanLiteral = match(LexerToken::Type::keywordTrue, LexerToken::Type::keywordFalse);
+            if (auto error = matchedBooleanLiteral.takeError()) return error;
+
+            if (*matchedBooleanLiteral) {
+                auto token = std::move(_matchedToken);
+                bool value = token->type == LexerToken::Type::keywordTrue;
+                return std::make_unique<ast::BooleanLiteralExpressionAST>(std::move(token), value);
+            }
 
             auto matchedIdentifier = match(LexerToken::Type::identifier);
-            if (auto error = matchedIdentifier.takeError()) return std::move(error);
+            if (auto error = matchedIdentifier.takeError()) return error;
 
             if (*matchedIdentifier) {
                 auto token = std::move(_matchedToken);
@@ -390,7 +399,7 @@ namespace juice {
             }
 
             auto matchedIf = match(LexerToken::Type::keywordIf);
-            if (auto error = matchedIf.takeError()) return std::move(error);
+            if (auto error = matchedIf.takeError()) return error;
 
             if (*matchedIf) return parseIfExpression(false);
 
@@ -399,23 +408,23 @@ namespace juice {
 
         llvm::Expected<std::unique_ptr<ast::ExpressionAST>> Parser::parseMultiplicationPrecedenceExpression() {
             auto node = parsePrimaryExpression();
-            if (auto error = node.takeError()) return std::move(error);
+            if (auto error = node.takeError()) return error;
 
             auto matched = match(LexerToken::Type::operatorAsterisk, LexerToken::Type::operatorSlash);
-            if (auto error = matched.takeError()) return std::move(error);
+            if (auto error = matched.takeError()) return error;
 
             while (*matched) {
                 auto token = std::move(_matchedToken);
 
                 auto right = parsePrimaryExpression();
-                if (auto error = right.takeError()) return std::move(error);
+                if (auto error = right.takeError()) return error;
 
                 node = std::make_unique<ast::BinaryOperatorExpressionAST>(std::move(token), std::move(*node),
                                                                           std::move(*right));
-                if (auto error = node.takeError()) return std::move(error);
+                if (auto error = node.takeError()) return error;
 
                 matched = match(LexerToken::Type::operatorAsterisk, LexerToken::Type::operatorSlash);
-                if (auto error = matched.takeError()) return std::move(error);
+                if (auto error = matched.takeError()) return error;
             }
 
             return node;
@@ -423,23 +432,23 @@ namespace juice {
 
         llvm::Expected<std::unique_ptr<ast::ExpressionAST>> Parser::parseAdditionPrecedenceExpression() {
             auto node = parseMultiplicationPrecedenceExpression();
-            if (auto error = node.takeError()) return std::move(error);
+            if (auto error = node.takeError()) return error;
 
             auto matched = match(LexerToken::Type::operatorPlus, LexerToken::Type::operatorMinus);
-            if (auto error = matched.takeError()) return std::move(error);
+            if (auto error = matched.takeError()) return error;
 
             while (*matched) {
                 auto token = std::move(_matchedToken);
 
                 auto right = parseMultiplicationPrecedenceExpression();
-                if (auto error = right.takeError()) return std::move(error);
+                if (auto error = right.takeError()) return error;
 
                 node = std::make_unique<ast::BinaryOperatorExpressionAST>(std::move(token), std::move(*node),
                                                                           std::move(*right));
-                if (auto error = node.takeError()) return std::move(error);
+                if (auto error = node.takeError()) return error;
 
                 matched = match(LexerToken::Type::operatorPlus, LexerToken::Type::operatorMinus);
-                if (auto error = matched.takeError()) return std::move(error);
+                if (auto error = matched.takeError()) return error;
             }
 
             return node;
@@ -447,21 +456,21 @@ namespace juice {
 
         llvm::Expected<std::unique_ptr<ast::ExpressionAST>> Parser::parseComparisonPrecedenceExpression() {
             auto node = parseAdditionPrecedenceExpression();
-            if (auto error = node.takeError()) return std::move(error);
+            if (auto error = node.takeError()) return error;
 
             auto matched = match(LexerToken::Type::operatorLower, LexerToken::Type::operatorLowerEqual,
                                  LexerToken::Type::operatorGreater, LexerToken::Type::operatorGreaterEqual);
-            if (auto error = matched.takeError()) return std::move(error);
+            if (auto error = matched.takeError()) return error;
 
             if (*matched) {
                 auto token = std::move(_matchedToken);
 
                 auto right = parseAdditionPrecedenceExpression();
-                if (auto error = right.takeError()) return std::move(error);
+                if (auto error = right.takeError()) return error;
 
                 node = std::make_unique<ast::BinaryOperatorExpressionAST>(std::move(token), std::move(*node),
                                                                           std::move(*right));
-                if (auto error = node.takeError()) return std::move(error);
+                if (auto error = node.takeError()) return error;
 
                 if (check(LexerToken::Type::operatorLower, LexerToken::Type::operatorLowerEqual,
                           LexerToken::Type::operatorGreater, LexerToken::Type::operatorGreaterEqual))
@@ -473,20 +482,20 @@ namespace juice {
 
         llvm::Expected<std::unique_ptr<ast::ExpressionAST>> Parser::parseEqualityPrecedenceExpression() {
             auto node = parseComparisonPrecedenceExpression();
-            if (auto error = node.takeError()) return std::move(error);
+            if (auto error = node.takeError()) return error;
 
             auto matched = match(LexerToken::Type::operatorEqualEqual, LexerToken::Type::operatorBangEqual);
-            if (auto error = matched.takeError()) return std::move(error);
+            if (auto error = matched.takeError()) return error;
 
             if (*matched) {
                 auto token = std::move(_matchedToken);
 
                 auto right = parseComparisonPrecedenceExpression();
-                if (auto error = right.takeError()) return std::move(error);
+                if (auto error = right.takeError()) return error;
 
                 node = std::make_unique<ast::BinaryOperatorExpressionAST>(std::move(token), std::move(*node),
                                                                           std::move(*right));
-                if (auto error = node.takeError()) return std::move(error);
+                if (auto error = node.takeError()) return error;
 
                 if (check(LexerToken::Type::operatorEqualEqual, LexerToken::Type::operatorBangEqual))
                     return createError(diag::DiagnosticID::unexpected_operator, "equality");
@@ -497,23 +506,23 @@ namespace juice {
 
         llvm::Expected<std::unique_ptr<ast::ExpressionAST>> Parser::parseLogicalAndPrecedenceExpression() {
             auto node = parseEqualityPrecedenceExpression();
-            if (auto error = node.takeError()) return std::move(error);
+            if (auto error = node.takeError()) return error;
 
             auto matched = match(LexerToken::Type::operatorAndAnd);
-            if (auto error = matched.takeError()) return std::move(error);
+            if (auto error = matched.takeError()) return error;
 
             while (*matched) {
                 auto token = std::move(_matchedToken);
 
                 auto right = parseEqualityPrecedenceExpression();
-                if (auto error = right.takeError()) return std::move(error);
+                if (auto error = right.takeError()) return error;
 
                 node = std::make_unique<ast::BinaryOperatorExpressionAST>(std::move(token), std::move(*node),
                                                                           std::move(*right));
-                if (auto error = node.takeError()) return std::move(error);
+                if (auto error = node.takeError()) return error;
 
                 matched = match(LexerToken::Type::operatorAndAnd);
-                if (auto error = matched.takeError()) return std::move(error);
+                if (auto error = matched.takeError()) return error;
             }
 
             return node;
@@ -521,23 +530,23 @@ namespace juice {
 
         llvm::Expected<std::unique_ptr<ast::ExpressionAST>> Parser::parseLogicalOrPrecedenceExpression() {
             auto node = parseLogicalAndPrecedenceExpression();
-            if (auto error = node.takeError()) return std::move(error);
+            if (auto error = node.takeError()) return error;
 
             auto matched = match(LexerToken::Type::operatorPipePipe);
-            if (auto error = matched.takeError()) return std::move(error);
+            if (auto error = matched.takeError()) return error;
 
             while (*matched) {
                 auto token = std::move(_matchedToken);
 
                 auto right = parseLogicalAndPrecedenceExpression();
-                if (auto error = right.takeError()) return std::move(error);
+                if (auto error = right.takeError()) return error;
 
                 node = std::make_unique<ast::BinaryOperatorExpressionAST>(std::move(token), std::move(*node),
                                                                           std::move(*right));
-                if (auto error = node.takeError()) return std::move(error);
+                if (auto error = node.takeError()) return error;
 
                 matched = match(LexerToken::Type::operatorPipePipe);
-                if (auto error = matched.takeError()) return std::move(error);
+                if (auto error = matched.takeError()) return error;
             }
 
             return node;
@@ -545,27 +554,27 @@ namespace juice {
 
         llvm::Expected<std::unique_ptr<ast::ExpressionAST>> Parser::parseAssignmentPrecedenceExpression() {
             auto node = parseLogicalOrPrecedenceExpression();
-            if (auto error = node.takeError()) return std::move(error);
+            if (auto error = node.takeError()) return error;
 
             auto matched = match(LexerToken::Type::operatorEqual, LexerToken::Type::operatorPlusEqual,
                                  LexerToken::Type::operatorMinusEqual, LexerToken::Type::operatorAsteriskEqual,
                                  LexerToken::Type::operatorSlashEqual);
-            if (auto error = matched.takeError()) return std::move(error);
+            if (auto error = matched.takeError()) return error;
 
             while (*matched) {
                 auto token = std::move(_matchedToken);
 
                 auto right = parseAssignmentPrecedenceExpression();
-                if (auto error = right.takeError()) return std::move(error);
+                if (auto error = right.takeError()) return error;
 
                 node = std::make_unique<ast::BinaryOperatorExpressionAST>(std::move(token), std::move(*node),
                                                                           std::move(*right));
-                if (auto error = node.takeError()) return std::move(error);
+                if (auto error = node.takeError()) return error;
 
                 matched = match(LexerToken::Type::operatorEqual, LexerToken::Type::operatorPlusEqual,
                                 LexerToken::Type::operatorMinusEqual, LexerToken::Type::operatorAsteriskEqual,
                                 LexerToken::Type::operatorSlashEqual);
-                if (auto error = matched.takeError()) return std::move(error);
+                if (auto error = matched.takeError()) return error;
             }
 
             return node;
@@ -577,12 +586,12 @@ namespace juice {
 
         llvm::Expected<std::unique_ptr<ast::ExpressionStatementAST>> Parser::parseExpressionStatement() {
             auto expression = parseExpression();
-            if (auto error = expression.takeError()) return std::move(error);
+            if (auto error = expression.takeError()) return error;
 
             if (!_wasNewline && !(_inBlock && check(LexerToken::Type::delimiterRightBrace))) {
                 if (auto error = consume(LexerToken::Type::delimiterSemicolon,
                                          diag::DiagnosticID::expected_newline_or_semicolon, "expression"))
-                    return std::move(error);
+                    return error;
             }
 
             return std::make_unique<ast::ExpressionStatementAST>(std::move(*expression));
@@ -592,24 +601,24 @@ namespace juice {
             auto keyword = std::move(_matchedToken);
 
             auto condition = parseExpression();
-            if (auto error = condition.takeError()) return std::move(error);
+            if (auto error = condition.takeError()) return error;
 
             auto body = parseControlFlowBody(std::move(keyword));
-            if (auto error = body.takeError()) return std::move(error);
+            if (auto error = body.takeError()) return error;
 
             return std::make_unique<ast::WhileStatementAST>(std::move(*condition), std::move(*body));
         }
 
         llvm::Expected<std::unique_ptr<ast::IfStatementAST>> Parser::parseIfStatement() {
             auto ifExpression = parseIfExpression(true);
-            if (auto error = ifExpression.takeError()) return std::move(error);
+            if (auto error = ifExpression.takeError()) return error;
 
             return std::make_unique<ast::IfStatementAST>(std::move(*ifExpression));
         }
 
         llvm::Expected<std::unique_ptr<ast::BlockStatementAST>> Parser::parseBlockStatement() {
             auto block = parseBlock("do");
-            if (auto error = block.takeError()) return std::move(error);
+            if (auto error = block.takeError()) return error;
 
             return std::make_unique<ast::BlockStatementAST>(std::move(*block));
         }
@@ -620,7 +629,7 @@ namespace juice {
 
         llvm::Expected<std::unique_ptr<ast::TypeRepr>> Parser::parseType() {
             auto matchedIdentifier = match(LexerToken::Type::identifier);
-            if (auto error = matchedIdentifier.takeError()) return std::move(error);
+            if (auto error = matchedIdentifier.takeError()) return error;
 
             if (*matchedIdentifier) {
                 return parseIdentifierType();
@@ -637,32 +646,32 @@ namespace juice {
             auto keyword = std::move(_matchedToken);
 
             if (auto error = consume(LexerToken::Type::identifier, diag::DiagnosticID::expected_variable_name))
-                return std::move(error);
+                return error;
 
             auto name = std::move(_matchedToken);
 
             auto matchedColon = match(LexerToken::Type::delimiterColon);
-            if (auto error = matchedColon.takeError()) return std::move(error);
+            if (auto error = matchedColon.takeError()) return error;
 
             std::unique_ptr<ast::TypeRepr> typeAnnotation;
             if (*matchedColon) {
                 auto type = parseTypeAnnotation();
-                if (auto error = type.takeError()) return std::move(error);
+                if (auto error = type.takeError()) return error;
 
                 typeAnnotation = std::move(*type);
             }
 
             if (auto error = consume(LexerToken::Type::operatorEqual,
                                      diag::DiagnosticID::expected_variable_initialization))
-                return std::move(error);
+                return error;
 
             auto initialization = parseExpression();
-            if (auto error = initialization.takeError()) return std::move(error);
+            if (auto error = initialization.takeError()) return error;
 
             if (!_wasNewline && !(_inBlock && check(LexerToken::Type::delimiterRightBrace))) {
                 if (auto error = consume(LexerToken::Type::delimiterSemicolon,
                                          diag::DiagnosticID::expected_newline_or_semicolon, "variable declaration"))
-                    return std::move(error);
+                    return error;
             }
 
             return std::make_unique<ast::VariableDeclarationAST>(std::move(keyword), std::move(name),
@@ -671,25 +680,25 @@ namespace juice {
 
         llvm::Expected<std::unique_ptr<ast::StatementAST>> Parser::parseStatement() {
             auto matchedVar = match(LexerToken::Type::keywordVar);
-            if (auto error = matchedVar.takeError()) return std::move(error);
+            if (auto error = matchedVar.takeError()) return error;
 
             if (*matchedVar) return parseVariableDeclaration();
 
 
             auto matchedDo = match(LexerToken::Type::keywordDo);
-            if (auto error = matchedDo.takeError()) return std::move(error);
+            if (auto error = matchedDo.takeError()) return error;
 
             if (*matchedDo) return parseBlockStatement();
 
 
             auto matchedIf = match(LexerToken::Type::keywordIf);
-            if (auto error = matchedIf.takeError()) return std::move(error);
+            if (auto error = matchedIf.takeError()) return error;
 
             if (*matchedIf) return parseIfStatement();
 
 
             auto matchedWhile = match(LexerToken::Type::keywordWhile);
-            if (auto error = matchedWhile.takeError()) return std::move(error);
+            if (auto error = matchedWhile.takeError()) return error;
 
             if (*matchedWhile) return parseWhileStatement();
 
