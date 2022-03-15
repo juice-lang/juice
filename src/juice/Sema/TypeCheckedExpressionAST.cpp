@@ -324,23 +324,22 @@ namespace juice {
             basic::SourceLocation location(ast->getLocation());
             auto token = std::move(ast->_token);
 
-            auto optionalDeclaration = state.getDeclaration(token->string);
+            auto optionalDeclaration = state.getVariableDeclaration(token->string);
 
-            if (!optionalDeclaration) {
+            size_t index = 0;
+            Type type = NothingType::get();
+            if (optionalDeclaration) {
+                std::tie(index, type) = *optionalDeclaration;
+
+                if (llvm::isa<ExpectedTypeHint>(hint)) {
+                    Type expectedType = llvm::cast<ExpectedTypeHint>(hint).getType();
+
+                    if (expectedType != type) diagnostics.diagnose(location,
+                                                                   diag::DiagnosticID::expression_ast_expected_type,
+                                                                   expectedType, type);
+                }
+            } else {
                 diagnostics.diagnose(location, diag::DiagnosticID::expression_ast_unresolved_identifier, token->string);
-            }
-
-            auto declaration = optionalDeclaration.getValueOr(std::make_pair(0, BuiltinFloatingPointType::getDouble()));
-
-            size_t index = std::get<0>(declaration);
-            Type type = std::get<1>(declaration).addFlag(Type::Flags::lValue);
-
-            if (llvm::isa<ExpectedTypeHint>(hint)) {
-                Type expectedType = llvm::cast<ExpectedTypeHint>(hint).getType();
-
-                if (expectedType != type) diagnostics.diagnose(location,
-                                                               diag::DiagnosticID::expression_ast_expected_type,
-                                                               expectedType, type);
             }
 
             return std::unique_ptr<TypeCheckedVariableExpressionAST>(

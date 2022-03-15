@@ -96,7 +96,7 @@ namespace juice {
                 llvm::AllocaInst * alloca = _allocas.at(variable._index);
 
                 if (instruction->second) {
-                    llvm::Value * variableValue = _builder.CreateLoad(llvm::Type::getDoubleTy(_context), alloca, name);
+                    llvm::Value * variableValue = _builder.CreateLoad(variable._type->toLLVM(_context), alloca, name);
 
                     right = instruction->second(_builder, variableValue, right);
                 }
@@ -179,7 +179,7 @@ namespace juice {
         IRGen::generateVariableExpression(std::unique_ptr<sema::TypeCheckedVariableExpressionAST> expression) {
             llvm::AllocaInst * alloca = _allocas.at(expression->_index);
 
-            return _builder.CreateLoad(llvm::Type::getDoubleTy(_context), alloca, expression->name());
+            return _builder.CreateLoad(expression->_type->toLLVM(_context), alloca, expression->name());
         }
 
         llvm::Value *
@@ -270,7 +270,7 @@ namespace juice {
             function->getBasicBlockList().push_back(mergeBlock);
             _builder.SetInsertPoint(mergeBlock);
 
-            llvm::PHINode * phi = _builder.CreatePHI(llvm::Type::getDoubleTy(_context),
+            llvm::PHINode * phi = _builder.CreatePHI(expression->_type->toLLVM(_context),
                                                      2 + expression->_elifConditionsAndBodies.size(), "iftmp");
             phi->addIncoming(ifValue, ifBlock);
 

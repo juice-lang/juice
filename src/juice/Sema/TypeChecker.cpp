@@ -18,35 +18,75 @@
 
 namespace juice {
     namespace sema {
-        llvm::Optional<std::pair<size_t, Type>>
-        TypeChecker::State::Scope::getDeclaration(llvm::StringRef name) const {
-            auto begin = declarations.begin();
-            auto result = std::find_if(begin, begin + currentIndex, [&name](const DeclarationPair & pair) {
+        bool TypeChecker::State::Scope::hasTypeDeclaration(llvm::StringRef name) const {
+            auto result = typeDeclarations.find(name);
+
+            if (result == typeDeclarations.end()) {
+                return parent && parent->hasTypeDeclaration(name);
+            }
+
+            return true;
+        }
+
+        llvm::Optional<Type> TypeChecker::State::Scope::getTypeDeclaration(llvm::StringRef name) const {
+            auto result = typeDeclarations.find(name);
+
+            if (result == typeDeclarations.end()) {
+                if (parent) return parent->getTypeDeclaration(name);
+
+                return llvm::None;
+            }
+
+            return result->getValue();
+        }
+
+        bool TypeChecker::State::Scope::addTypeDeclaration(llvm::StringRef name, Type type) {
+            if (!(hasVariableDeclaration(name) || (parent && parent->hasTypeDeclaration(name)))) {
+                return typeDeclarations.try_emplace(name, type).second;
+            }
+
+            return false;
+        }
+
+        bool TypeChecker::State::Scope::hasVariableDeclaration(llvm::StringRef name) const {
+            auto begin = variableDeclarations.begin();
+            auto result = std::find_if(begin, begin + currentVariableIndex, [&](const VariableDeclarationPair & pair) {
                 return pair.first.equals(name);
             });
 
-            if (result == begin + currentIndex) return llvm::None;
+            return result != begin + currentVariableIndex;
+        }
+
+        llvm::Optional<std::pair<size_t, Type>>
+        TypeChecker::State::Scope::getVariableDeclaration(llvm::StringRef name) const {
+            auto begin = variableDeclarations.begin();
+            auto result = std::find_if(begin, begin + currentVariableIndex, [&](const VariableDeclarationPair & pair) {
+                return pair.first.equals(name);
+            });
+
+            if (result == begin + currentVariableIndex) return llvm::None;
 
             return std::make_pair((size_t)(result - begin), (*result).second);
         }
 
-        llvm::Optional<size_t> TypeChecker::State::Scope::addDeclaration(llvm::StringRef name, Type type) {
-            if (!getDeclaration(name)) {
-                auto begin = declarations.begin();
-                if (begin + currentIndex == declarations.end()) {
-                    declarations.emplace_back(name, type);
-                } else declarations.at(currentIndex) = std::make_pair(name, type);
+        llvm::Optional<size_t> TypeChecker::State::Scope::addVariableDeclaration(llvm::StringRef name, Type type) {
+            if (!(hasVariableDeclaration(name) || hasTypeDeclaration(name))) {
+                auto begin = variableDeclarations.begin();
+                if (begin + currentVariableIndex == variableDeclarations.end()) {
+                    variableDeclarations.emplace_back(name, type);
+                } else variableDeclarations.at(currentVariableIndex) = std::make_pair(name, type);
 
-                return currentIndex++;
+                return currentVariableIndex++;
             }
+
             return llvm::None;
         }
 
         TypeChecker::State::State():
-            _currentScope(std::make_unique<Scope>(_declarations, 0, nullptr)) {}
+            _currentScope(std::make_unique<Scope>(_variableDeclarations, 0, nullptr)) {}
 
         void TypeChecker::State::newScope() {
-            _currentScope = std::make_unique<Scope>(_declarations, _currentScope->currentIndex,
+            _currentScope = std::make_unique<Scope>(_variableDeclarations, _currentScope->currentVariableIndex,
                                                     std::move(_currentScope));
         }
 
@@ -54,12 +94,28 @@ namespace juice {
             _currentScope = std::move(_currentScope->parent);
         }
 
-        llvm::Optional<std::pair<size_t, Type>> TypeChecker::State::getDeclaration(llvm::StringRef name) const {
-            return _currentScope->getDeclaration(name);
+        bool TypeChecker::State::hasTypeDeclaration(llvm::StringRef name) const {
+            return _currentScope->hasTypeDeclaration(name);
         }
 
-        llvm::Optional<size_t> TypeChecker::State::addDeclaration(llvm::StringRef name, Type type) {
-            return _currentScope->addDeclaration(name, type);
+        llvm::Optional<Type> TypeChecker::State::getTypeDeclaration(llvm::StringRef name) const {
+            return _currentScope->getTypeDeclaration(name);
+        }
+
+        bool TypeChecker::State::addTypeDeclaration(llvm::StringRef name, Type type) {
+            return _currentScope->addTypeDeclaration(name, type);
+        }
+
+        bool TypeChecker::State::hasVariableDeclaration(llvm::StringRef name) const {
+            return _currentScope->hasVariableDeclaration(name);
+        }
+
+        llvm::Optional<std::pair<size_t, Type>> TypeChecker::State::getVariableDeclaration(llvm::StringRef name) const {
+            return _currentScope->getVariableDeclaration(name);
+        }
+
+        llvm::Optional<size_t> TypeChecker::State::addVariableDeclaration(llvm::StringRef name, Type type) {
+            return _currentScope->addVariableDeclaration(name, type);
         }
 
         TypeChecker::Result::Result(std::unique_ptr<TypeCheckedModuleAST> ast, size_t allocaVectorSize):
@@ -72,12 +128,19 @@ namespace juice {
         TypeChecker::Result TypeChecker::typeCheck() {
             State state;
 
+            declareBuiltinTypes(state);
+
             auto ast =
                 TypeCheckedModuleAST::createByTypeChecking(std::move(_ast),
                                                            ExpectedTypeHint(BuiltinFloatingPointType::getDouble()),
                                                            state, *_diagnostics);
 
             return { std::move(ast), state.getAllocaVectorSize() };
+        }
+
+        void TypeChecker::declareBuiltinTypes(State & state) {
+            state.addTypeDeclaration("_BuiltinDouble", BuiltinFloatingPointType::getDouble());
+            state.addTypeDeclaration("_BuiltinBool", BuiltinIntegerType::getBool());
         }
     }
 }

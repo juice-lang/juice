@@ -15,6 +15,8 @@
 #include <type_traits>
 
 #include "juice/Basic/SFINAE.h"
+#include "llvm/IR/LLVMContext.h"
+#include "llvm/IR/Type.h"
 #include "llvm/Support/raw_ostream.h"
 
 namespace juice {
@@ -42,6 +44,12 @@ namespace juice {
             TypeBase(const TypeBase &) = delete;
             void operator=(const TypeBase &) = delete;
 
+            virtual ~TypeBase() = default;
+
+
+            virtual llvm::Type * toLLVM(llvm::LLVMContext & context) const = 0;
+
+
             Kind getKind() const { return _kind; }
         };
 
@@ -57,6 +65,9 @@ namespace juice {
 
                 return &_void;
             }
+
+
+            llvm::Type * toLLVM(llvm::LLVMContext & context) const override;
 
 
             static bool classof(const TypeBase * type) {
@@ -78,6 +89,9 @@ namespace juice {
             }
 
 
+            llvm::Type * toLLVM(llvm::LLVMContext &context) const override;
+
+
             static bool classof(const TypeBase * type) {
                 return type->getKind() == Kind::nothing;
             }
@@ -95,9 +109,13 @@ namespace juice {
             uint8_t _flags = 0;
 
         public:
-            Type() = delete;
+            Type() = default;
 
+            // NOLINTNEXTLINE(google-explicit-constructor)
             /* implicit */ Type(const TypeBase * pointer): _pointer(pointer) {}
+
+            // NOLINTNEXTLINE(google-explicit-constructor)
+            /* implicit */ operator bool() const { return _pointer; }
 
             template <typename... T, std::enable_if_t<basic::all_same<Flags, T...>::value> * = nullptr>
             Type(const TypeBase * pointer, Flags flag, T... flags): Type(pointer, flags...) {

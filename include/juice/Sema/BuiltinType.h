@@ -55,17 +55,21 @@ namespace juice {
             BuiltinIntegerType(const BuiltinIntegerType &) = delete;
             void operator=(const BuiltinIntegerType &) = delete;
 
-            Width getWidth() const { return _width; }
-            unsigned int getBitWidth() const { return (unsigned int)_width; }
-
-            bool equals(const TypeBase * other) const override;
-
 
             static const BuiltinIntegerType * getBool() {
                 static const BuiltinIntegerType _bool(Width::_1);
 
                 return &_bool;
             }
+
+
+            llvm::Type * toLLVM(llvm::LLVMContext & context) const override;
+
+
+            Width getWidth() const { return _width; }
+            unsigned int getBitWidth() const { return (unsigned int)_width; }
+
+            bool equals(const TypeBase * other) const override;
 
 
             static bool classof(const TypeBase * type) {
@@ -79,7 +83,6 @@ namespace juice {
                 ieee16,
                 ieee32,
                 ieee64,
-                ieee80,
                 ieee128
             };
 
@@ -94,20 +97,6 @@ namespace juice {
             BuiltinFloatingPointType(const BuiltinFloatingPointType &) = delete;
             void operator=(const BuiltinFloatingPointType &) = delete;
 
-            FPKind getFPKind() const { return _fpKind; }
-
-            unsigned int getBitWidth() const {
-                switch (_fpKind) {
-                    case FPKind::ieee16:  return 16;
-                    case FPKind::ieee32:  return 32;
-                    case FPKind::ieee64:  return 64;
-                    case FPKind::ieee80:  return 80;
-                    case FPKind::ieee128: return 128;
-                }
-            }
-
-            bool equals(const TypeBase * other) const override;
-
 
             static const BuiltinFloatingPointType * getFloat() {
                 static const BuiltinFloatingPointType _float(FPKind::ieee32);
@@ -120,6 +109,23 @@ namespace juice {
 
                 return &_double;
             }
+
+
+            llvm::Type * toLLVM(llvm::LLVMContext & context) const override;
+
+
+            FPKind getFPKind() const { return _fpKind; }
+
+            unsigned int getBitWidth() const {
+                switch (_fpKind) {
+                    case FPKind::ieee16:  return 16;
+                    case FPKind::ieee32:  return 32;
+                    case FPKind::ieee64:  return 64;
+                    case FPKind::ieee128: return 128;
+                }
+            }
+
+            bool equals(const TypeBase * other) const override;
 
 
             static bool classof(const TypeBase * type) {

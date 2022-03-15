@@ -17,6 +17,27 @@
 
 namespace juice {
     namespace sema {
+        bool Type::operator==(Type other) const {
+            switch (this->_pointer->getKind()) {
+                case TypeBase::Kind::_void: return llvm::isa<VoidType>(other._pointer);
+                case TypeBase::Kind::nothing: return llvm::isa<NothingType>(other._pointer);
+                case TypeBase::Kind::builtin:
+                case TypeBase::Kind::builtinInteger:
+                case TypeBase::Kind::builtinFloatingPoint:
+                case TypeBase::Kind::builtin_last:
+                    return llvm::cast<BuiltinType>(this->_pointer)->equals(other._pointer);
+            }
+        }
+
+        llvm::Type * VoidType::toLLVM(llvm::LLVMContext & context) const {
+            return llvm::Type::getVoidTy(context);
+        }
+
+        llvm::Type * NothingType::toLLVM(llvm::LLVMContext & context) const {
+            return nullptr;
+        }
+
+
         llvm::raw_ostream & operator<<(llvm::raw_ostream & os, Type type) {
             switch (type.getPointer()->getKind()) {
                 case TypeBase::Kind::_void:
@@ -44,9 +65,6 @@ namespace juice {
                         case BuiltinFloatingPointType::FPKind::ieee64:
                             os << "Double";
                             break;
-                        case BuiltinFloatingPointType::FPKind::ieee80:
-                            os << "Float80";
-                            break;
                         case BuiltinFloatingPointType::FPKind::ieee128:
                             os << "Float128";
                             break;
@@ -58,18 +76,6 @@ namespace juice {
             }
 
             return os;
-        }
-
-        bool Type::operator==(Type other) const {
-            switch (this->_pointer->getKind()) {
-                case TypeBase::Kind::_void: return llvm::isa<VoidType>(other._pointer);
-                case TypeBase::Kind::nothing: return llvm::isa<NothingType>(other._pointer);
-                case TypeBase::Kind::builtin:
-                case TypeBase::Kind::builtinInteger:
-                case TypeBase::Kind::builtinFloatingPoint:
-                case TypeBase::Kind::builtin_last:
-                    return llvm::cast<BuiltinType>(this->_pointer)->equals(other._pointer);
-            }
         }
     }
 }

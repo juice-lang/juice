@@ -11,6 +11,8 @@
 
 #include "juice/Sema/TypeCheckedDeclarationAST.h"
 
+#include "juice/Basic/Error.h"
+#include "juice/Diagnostics/DiagnosticError.h"
 #include "juice/Sema/BuiltinType.h"
 #include "llvm/Support/Casting.h"
 
@@ -35,16 +37,18 @@ namespace juice {
         TypeCheckedVariableDeclarationAST
             ::TypeCheckedVariableDeclarationAST(std::unique_ptr<parser::LexerToken> keyword,
                                                 std::unique_ptr<parser::LexerToken> name,
-                                                std::unique_ptr<TypeCheckedExpressionAST> initialization, size_t index):
+                                                std::unique_ptr<TypeCheckedExpressionAST> initialization,
+                                                Type variableType, size_t index):
             TypeCheckedDeclarationAST(Kind::variableDeclaration, NothingType::get()), _keyword(std::move(keyword)),
-            _name(std::move(name)), _initialization(std::move(initialization)), _index(index) {}
+            _name(std::move(name)), _initialization(std::move(initialization)), _variableType(variableType),
+            _index(index) {}
 
         void TypeCheckedVariableDeclarationAST::diagnoseInto(diag::DiagnosticEngine & diagnostics,
                                                              unsigned int level) const {
             basic::SourceLocation location(getLocation());
 
             diagnostics.diagnose(location, diag::DiagnosticID::type_checked_variable_declaration_ast, getColor(level),
-                                 getType(), (unsigned int)_index, level, _name.get());
+                                 (unsigned int)_index, level, _name.get(), _variableType);
             _initialization->diagnoseInto(diagnostics, level + 1);
             diagnostics.diagnose(location, diag::DiagnosticID::ast_end, getColor(level), level);
         }
@@ -56,11 +60,28 @@ namespace juice {
             basic::SourceLocation location(ast->getLocation());
             auto name = std::move(ast->_name);
 
-            auto initialization = TypeCheckedExpressionAST
-                ::createByTypeChecking(std::move(ast->_initialization),
-                                       ExpectedTypeHint(BuiltinFloatingPointType::getDouble()), state, diagnostics);
+            Type annotatedType;
+            if (ast->_typeAnnotation) {
+                auto annotation = std::move(ast->_typeAnnotation);
 
-            auto index = state.addDeclaration(name->string, initialization->getType());
+                auto type = annotation->resolve(state);
+                if (!basic::handleAllErrors(type.takeError(), [&](const diag::DiagnosticError & error) {
+                    error.diagnoseInto(diagnostics);
+                })) {
+                    annotatedType = *type;
+                }
+            }
+
+            const TypeHint & expectedHint = ExpectedTypeHint(annotatedType);
+            const TypeHint & unknownHint = UnknownTypeHint();
+            const TypeHint & initializationHint = annotatedType ? expectedHint : unknownHint;
+
+            auto initialization = TypeCheckedExpressionAST
+                ::createByTypeChecking(std::move(ast->_initialization), initializationHint, state, diagnostics);
+
+            Type variableType = annotatedType ? annotatedType : initialization->getType();
+
+            auto index = state.addVariableDeclaration(name->string, variableType);
 
             if (!index) {
                 diagnostics.diagnose(location, diag::DiagnosticID::variable_declaration_ast_redeclaration,
@@ -82,7 +103,7 @@ namespace juice {
 
             return std::unique_ptr<TypeCheckedVariableDeclarationAST>(
                 new TypeCheckedVariableDeclarationAST(std::move(ast->_keyword), std::move(name),
-                                                      std::move(initialization), index.getValueOr(0)));
+                                                      std::move(initialization), variableType, index.getValueOr(0)));
         }
     }
 }

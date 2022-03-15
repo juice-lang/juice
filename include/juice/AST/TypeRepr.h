@@ -15,7 +15,10 @@
 #include <memory>
 
 #include "juice/Parser/LexerToken.h"
+#include "juice/Sema/Type.h"
+#include "juice/Sema/TypeChecker.h"
 #include "llvm/ADT/StringRef.h"
+#include "llvm/Support/Error.h"
 #include "llvm/Support/raw_ostream.h"
 
 namespace juice {
@@ -37,6 +40,12 @@ namespace juice {
             TypeRepr(const TypeRepr &) = delete;
             void operator=(const TypeRepr &) = delete;
 
+            virtual ~TypeRepr() = default;
+
+
+            virtual llvm::Expected<sema::Type> resolve(const sema::TypeChecker::State & state) const = 0;
+
+
             Kind getKind() const { return _kind; }
         };
 
@@ -48,6 +57,9 @@ namespace juice {
 
             IdentifierTypeRepr(const IdentifierTypeRepr &) = delete;
             void operator=(const IdentifierTypeRepr &) = delete;
+
+
+            llvm::Expected<sema::Type> resolve(const sema::TypeChecker::State &state) const override;
 
 
             llvm::StringRef name() const { return _token->string; }

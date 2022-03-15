@@ -103,6 +103,7 @@ OUTPUT(if_body_ast_expression, "%0IfBodyAST(\n%indent1  keyword: %reset%2\n%0%in
 
 //AST
 ERROR(invalid_redeclaration, "invalid redeclaration of '%0'", true)
+ERROR(not_a_type, "identifier '%0' does not resolve to a type", true)
 ERROR(unresolved_identifer, "use of unresolved identifier '%0'", true)
 
 ERROR(expression_not_assignable, "expression is not assignable", true)
@@ -130,7 +131,7 @@ OUTPUT(type_checked_binary_operator_expression_ast_0, "%0BinaryOperatorExpressio
 OUTPUT(type_checked_number_expression_ast, "%0NumberExpressionAST[%1](\n%indent2  token: %reset%3\n%0%indent2  number: %reset%4\n%0%indent2)", true)
 OUTPUT(type_checked_variable_expression_ast, "%0VariableExpressionAST[%1, index: %2](token: %reset%3%0)", true)
 
-OUTPUT(type_checked_variable_declaration_ast, "%0VariableDeclarationAST[%1, index: %2](\n%indent3  name: %reset%4\n%0%indent3  initialization: ", false)
+OUTPUT(type_checked_variable_declaration_ast, "%0VariableDeclarationAST[index: %1](\n%indent2  name: %reset%3\n%0%indent2  type: %reset%4\n%0%indent2  initialization: ", false)
 
 OUTPUT(type_checked_if_expression_ast_0, "%0IfExpressionAST[%1](\n%indent2  token: %reset%3\n%0%indent2  if condition: ", false)
 OUTPUT(type_checked_if_statement_ast_0, "%0IfStatementAST[%1](\n%indent2  token: %reset%3\n%0%indent2  if condition: ", false)

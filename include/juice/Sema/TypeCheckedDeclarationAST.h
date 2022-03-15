@@ -47,11 +47,13 @@ namespace juice {
         class TypeCheckedVariableDeclarationAST: public TypeCheckedDeclarationAST {
             std::unique_ptr<parser::LexerToken> _keyword, _name;
             std::unique_ptr<TypeCheckedExpressionAST> _initialization;
+            Type _variableType;
             size_t _index;
 
             TypeCheckedVariableDeclarationAST(std::unique_ptr<parser::LexerToken> keyword,
                                               std::unique_ptr<parser::LexerToken> name,
-                                              std::unique_ptr<TypeCheckedExpressionAST> initialization, size_t index);
+                                              std::unique_ptr<TypeCheckedExpressionAST> initialization,
+                                              Type variableType, size_t index);
 
             friend class irgen::IRGen;
 

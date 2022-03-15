@@ -32,7 +32,7 @@ namespace juice {
         void IRGen::generateVariableDeclaration(std::unique_ptr<sema::TypeCheckedVariableDeclarationAST> declaration) {
             auto value = generateExpression(std::move(declaration->_initialization));
 
-            llvm::AllocaInst * alloca = _builder.CreateAlloca(llvm::Type::getDoubleTy(_context), nullptr,
+            llvm::AllocaInst * alloca = _builder.CreateAlloca(declaration->_variableType->toLLVM(_context), nullptr,
                                                               declaration->_name->string);
             _builder.CreateStore(value, alloca);
 

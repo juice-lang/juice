@@ -19,6 +19,7 @@
 #include "Type.h"
 #include "juice/AST/AST.h"
 #include "llvm/ADT/Optional.h"
+#include "llvm/ADT/StringMap.h"
 #include "llvm/ADT/StringRef.h"
 
 namespace juice {
@@ -28,25 +29,34 @@ namespace juice {
         class TypeChecker {
         public:
             class State {
-                typedef std::pair<llvm::StringRef, Type> DeclarationPair;
-                typedef std::vector<DeclarationPair> DeclarationVector;
+                typedef std::pair<llvm::StringRef, Type> VariableDeclarationPair;
+                typedef std::vector<VariableDeclarationPair> VariableDeclarationVector;
 
                 struct Scope {
-                    DeclarationVector & declarations;
-                    size_t currentIndex;
+                    llvm::StringMap<Type> typeDeclarations;
+
+                    VariableDeclarationVector & variableDeclarations;
+                    size_t currentVariableIndex;
 
                     std::unique_ptr<Scope> parent;
 
                     Scope() = delete;
 
-                    Scope(DeclarationVector & declarations, size_t currentIndex, std::unique_ptr<Scope> parent):
-                        declarations(declarations), currentIndex(currentIndex), parent(std::move(parent)) {}
+                    Scope(VariableDeclarationVector & variableDeclarations, size_t currentVariableIndex,
+                          std::unique_ptr<Scope> parent):
+                        variableDeclarations(variableDeclarations), currentVariableIndex(currentVariableIndex),
+                        parent(std::move(parent)) {}
 
-                    llvm::Optional<std::pair<size_t, Type>> getDeclaration(llvm::StringRef name) const;
-                    llvm::Optional<size_t> addDeclaration(llvm::StringRef name, Type type);
+                    bool hasTypeDeclaration(llvm::StringRef name) const;
+                    llvm::Optional<Type> getTypeDeclaration(llvm::StringRef name) const;
+                    bool addTypeDeclaration(llvm::StringRef name, Type type);
+
+                    bool hasVariableDeclaration(llvm::StringRef name) const;
+                    llvm::Optional<std::pair<size_t, Type>> getVariableDeclaration(llvm::StringRef name) const;
+                    llvm::Optional<size_t> addVariableDeclaration(llvm::StringRef name, Type type);
                 };
 
-                DeclarationVector _declarations;
+                VariableDeclarationVector _variableDeclarations;
                 std::unique_ptr<Scope> _currentScope;
 
             public:
@@ -55,10 +65,15 @@ namespace juice {
                 void newScope();
                 void endScope();
 
-                size_t getAllocaVectorSize() const { return _declarations.size(); }
+                size_t getAllocaVectorSize() const { return _variableDeclarations.size(); }
 
-                llvm::Optional<std::pair<size_t, Type>> getDeclaration(llvm::StringRef name) const;
-                llvm::Optional<size_t> addDeclaration(llvm::StringRef name, Type type);
+                bool hasTypeDeclaration(llvm::StringRef name) const;
+                llvm::Optional<Type> getTypeDeclaration(llvm::StringRef name) const;
+                bool addTypeDeclaration(llvm::StringRef name, Type type);
+
+                bool hasVariableDeclaration(llvm::StringRef name) const;
+                llvm::Optional<std::pair<size_t, Type>> getVariableDeclaration(llvm::StringRef name) const;
+                llvm::Optional<size_t> addVariableDeclaration(llvm::StringRef name, Type type);
             };
 
             struct Result {
@@ -79,6 +94,9 @@ namespace juice {
             TypeChecker(std::unique_ptr<ast::ModuleAST> ast, std::shared_ptr<diag::DiagnosticEngine> diagnostics);
 
             Result typeCheck();
+
+        private:
+            static void declareBuiltinTypes(State & state);
         };
     }
 }
