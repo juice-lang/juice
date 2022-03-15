@@ -125,6 +125,7 @@ namespace juice {
 
             // NOLINTBEGIN(cppcoreguidelines-pro-type-member-init)
             explicit DiagnosticArg(unsigned int integer): _kind(Kind::integer), _integer(integer) {}
+            explicit DiagnosticArg(int integer): _kind(Kind::integer), _integer(integer) {}
             explicit DiagnosticArg(double doubleValue): _kind(Kind::doubleValue), _double(doubleValue) {}
             explicit DiagnosticArg(bool boolean): _kind(Kind::boolean), _boolean(boolean) {}
             explicit DiagnosticArg(const char * cString): _kind(Kind::string), _string(cString) {}

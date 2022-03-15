@@ -13,5 +13,6 @@
 namespace juice {
     namespace basic {
         const char DummyError::ID = 0;
+        const char AlreadyHandledError::ID = 0;
     }
 }
