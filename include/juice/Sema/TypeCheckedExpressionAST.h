@@ -19,7 +19,9 @@
 #include "TypeCheckedAST.h"
 #include "TypeChecker.h"
 #include "juice/AST/ExpressionAST.h"
+#include "juice/Basic/SourceLocation.h"
 #include "juice/Parser/LexerToken.h"
+#include "llvm/ADT/StringRef.h"
 
 namespace juice {
     namespace sema {
@@ -30,6 +32,11 @@ namespace juice {
             std::unique_ptr<parser::LexerToken> _token;
 
             TypeCheckedExpressionAST(Kind kind, Type type, std::unique_ptr<parser::LexerToken> token);
+
+            static void checkLValue(const TypeHint & hint, basic::SourceLocation location,
+                                    diag::DiagnosticEngine & diagnostics, llvm::StringRef name);
+            static void checkType(Type type, const TypeHint & hint, basic::SourceLocation location,
+                                  diag::DiagnosticEngine & diagnostics);
 
         public:
             TypeCheckedExpressionAST() = delete;

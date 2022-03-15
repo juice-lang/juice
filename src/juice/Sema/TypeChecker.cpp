@@ -130,10 +130,12 @@ namespace juice {
 
             declareBuiltinTypes(state);
 
-            auto ast =
-                TypeCheckedModuleAST::createByTypeChecking(std::move(_ast),
-                                                           ExpectedTypeHint(BuiltinFloatingPointType::getDouble()),
-                                                           state, *_diagnostics);
+            const TypeHint & hint = ExpectedEitherTypeHint({
+                BuiltinFloatingPointType::getDouble(),
+                BuiltinIntegerType::getBool()
+            });
+
+            auto ast = TypeCheckedModuleAST::createByTypeChecking(std::move(_ast), hint, state, *_diagnostics);
 
             return { std::move(ast), state.getAllocaVectorSize() };
         }

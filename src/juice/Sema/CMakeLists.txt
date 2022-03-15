@@ -16,6 +16,7 @@ add_library(juiceSema STATIC
         TypeCheckedDeclarationAST.cpp
         TypeCheckedExpressionAST.cpp
         TypeCheckedStatementAST.cpp
-        TypeChecker.cpp)
+        TypeChecker.cpp
+        TypeHint.cpp)
 
 target_compile_options(juiceSema PRIVATE ${LLVM_COMPILE_FLAG_LIST})

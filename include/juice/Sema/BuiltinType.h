@@ -66,6 +66,8 @@ namespace juice {
             llvm::Type * toLLVM(llvm::LLVMContext & context) const override;
 
 
+            bool isBool() const { return _width == Width::_1; }
+
             Width getWidth() const { return _width; }
             unsigned int getBitWidth() const { return (unsigned int)_width; }
 
@@ -113,6 +115,9 @@ namespace juice {
 
             llvm::Type * toLLVM(llvm::LLVMContext & context) const override;
 
+
+            bool isFloat() const { return _fpKind == FPKind::ieee32; }
+            bool isDouble() const { return _fpKind == FPKind::ieee64; }
 
             FPKind getFPKind() const { return _fpKind; }
 

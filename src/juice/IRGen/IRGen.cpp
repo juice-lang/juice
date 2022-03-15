@@ -21,6 +21,7 @@
 #include "llvm/IR/LegacyPassManager.h"
 #include "llvm/IR/Verifier.h"
 #include "llvm/Support/CodeGen.h"
+#include "llvm/Support/ErrorHandling.h"
 #include "llvm/Support/FileSystem.h"
 #include "llvm/Support/Host.h"
 #include "llvm/Support/raw_ostream.h"
@@ -39,8 +40,6 @@ namespace juice {
         }
 
         bool IRGen::generate() {
-            std::string string = "%f\n";
-
             llvm::Function * printfFunction = createFunction(llvm::Type::getInt32Ty(_context),
                                                              {llvm::Type::getInt8PtrTy(_context)}, true, "printf");
 
@@ -48,9 +47,47 @@ namespace juice {
             llvm::BasicBlock * mainEntryBlock = llvm::BasicBlock::Create(_context, "entry", mainFunction);
             _builder.SetInsertPoint(mainEntryBlock);
 
-            auto value = generateModule();
+            llvm::Value * value = generateModule();
 
-            auto * globalString = _builder.CreateGlobalString(string, ".str");
+            llvm::GlobalVariable * globalString;
+            if (_ast->_type.isBuiltinDouble()) {
+                globalString = _builder.CreateGlobalString("%f\n", ".str");
+            } else if (_ast->_type.isBuiltinBool()) {
+                globalString = _builder.CreateGlobalString("%s\n", ".str");
+
+                auto * trueString = _builder.CreateGlobalString("true", "true.str");
+                auto * falseString = _builder.CreateGlobalString("false", "false.str");
+
+                llvm::BasicBlock * falseBlock = llvm::BasicBlock::Create(_context, "false", mainFunction);
+                llvm::BasicBlock * mergeBlock = llvm::BasicBlock::Create(_context, "booleancont");
+
+                _builder.CreateCondBr(value, mergeBlock, falseBlock);
+
+                llvm::BasicBlock * trueBlock = _builder.GetInsertBlock();
+
+                _builder.SetInsertPoint(falseBlock);
+                _builder.CreateBr(mergeBlock);
+
+                falseBlock = _builder.GetInsertBlock();
+
+
+                mainFunction->getBasicBlockList().push_back(mergeBlock);
+                _builder.SetInsertPoint(mergeBlock);
+
+                llvm::Value * trueStringValue = _builder.CreateBitCast(trueString, llvm::Type::getInt8PtrTy(_context),
+                                                                       "truecast");
+                llvm::Value * falseStringValue = _builder.CreateBitCast(falseString, llvm::Type::getInt8PtrTy(_context),
+                                                                       "falsecast");
+
+                llvm::PHINode * phi = _builder.CreatePHI(llvm::Type::getInt8PtrTy(_context), 2, "booleanstr");
+                phi->addIncoming(trueStringValue, trueBlock);
+                phi->addIncoming(falseStringValue, falseBlock);
+
+                value = phi;
+            } else {
+                llvm_unreachable("All possible yield types kinds should be handled here");
+            }
+
             llvm::Value * stringValue = _builder.CreateBitCast(globalString, llvm::Type::getInt8PtrTy(_context),
                                                                "cast");
 

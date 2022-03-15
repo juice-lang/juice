@@ -17,15 +17,25 @@
 
 namespace juice {
     namespace sema {
+        bool Type::isBuiltinBool() const {
+            return _pointer->getKind() == TypeBase::Kind::builtinInteger
+                && llvm::cast<BuiltinIntegerType>(_pointer)->isBool();
+        }
+
+        bool Type::isBuiltinDouble() const {
+            return _pointer->getKind() == TypeBase::Kind::builtinFloatingPoint
+                && llvm::cast<BuiltinFloatingPointType>(_pointer)->isDouble();
+        }
+
         bool Type::operator==(Type other) const {
-            switch (this->_pointer->getKind()) {
+            switch (_pointer->getKind()) {
                 case TypeBase::Kind::_void: return llvm::isa<VoidType>(other._pointer);
                 case TypeBase::Kind::nothing: return llvm::isa<NothingType>(other._pointer);
                 case TypeBase::Kind::builtin:
                 case TypeBase::Kind::builtinInteger:
                 case TypeBase::Kind::builtinFloatingPoint:
                 case TypeBase::Kind::builtin_last:
-                    return llvm::cast<BuiltinType>(this->_pointer)->equals(other._pointer);
+                    return llvm::cast<BuiltinType>(_pointer)->equals(other._pointer);
             }
         }
 

@@ -224,6 +224,23 @@ namespace juice {
                     out << arg.getAsType();
                     break;
                 }
+                case DiagnosticArg::Kind::types: {
+                    assert(modifier.empty() && "Improper modifier for vector of types argument");
+
+                    const auto & types = arg.getAsTypes();
+
+                    out << '{';
+                    for (int i = 0; i < types.size(); ++i) {
+                        out << '\'' << types[i] << '\'';
+
+                        if (i < types.size() - 1) {
+                            out << ", ";
+                        }
+                    }
+                    out << '}';
+
+                    break;
+                }
                 case DiagnosticArg::Kind::typeRepr: {
                     assert(modifier.empty() && "Improper modifier for TypeRepr argument");
                     out << arg.getAsTypeRepr();

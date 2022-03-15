@@ -130,6 +130,11 @@ namespace juice {
                     diagnostics.diagnose(location, diag::DiagnosticID::statement_ast_expected_type, expectedType);
                     break;
                 }
+                case TypeHint::Kind::expectedEither: {
+                    const auto & types = llvm::cast<ExpectedEitherTypeHint>(hint).getTypes();
+                    diagnostics.diagnose(location, diag::DiagnosticID::statement_ast_expected_types, types);
+                    break;
+                }
             }
 
             return std::unique_ptr<TypeCheckedIfStatementAST>(new TypeCheckedIfStatementAST(NothingType::get(),
@@ -178,6 +183,11 @@ namespace juice {
                 case TypeHint::Kind::expected: {
                     Type expectedType = llvm::cast<ExpectedTypeHint>(hint).getType();
                     diagnostics.diagnose(location, diag::DiagnosticID::statement_ast_expected_type, expectedType);
+                    break;
+                }
+                case TypeHint::Kind::expectedEither: {
+                    const auto & types = llvm::cast<ExpectedEitherTypeHint>(hint).getTypes();
+                    diagnostics.diagnose(location, diag::DiagnosticID::statement_ast_expected_types, types);
                     break;
                 }
             }

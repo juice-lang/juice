@@ -102,6 +102,7 @@ namespace juice {
                 lexerToken,
                 color,
                 type,
+                types,
                 typeRepr,
                 errorCode
             };
@@ -116,6 +117,7 @@ namespace juice {
                 const parser::LexerToken * _lexerToken;
                 const basic::Color _color;
                 sema::Type _type;
+                const std::vector<sema::Type> * _types;
                 const ast::TypeRepr * _typeRepr;
                 std::error_code _errorCode;
             };
@@ -135,6 +137,7 @@ namespace juice {
                 _kind(Kind::lexerToken), _lexerToken(lexerToken) {}
             explicit DiagnosticArg(const basic::Color color): _kind(Kind::color), _color(color) {}
             explicit DiagnosticArg(sema::Type type): _kind(Kind::type), _type(type) {}
+            explicit DiagnosticArg(const std::vector<sema::Type> & types): _kind(Kind::types), _types(&types) {}
             explicit DiagnosticArg(const ast::TypeRepr * typeRepr): _kind(Kind::typeRepr), _typeRepr(typeRepr) {}
             explicit DiagnosticArg(std::error_code errorCode): _kind(Kind::errorCode), _errorCode(errorCode) {}
             // NOLINTEND(cppcoreguidelines-pro-type-member-init)
@@ -164,6 +167,7 @@ namespace juice {
             const parser::LexerToken * getAsLexerToken() const { return _lexerToken; }
             basic::Color getAsColor() const { return _color; }
             sema::Type getAsType() const { return _type; }
+            const std::vector<sema::Type> & getAsTypes() const { return *_types; }
             const ast::TypeRepr * getAsTypeRepr() const { return _typeRepr; }
             std::error_code getAsErrorCode() const { return _errorCode; }
         };

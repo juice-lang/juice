@@ -13,6 +13,8 @@
 #define JUICE_SEMA_TYPEHINT_H
 
 #include <type_traits>
+#include <utility>
+#include <vector>
 
 #include "Type.h"
 #include "juice/Basic/SFINAE.h"
@@ -25,7 +27,8 @@ namespace juice {
             enum class Kind {
                 none,
                 unknown,
-                expected
+                expected,
+                expectedEither
             };
 
             enum class Flags: uint8_t {
@@ -88,6 +91,25 @@ namespace juice {
 
             static bool classof(const TypeHint * hint) {
                 return hint->getKind() == Kind::expected;
+            }
+        };
+
+        class ExpectedEitherTypeHint: public TypeHint {
+            std::vector<Type> _types;
+
+        public:
+            template <typename... T, std::enable_if_t<basic::all_same<Flags, T...>::value> * = nullptr>
+            explicit ExpectedEitherTypeHint(std::vector<Type> types, T... flags):
+                TypeHint(Kind::expectedEither, flags...), _types(std::move(types)) {}
+
+            const std::vector<Type> & getTypes() const { return _types; }
+
+
+            bool matches(Type type) const;
+
+
+            static bool classof(const TypeHint * hint) {
+                return hint->getKind() == Kind::expectedEither;
             }
         };
     }

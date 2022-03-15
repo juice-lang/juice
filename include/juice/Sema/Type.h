@@ -133,6 +133,11 @@ namespace juice {
             bool isRValue() const { return !(_flags & (uint8_t)Flags::lValue); }
             bool isLValue() const { return _flags & (uint8_t)Flags::lValue; }
 
+
+            bool isBuiltinBool() const;
+            bool isBuiltinDouble() const;
+
+
             bool operator==(Type other) const;
 
             bool operator!=(Type other) const {
