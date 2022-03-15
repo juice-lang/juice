@@ -81,7 +81,7 @@ namespace juice {
                 if (action == DriverAction::emitExecutable) {
                     auto compilationTask = CompilationTask::create(_firstArg, getAction(), std::move(inputTask));
                     if (auto error = compilationTask.takeError())
-                        return std::move(error);
+                        return error;
 
                     llvm::SmallVector<std::unique_ptr<DriverTask>, 4> linkerInputs;
                     linkerInputs.push_back(std::move(*compilationTask));

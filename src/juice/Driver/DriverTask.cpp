@@ -37,7 +37,7 @@ namespace juice {
         llvm::Expected<bool> DriverTask::executeIfNecessary(llvm::sys::TimePoint<> timePoint) {
             if (_outputPath == "-") {
                 if (auto error = executeInputs(timePoint).takeError())
-                    return std::move(error);
+                    return error;
             } else {
                 llvm::sys::fs::file_status status;
 
@@ -48,7 +48,7 @@ namespace juice {
                                                                                errorCode);
 
                     if (auto error = executeInputs(timePoint).takeError())
-                        return std::move(error);
+                        return error;
                 } else if (!llvm::sys::fs::is_regular_file(status)) {
                     return basic::createError<diag::StaticDiagnosticError>(diag::DiagnosticID::file_not_regular,
                                                                            getOutputPathRef());
@@ -57,7 +57,7 @@ namespace juice {
 
                     auto inputsWereExecuted = executeInputs(modificationTime);
                     if (auto error = inputsWereExecuted.takeError())
-                        return std::move(error);
+                        return error;
 
                     if (!inputsWereExecuted) {
                         return modificationTime < timePoint;
@@ -65,7 +65,7 @@ namespace juice {
                 } else { // output is temporary
                     auto inputsWereExecuted = executeInputs(timePoint);
                     if (auto error = inputsWereExecuted.takeError())
-                        return std::move(error);
+                        return error;
 
                     if (!inputsWereExecuted) {
                         llvm::sys::fs::remove(_outputPath);
@@ -99,7 +99,7 @@ namespace juice {
         llvm::Error DriverTask::execute() {
             auto wasExecuted = executeIfNecessary(std::chrono::system_clock::now());
             if (auto error = wasExecuted.takeError()) {
-                return std::move(error);
+                return error;
             }
 
             return llvm::Error::success();
@@ -111,7 +111,7 @@ namespace juice {
             for (auto & input: _inputs) {
                 auto wasExecuted = input->executeIfNecessary(timePoint);
                 if (auto error = wasExecuted.takeError())
-                    return std::move(error);
+                    return error;
 
                 if (wasExecuted)
                     someInputWasExecuted = true;
@@ -223,7 +223,7 @@ namespace juice {
             #if OS_MAC
             auto sdkPath = platform::macOS::getSDKPath();
             if (auto error = sdkPath.takeError()) {
-                return std::move(error);
+                return error;
             }
             #endif
 
