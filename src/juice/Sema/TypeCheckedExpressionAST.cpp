@@ -15,6 +15,7 @@
 #include <iterator>
 #include <tuple>
 #include <utility>
+#include <vector>
 
 #include "juice/Sema/BuiltinType.h"
 #include "llvm/Support/Casting.h"
@@ -45,7 +46,7 @@ namespace juice {
                     case TypeHint::Kind::expectedEither: {
                         const auto & types = llvm::cast<ExpectedEitherTypeHint>(hint).getTypes();
                         diagnostics.diagnose(location, diag::DiagnosticID::expression_ast_expected_lvalue_types,
-                                             types, name);
+                                             &types, name);
                         break;
                     }
                 }
@@ -65,7 +66,7 @@ namespace juice {
 
                 if (!expectedEitherHint.matches(type))
                     diagnostics.diagnose(location, diag::DiagnosticID::expression_ast_expected_types,
-                                         expectedEitherHint.getTypes(), type);
+                                         &expectedEitherHint.getTypes(), type);
             }
         }
 
@@ -80,11 +81,17 @@ namespace juice {
                     return TypeCheckedBinaryOperatorExpressionAST::createByTypeChecking(std::move(binaryOperator), hint,
                                                                                         state, diagnostics);
                 }
-                case ast::ExpressionAST::Kind::number: {
-                    auto number = std::unique_ptr<ast::NumberExpressionAST>(
-                        llvm::cast<ast::NumberExpressionAST>(ast.release()));
-                    return TypeCheckedNumberExpressionAST::createByTypeChecking(std::move(number), hint, state,
-                                                                                diagnostics);
+                case ast::ExpressionAST::Kind::integerLiteral: {
+                    auto literal = std::unique_ptr<ast::IntegerLiteralExpressionAST>(
+                        llvm::cast<ast::IntegerLiteralExpressionAST>(ast.release()));
+                    return TypeCheckedIntegerLiteralExpressionAST::createByTypeChecking(std::move(literal), hint, state,
+                                                                                        diagnostics);
+                }
+                case ast::ExpressionAST::Kind::floatingPointLiteral: {
+                    auto literal = std::unique_ptr<ast::FloatingPointLiteralExpressionAST>(
+                        llvm::cast<ast::FloatingPointLiteralExpressionAST>(ast.release()));
+                    return TypeCheckedFloatingPointLiteralExpressionAST::createByTypeChecking(std::move(literal), hint,
+                                                                                              state, diagnostics);
                 }
                 case ast::ExpressionAST::Kind::booleanLiteral: {
                     auto literal = std::unique_ptr<ast::BooleanLiteralExpressionAST>(
@@ -143,24 +150,33 @@ namespace juice {
 
             checkLValue(hint, location, diagnostics, "binary operator expression");
 
+            std::vector<Type> arithmeticTypes = {
+                #define BOOLEAN_TYPE(Name, Initialization)
+                #define INTEGER_TYPE(Name, Initialization) Initialization,
+                #define FLOATING_POINT_TYPE(Name, Initialization) Initialization,
+                #include "juice/Sema/BuiltinTypes.def"
+            };
+
             switch (ast->_token->type) {
                 case TokenType::operatorEqual:
                 case TokenType::operatorPlusEqual:
                 case TokenType::operatorMinusEqual:
                 case TokenType::operatorAsteriskEqual:
                 case TokenType::operatorSlashEqual: {
-                    auto left = TypeCheckedExpressionAST
-                        ::createByTypeChecking(std::move(ast->_left),
-                                               ExpectedTypeHint(BuiltinFloatingPointType::getDouble(),
-                                                                TypeHint::Flags::lValue),
-                                               state, diagnostics);
+                    const TypeHint & unknownHint = UnknownTypeHint(TypeHint::Flags::lValue);
+                    const TypeHint & expectedHint = ExpectedEitherTypeHint(arithmeticTypes, TypeHint::Flags::lValue);
+                    const TypeHint & leftHint = (ast->_token->type == parser::LexerToken::Type::operatorEqual)
+                                              ? unknownHint : expectedHint;
 
-                    auto right = TypeCheckedExpressionAST
-                        ::createByTypeChecking(std::move(ast->_right),
-                                               ExpectedTypeHint(BuiltinFloatingPointType::getDouble()), state,
-                                               diagnostics);
+                    auto left = TypeCheckedExpressionAST::createByTypeChecking(std::move(ast->_left), leftHint, state,
+                                                                               diagnostics);
 
-                    Type type = BuiltinFloatingPointType::getDouble();
+                    Type type = left->getType();
+
+                    auto right = TypeCheckedExpressionAST::createByTypeChecking(std::move(ast->_right),
+                                                                                ExpectedTypeHint(type), state,
+                                                                                diagnostics);
+
                     checkType(type, hint, location, diagnostics);
 
                     return std::unique_ptr<TypeCheckedBinaryOperatorExpressionAST>(
@@ -188,17 +204,16 @@ namespace juice {
                 case TokenType::operatorMinus:
                 case TokenType::operatorAsterisk:
                 case TokenType::operatorSlash: {
-                    auto left = TypeCheckedExpressionAST
-                        ::createByTypeChecking(std::move(ast->_left),
-                                               ExpectedTypeHint(BuiltinFloatingPointType::getDouble()), state,
-                                               diagnostics);
+                    auto left = TypeCheckedExpressionAST::createByTypeChecking(std::move(ast->_left),
+                                                                               ExpectedEitherTypeHint(arithmeticTypes),
+                                                                               state, diagnostics);
 
-                    auto right = TypeCheckedExpressionAST
-                        ::createByTypeChecking(std::move(ast->_right),
-                                               ExpectedTypeHint(BuiltinFloatingPointType::getDouble()), state,
-                                               diagnostics);
+                    Type type = left->getType();
 
-                    Type type = BuiltinFloatingPointType::getDouble();
+                    auto right = TypeCheckedExpressionAST::createByTypeChecking(std::move(ast->_right),
+                                                                                ExpectedTypeHint(type), state,
+                                                                                diagnostics);
+
                     checkType(type, hint, location, diagnostics);
 
                     return std::unique_ptr<TypeCheckedBinaryOperatorExpressionAST>(
@@ -207,21 +222,14 @@ namespace juice {
                 }
                 case TokenType::operatorEqualEqual:
                 case TokenType::operatorBangEqual: {
-                    auto left = TypeCheckedExpressionAST
-                        ::createByTypeChecking(std::move(ast->_left), UnknownTypeHint(), state, diagnostics);
+                    auto left = TypeCheckedExpressionAST::createByTypeChecking(std::move(ast->_left), UnknownTypeHint(),
+                                                                               state, diagnostics);
 
                     Type leftType = left->getType();
 
-                    Type _double = BuiltinFloatingPointType::getDouble();
-                    Type _bool = BuiltinIntegerType::getBool();
-
-                    if (leftType != _double && leftType != _bool) {
-                        diagnostics.diagnose(left->getLocation(), diag::DiagnosticID::expression_ast_expected_either,
-                                             _double, _bool, leftType);
-                    }
-
-                    auto right = TypeCheckedExpressionAST
-                        ::createByTypeChecking(std::move(ast->_right), ExpectedTypeHint(leftType), state, diagnostics);
+                    auto right = TypeCheckedExpressionAST::createByTypeChecking(std::move(ast->_right),
+                                                                                ExpectedTypeHint(leftType), state,
+                                                                                diagnostics);
 
 
                     Type type = BuiltinIntegerType::getBool();
@@ -235,15 +243,15 @@ namespace juice {
                 case TokenType::operatorLowerEqual:
                 case TokenType::operatorGreater:
                 case TokenType::operatorGreaterEqual: {
-                    auto left = TypeCheckedExpressionAST
-                        ::createByTypeChecking(std::move(ast->_left),
-                                               ExpectedTypeHint(BuiltinFloatingPointType::getDouble()), state,
-                                               diagnostics);
+                    auto left = TypeCheckedExpressionAST::createByTypeChecking(std::move(ast->_left),
+                                                                               ExpectedEitherTypeHint(arithmeticTypes),
+                                                                               state, diagnostics);
 
-                    auto right = TypeCheckedExpressionAST
-                        ::createByTypeChecking(std::move(ast->_right),
-                                               ExpectedTypeHint(BuiltinFloatingPointType::getDouble()), state,
-                                               diagnostics);
+                    Type leftType = left->getType();
+
+                    auto right = TypeCheckedExpressionAST::createByTypeChecking(std::move(ast->_right),
+                                                                                ExpectedTypeHint(leftType), state,
+                                                                                diagnostics);
 
                     Type type = BuiltinIntegerType::getBool();
                     checkType(type, hint, location, diagnostics);
@@ -257,30 +265,138 @@ namespace juice {
             }
         }
 
-        TypeCheckedNumberExpressionAST::TypeCheckedNumberExpressionAST(Type type,
-                                                                       std::unique_ptr<parser::LexerToken> token,
-                                                                       double value):
-            TypeCheckedExpressionAST(Kind::numberExpression, type, std::move(token)), _value(value) {}
+        TypeCheckedIntegerLiteralExpressionAST
+            ::TypeCheckedIntegerLiteralExpressionAST(Type type, std::unique_ptr<parser::LexerToken> token,
+                                                     int64_t value):
+            TypeCheckedExpressionAST(Kind::integerLiteralExpression, type, std::move(token)), _value(value) {}
 
-        void
-        TypeCheckedNumberExpressionAST::diagnoseInto(diag::DiagnosticEngine & diagnostics, unsigned int level) const {
-            diagnostics.diagnose(getLocation(), diag::DiagnosticID::type_checked_number_expression_ast, getColor(level),
-                                 getType(), level, _token.get(), _value);
+        void TypeCheckedIntegerLiteralExpressionAST::diagnoseInto(diag::DiagnosticEngine & diagnostics,
+                                                                  unsigned int level) const {
+            diagnostics.diagnose(getLocation(), diag::DiagnosticID::type_checked_integer_literal_expression_ast,
+                                 getColor(level), getType(), level, _token.get(), _value);
         }
 
-        std::unique_ptr<TypeCheckedNumberExpressionAST>
-        TypeCheckedNumberExpressionAST::createByTypeChecking(std::unique_ptr<ast::NumberExpressionAST> ast,
-                                                             const TypeHint & hint,
-                                                             TypeChecker::State & state, diag::DiagnosticEngine & diagnostics) {
+        std::unique_ptr<TypeCheckedIntegerLiteralExpressionAST>
+        TypeCheckedIntegerLiteralExpressionAST
+            ::createByTypeChecking(std::unique_ptr<ast::IntegerLiteralExpressionAST> ast, const TypeHint & hint,
+                                   TypeChecker::State & state, diag::DiagnosticEngine & diagnostics) {
             basic::SourceLocation location(ast->getLocation());
 
-            checkLValue(hint, location, diagnostics, "number literal");
+            checkLValue(hint, location, diagnostics, "integer literal");
 
-            Type type = BuiltinFloatingPointType::getDouble();
-            checkType(type, hint, location, diagnostics);
+            Type type;
+            switch (hint.getKind()) {
+                case TypeHint::Kind::none:
+                case TypeHint::Kind::unknown: type = BuiltinIntegerType::getNativeWidth(); break;
+                case TypeHint::Kind::expected: {
+                    Type expectedType = llvm::cast<ExpectedTypeHint>(hint).getType();
 
-            return std::unique_ptr<TypeCheckedNumberExpressionAST>(
-                new TypeCheckedNumberExpressionAST(type, std::move(ast->_token), ast->_value));
+                    if ((expectedType.isBuiltinInteger() && !expectedType.isBuiltinBool())
+                        || expectedType.isBuiltinFloatingPoint()) {
+                        type = expectedType;
+                    } else {
+                        diagnostics.diagnose(location, diag::DiagnosticID::integer_literal_expected_type, expectedType);
+                    }
+
+                    break;
+                }
+                case TypeHint::Kind::expectedEither: {
+                    const auto & expectedEitherHint = llvm::cast<ExpectedEitherTypeHint>(hint);
+
+                    static const Type preferredTypes[] = {
+                        BuiltinIntegerType::getNativeWidth(),
+                        BuiltinIntegerType::getInt64(),
+                        BuiltinIntegerType::getInt32(),
+                        BuiltinIntegerType::getInt16(),
+                        BuiltinIntegerType::getInt8(),
+                        BuiltinFloatingPointType::getDouble(),
+                        BuiltinFloatingPointType::getFloat()
+                    };
+
+                    bool matchedType = false;
+                    for (Type preferredType: preferredTypes) {
+                        if (expectedEitherHint.matches(preferredType)) {
+                            type = preferredType;
+                            matchedType = true;
+                            break;
+                        }
+                    }
+
+                    if (!matchedType) {
+                        diagnostics.diagnose(location, diag::DiagnosticID::integer_literal_expected_types,
+                                             &expectedEitherHint.getTypes());
+                    }
+
+                    break;
+                }
+            }
+
+            if (type && type.isBuiltinInteger()) {
+                const auto * integerType = llvm::cast<BuiltinIntegerType>(type.getPointer());
+
+                if (ast->_value < integerType->getMinimumValue() || ast->_value > integerType->getMaximumValue()) {
+                    diagnostics.diagnose(location, diag::DiagnosticID::integer_literal_overflow, ast->_token->string,
+                                         type);
+                }
+            }
+
+            return std::unique_ptr<TypeCheckedIntegerLiteralExpressionAST>(
+                new TypeCheckedIntegerLiteralExpressionAST(type, std::move(ast->_token), ast->_value));
+        }
+
+        TypeCheckedFloatingPointLiteralExpressionAST
+        ::TypeCheckedFloatingPointLiteralExpressionAST(Type type, std::unique_ptr<parser::LexerToken> token,
+                                                       double value):
+            TypeCheckedExpressionAST(Kind::floatingPointLiteralExpression, type, std::move(token)), _value(value) {}
+
+        void TypeCheckedFloatingPointLiteralExpressionAST::diagnoseInto(diag::DiagnosticEngine & diagnostics,
+                                                                        unsigned int level) const {
+            diagnostics.diagnose(getLocation(), diag::DiagnosticID::type_checked_floating_point_literal_expression_ast,
+                                 getColor(level), getType(), level, _token.get(), _value);
+        }
+
+        std::unique_ptr<TypeCheckedFloatingPointLiteralExpressionAST>
+        TypeCheckedFloatingPointLiteralExpressionAST
+        ::createByTypeChecking(std::unique_ptr<ast::FloatingPointLiteralExpressionAST> ast, const TypeHint & hint,
+                               TypeChecker::State & state, diag::DiagnosticEngine & diagnostics) {
+            basic::SourceLocation location(ast->getLocation());
+
+            checkLValue(hint, location, diagnostics, "floating-point literal");
+
+            Type type;
+            switch (hint.getKind()) {
+                case TypeHint::Kind::none:
+                case TypeHint::Kind::unknown: type = BuiltinFloatingPointType::getDouble(); break;
+                case TypeHint::Kind::expected: {
+                    Type expectedType = llvm::cast<ExpectedTypeHint>(hint).getType();
+
+                    if (expectedType.isBuiltinFloatingPoint()) {
+                        type = expectedType;
+                    } else {
+                        diagnostics.diagnose(location, diag::DiagnosticID::floating_point_literal_expected_type,
+                                             expectedType);
+                    }
+
+                    break;
+                }
+                case TypeHint::Kind::expectedEither: {
+                    const auto & expectedEitherHint = llvm::cast<ExpectedEitherTypeHint>(hint);
+
+                    if (expectedEitherHint.matches(BuiltinFloatingPointType::getDouble())) {
+                        type = BuiltinFloatingPointType::getDouble();
+                    } else if (expectedEitherHint.matches(BuiltinFloatingPointType::getFloat())) {
+                        type = BuiltinFloatingPointType::getFloat();
+                    } else {
+                        diagnostics.diagnose(location, diag::DiagnosticID::floating_point_literal_expected_types,
+                                             &expectedEitherHint.getTypes());
+                    }
+
+                    break;
+                }
+            }
+
+            return std::unique_ptr<TypeCheckedFloatingPointLiteralExpressionAST>(
+                new TypeCheckedFloatingPointLiteralExpressionAST(type, std::move(ast->_token), ast->_value));
         }
 
         TypeCheckedBooleanLiteralExpressionAST

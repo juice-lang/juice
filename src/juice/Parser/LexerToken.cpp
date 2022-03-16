@@ -87,7 +87,7 @@ namespace juice {
                 case LexerToken::Type::keywordTrue:             return "KEYWORD_TRUE";
                 case LexerToken::Type::identifier:              return "IDENTIFIER";
                 case LexerToken::Type::integerLiteral:          return "INTEGER_LITERAL";
-                case LexerToken::Type::decimalLiteral:          return "DECIMAL_LITERAL";
+                case LexerToken::Type::floatingPointLiteral:          return "DECIMAL_LITERAL";
                 case LexerToken::Type::stringLiteral:           return "STRING_LITERAL";
                 case LexerToken::Type::error:                   return "ERROR";
                 case LexerToken::Type::eof:                     return "EOF";

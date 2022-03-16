@@ -78,7 +78,8 @@ OUTPUT(ast_end, "%0%indent1)", true)
 OUTPUT(binary_operator_expression_ast_0, "%0BinaryOperatorExpressionAST(\n%indent1  token: %reset%2\n%0%indent1  left: ", false)
 OUTPUT(binary_operator_expression_ast_1, "%0%indent1  right: ", false)
 
-OUTPUT(number_expression_ast, "%0NumberExpressionAST(\n%indent1  token: %reset%2\n%0%indent1  number: %reset%3\n%0%indent1)", true)
+OUTPUT(integer_literal_expression_ast, "%0IntegerLiteralExpressionAST(\n%indent1  token: %reset%2\n%0%indent1  value: %reset%3\n%0%indent1)", true)
+OUTPUT(floating_point_literal_expression_ast, "%0FloatingPointLiteralExpressionAST(\n%indent1  token: %reset%2\n%0%indent1  value: %reset%3\n%0%indent1)", true)
 OUTPUT(boolean_literal_expression_ast, "%0BooleanLiteralExpressionAST(\n%indent1  token: %reset%2\n%0%indent1  value: %reset%3\n%0%indent1)", true)
 OUTPUT(variable_expression_ast, "%0VariableExpressionAST(token: %reset%1%0)", true)
 
@@ -113,7 +114,9 @@ ERROR(expected_block_yield, "expected yield in %0 block", true)
 
 //Sema
 ERROR(module_ast_expected_type, "expected return type '%0' in module", true)
+ERROR(module_ast_expected_types, "expected a return type from %0 in module", true)
 ERROR(block_ast_expected_type, "expected yield of type '%0' in block", true)
+ERROR(block_ast_expected_types, "expected yield of a type from %0 in block", true)
 
 ERROR(statement_ast_expected_type, "expected type '%0', but got a non-yielding statement", true)
 ERROR(statement_ast_expected_types, "expected a type from %0, but got a non-yielding statement", true)
@@ -126,13 +129,19 @@ ERROR(expression_ast_expected_types, "expected a type from %0, but got type '%1'
 ERROR(expression_ast_expected_lvalue, "expected lvalue of type '%0', but got %1", true)
 ERROR(expression_ast_expected_lvalue_types, "expected lvalue of a type from %0, but got %1", true)
 ERROR(expression_ast_expected_lvalue_unknown_type, "expected lvalue, but got %0", true)
-ERROR(expression_ast_expected_either, "expected either type '%0', or type '%1', but got type '%2'", true)
 ERROR(expression_ast_unresolved_identifier, "Use of unresolved identifier '%0'", true)
+
+ERROR(floating_point_literal_expected_type, "expected type '%0', but got a floating-point literal", true)
+ERROR(floating_point_literal_expected_types, "expected a type from %0, but got a floating-point literal", true)
+ERROR(integer_literal_overflow, "integer literal '%0' overflows when stored into '%1'", true)
+ERROR(integer_literal_expected_type, "expected type '%0', but got an integer literal", true)
+ERROR(integer_literal_expected_types, "expected a type from %0, but got an integer literal", true)
 
 
 OUTPUT(type_checked_binary_operator_expression_ast_0, "%0BinaryOperatorExpressionAST[%1](\n%indent2  token: %reset%3\n%0%indent2  left: ", false)
 
-OUTPUT(type_checked_number_expression_ast, "%0NumberExpressionAST[%1](\n%indent2  token: %reset%3\n%0%indent2  number: %reset%4\n%0%indent2)", true)
+OUTPUT(type_checked_integer_literal_expression_ast, "%0TypeCheckedIntegerLiteralExpressionAST[%1](\n%indent2  token: %reset%3\n%0%indent2  number: %reset%4\n%0%indent2)", true)
+OUTPUT(type_checked_floating_point_literal_expression_ast, "%0TypeCheckedFloatingPointLiteralExpressionAST[%1](\n%indent2  token: %reset%3\n%0%indent2  number: %reset%4\n%0%indent2)", true)
 OUTPUT(type_checked_boolean_literal_expression_ast, "%0BooleanLiteralExpressionAST[%1](\n%indent2  token: %reset%3\n%0%indent2  value: %reset%4\n%0%indent2)", true)
 OUTPUT(type_checked_variable_expression_ast, "%0VariableExpressionAST[%1, index: %2](token: %reset%3%0)", true)
 
@@ -160,7 +169,7 @@ ERROR(module_verification_error, "error while validating LLVM-module: %0", true)
 ERROR(target_lookup_error, "could not lookup target '%0': %1", true)
 
 
-#if defined(DIAG)
+#ifdef DIAG
 #undef DIAG
 #endif
 

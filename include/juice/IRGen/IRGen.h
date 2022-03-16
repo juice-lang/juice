@@ -35,7 +35,8 @@ namespace juice {
         class TypeCheckedVariableDeclarationAST;
         class TypeCheckedExpressionAST;
         class TypeCheckedBinaryOperatorExpressionAST;
-        class TypeCheckedNumberExpressionAST;
+        class TypeCheckedIntegerLiteralExpressionAST;
+        class TypeCheckedFloatingPointLiteralExpressionAST;
         class TypeCheckedBooleanLiteralExpressionAST;
         class TypeCheckedVariableExpressionAST;
         class TypeCheckedGroupingExpressionAST;
@@ -87,7 +88,11 @@ namespace juice {
             llvm::Value *
             generateBinaryOperatorExpression(std::unique_ptr<sema::TypeCheckedBinaryOperatorExpressionAST> expression);
 
-            llvm::Value * generateNumberExpression(std::unique_ptr<sema::TypeCheckedNumberExpressionAST> expression);
+            llvm::Value *
+            generateIntegerLiteralExpression(std::unique_ptr<sema::TypeCheckedIntegerLiteralExpressionAST> expression);
+
+            llvm::Value * generateFloatingPointLiteralExpression(
+                std::unique_ptr<sema::TypeCheckedFloatingPointLiteralExpressionAST> expression);
 
             llvm::Value *
             generateBooleanLiteralExpression(std::unique_ptr<sema::TypeCheckedBooleanLiteralExpressionAST> expression);

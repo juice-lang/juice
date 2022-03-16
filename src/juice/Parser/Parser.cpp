@@ -372,13 +372,22 @@ namespace juice {
         }
 
         llvm::Expected<std::unique_ptr<ast::ExpressionAST>> Parser::parsePrimaryExpression() {
-            auto matchedNumber = match(LexerToken::Type::integerLiteral, LexerToken::Type::decimalLiteral);
-            if (auto error = matchedNumber.takeError()) return error;
+            auto matchedInteger = match(LexerToken::Type::integerLiteral);
+            if (auto error = matchedInteger.takeError()) return error;
 
-            if (*matchedNumber) {
+            if (*matchedInteger) {
                 auto token = std::move(_matchedToken);
-                double number = std::stod(token->string.str());
-                return std::make_unique<ast::NumberExpressionAST>(std::move(token), number);
+                int64_t value = std::stoll(token->string.str());
+                return std::make_unique<ast::IntegerLiteralExpressionAST>(std::move(token), value);
+            }
+
+            auto matchedFloatingPoint = match(LexerToken::Type::floatingPointLiteral);
+            if (auto error = matchedFloatingPoint.takeError()) return error;
+
+            if (*matchedFloatingPoint) {
+                auto token = std::move(_matchedToken);
+                double value = std::stod(token->string.str());
+                return std::make_unique<ast::FloatingPointLiteralExpressionAST>(std::move(token), value);
             }
             
             auto matchedBooleanLiteral = match(LexerToken::Type::keywordTrue, LexerToken::Type::keywordFalse);

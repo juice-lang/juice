@@ -131,8 +131,8 @@ namespace juice {
             declareBuiltinTypes(state);
 
             const TypeHint & hint = ExpectedEitherTypeHint({
-                BuiltinFloatingPointType::getDouble(),
-                BuiltinIntegerType::getBool()
+                #define BUILTIN_TYPE(Name, Initialization) Initialization,
+                #include "juice/Sema/BuiltinTypes.def"
             });
 
             auto ast = TypeCheckedModuleAST::createByTypeChecking(std::move(_ast), hint, state, *_diagnostics);
@@ -141,8 +141,8 @@ namespace juice {
         }
 
         void TypeChecker::declareBuiltinTypes(State & state) {
-            state.addTypeDeclaration("_BuiltinDouble", BuiltinFloatingPointType::getDouble());
-            state.addTypeDeclaration("_BuiltinBool", BuiltinIntegerType::getBool());
+            #define BUILTIN_TYPE(Name, Initialization) state.addTypeDeclaration(Name, Initialization);
+            #include "juice/Sema/BuiltinTypes.def"
         }
     }
 }

@@ -23,7 +23,8 @@
 namespace juice {
     namespace sema {
         class TypeCheckedBinaryOperatorExpressionAST;
-        class TypeCheckedNumberExpressionAST;
+        class TypeCheckedIntegerLiteralExpressionAST;
+        class TypeCheckedFloatingPointLiteralExpressionAST;
         class TypeCheckedBooleanLiteralExpressionAST;
         class TypeCheckedVariableExpressionAST;
         class TypeCheckedGroupingExpressionAST;
@@ -35,7 +36,8 @@ namespace juice {
         public:
             enum class Kind {
                 binaryOperator,
-                number,
+                integerLiteral,
+                floatingPointLiteral,
                 booleanLiteral,
                 variable,
                 grouping,
@@ -81,21 +83,39 @@ namespace juice {
             }
         };
 
-        class NumberExpressionAST: public ExpressionAST {
-            double _value;
+        class IntegerLiteralExpressionAST: public ExpressionAST {
+            int64_t _value;
 
-            friend class sema::TypeCheckedNumberExpressionAST;
+            friend class sema::TypeCheckedIntegerLiteralExpressionAST;
 
         public:
-            NumberExpressionAST() = delete;
+            IntegerLiteralExpressionAST() = delete;
 
-            NumberExpressionAST(std::unique_ptr<parser::LexerToken> token, double value);
+            IntegerLiteralExpressionAST(std::unique_ptr<parser::LexerToken> token, int64_t value);
 
             void diagnoseInto(diag::DiagnosticEngine & diagnostics, unsigned int level) const override;
 
 
             static bool classof(const ExpressionAST * ast) {
-                return ast->getKind() == Kind::number;
+                return ast->getKind() == Kind::integerLiteral;
+            }
+        };
+
+        class FloatingPointLiteralExpressionAST: public ExpressionAST {
+            double _value;
+
+            friend class sema::TypeCheckedFloatingPointLiteralExpressionAST;
+
+        public:
+            FloatingPointLiteralExpressionAST() = delete;
+
+            FloatingPointLiteralExpressionAST(std::unique_ptr<parser::LexerToken> token, double value);
+
+            void diagnoseInto(diag::DiagnosticEngine & diagnostics, unsigned int level) const override;
+
+
+            static bool classof(const ExpressionAST * ast) {
+                return ast->getKind() == Kind::floatingPointLiteral;
             }
         };
 

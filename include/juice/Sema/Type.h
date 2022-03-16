@@ -134,7 +134,11 @@ namespace juice {
             bool isLValue() const { return _flags & (uint8_t)Flags::lValue; }
 
 
+            bool isBuiltinInteger() const;
             bool isBuiltinBool() const;
+
+            bool isBuiltinFloatingPoint() const;
+            bool isBuiltinFloat() const;
             bool isBuiltinDouble() const;
 
 

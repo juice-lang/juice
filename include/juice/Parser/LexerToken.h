@@ -119,7 +119,7 @@ namespace juice {
                 //Identifiers and literals
                 identifier,
                 integerLiteral,
-                decimalLiteral,
+                floatingPointLiteral,
                 stringLiteral,
 
 

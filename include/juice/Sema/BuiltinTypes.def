@@ -1,0 +1,49 @@
+// include/juice/Driver/Diagnostics.def - Defines diagnostics that can be emitted by the compiler
+//
+// This source file is part of the juice open source project
+//
+// Copyright (c) 2019 - 2022 juice project authors
+// Licensed under MIT License
+//
+// See https://github.com/juice-lang/juice/blob/master/LICENSE for license information
+// See https://github.com/juice-lang/juice/blob/master/CONTRIBUTORS.txt for the list of juice project authors
+
+#if !(defined(BUILTIN_TYPE) || (defined(BOOLEAN_TYPE) && defined(INTEGER_TYPE) && defined(FLOATING_POINT_TYPE)))
+#error Must define either BUILTIN_TYPE or the set {BOOLEAN_TYPE, INTEGER_TYPE, FLOATING_POINT_TYPE}
+#endif
+
+#ifndef BOOLEAN_TYPE
+#define BOOLEAN_TYPE(Name, Initialization) \
+  BUILTIN_TYPE(Name, Initialization)
+#endif
+
+#ifndef INTEGER_TYPE
+#define INTEGER_TYPE(Name, Initialization) \
+  BUILTIN_TYPE(Name, Initialization)
+#endif
+
+#ifndef FLOATING_POINT_TYPE
+#define FLOATING_POINT_TYPE(Name, Initialization) \
+  BUILTIN_TYPE(Name, Initialization)
+#endif
+
+
+BOOLEAN_TYPE("_BuiltinBool", BuiltinIntegerType::getBool())
+
+INTEGER_TYPE("_BuiltinInt8", BuiltinIntegerType::getInt8())
+INTEGER_TYPE("_BuiltinInt16", BuiltinIntegerType::getInt16())
+INTEGER_TYPE("_BuiltinInt32", BuiltinIntegerType::getInt32())
+INTEGER_TYPE("_BuiltinInt64", BuiltinIntegerType::getInt64())
+INTEGER_TYPE("_BuiltinInt128", BuiltinIntegerType::getInt128())
+
+FLOATING_POINT_TYPE("_BuiltinFloat", BuiltinFloatingPointType::getFloat())
+FLOATING_POINT_TYPE("_BuiltinDouble", BuiltinFloatingPointType::getDouble())
+
+
+#ifdef BUILTIN_TYPE
+#undef BUILTIN_TYPE
+#endif
+
+#undef BOOLEAN_TYPE
+#undef INTEGER_TYPE
+#undef FLOATING_POINT_TYPE

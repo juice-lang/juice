@@ -27,6 +27,28 @@ namespace juice {
             }
         }
 
+        int64_t BuiltinIntegerType::getMinimumValue() const {
+            switch (_width) {
+                case Width::_1: return 0;
+                case Width::_8: return INT8_MIN;
+                case Width::_16: return INT16_MIN;
+                case Width::_32: return INT32_MIN;
+                case Width::_64: return INT64_MIN;
+                case Width::_128: return INT64_MIN; // TODO: Proper 128 bit integer support
+            }
+        }
+
+        int64_t BuiltinIntegerType::getMaximumValue() const {
+            switch (_width) {
+                case Width::_1: return 1;
+                case Width::_8: return INT8_MAX;
+                case Width::_16: return INT16_MAX;
+                case Width::_32: return INT32_MAX;
+                case Width::_64: return INT64_MAX;
+                case Width::_128: return INT64_MAX; // TODO: Proper 128 bit integer support
+            }
+        }
+
         bool BuiltinIntegerType::equals(const TypeBase * other) const {
             if (auto otherInteger = llvm::dyn_cast<BuiltinIntegerType>(other)) {
                 return this->_width == otherInteger->_width;

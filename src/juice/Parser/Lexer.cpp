@@ -232,7 +232,7 @@ namespace juice {
 
             if (result.error == nullptr)
                 return makeToken(result.state == NumberFSM::integer ? LexerToken::Type::integerLiteral
-                                                                    : LexerToken::Type::decimalLiteral);
+                                                                    : LexerToken::Type::floatingPointLiteral);
 
             if (result.state == NumberFSM::begin) assert(false);
             if (result.state == NumberFSM::beginDecimal)

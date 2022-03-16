@@ -65,6 +65,10 @@ namespace juice {
                     Type expectedType = llvm::cast<ExpectedTypeHint>(hint).getType();
 
                     diagnostics.diagnose(location, diag::DiagnosticID::module_ast_expected_type, expectedType);
+                } else if (llvm::isa<ExpectedEitherTypeHint>(hint)) {
+                    const auto & types = llvm::cast<ExpectedEitherTypeHint>(hint).getTypes();
+
+                    diagnostics.diagnose(location, diag::DiagnosticID::module_ast_expected_types, &types);
                 }
 
                 Type type = NothingType::get();
@@ -130,6 +134,10 @@ namespace juice {
                     Type expectedType = llvm::cast<ExpectedTypeHint>(hint).getType();
 
                     diagnostics.diagnose(location, diag::DiagnosticID::block_ast_expected_type, expectedType);
+                } else if (llvm::isa<ExpectedEitherTypeHint>(hint)) {
+                    const auto & types = llvm::cast<ExpectedEitherTypeHint>(hint).getTypes();
+
+                    diagnostics.diagnose(location, diag::DiagnosticID::block_ast_expected_types, &types);
                 }
 
                 Type type = NothingType::get();

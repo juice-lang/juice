@@ -14,6 +14,7 @@
 #include <map>
 #include <utility>
 
+#include "juice/Sema/Type.h"
 #include "juice/Sema/TypeCheckedExpressionAST.h"
 #include "llvm/ADT/APFloat.h"
 #include "llvm/ADT/STLExtras.h"
@@ -30,10 +31,15 @@ namespace juice {
                         llvm::cast<sema::TypeCheckedBinaryOperatorExpressionAST>(expression.release()));
                     return generateBinaryOperatorExpression(std::move(binaryOperator));
                 }
-                case sema::TypeCheckedAST::Kind::numberExpression: {
-                    auto number = std::unique_ptr<sema::TypeCheckedNumberExpressionAST>(
-                        llvm::cast<sema::TypeCheckedNumberExpressionAST>(expression.release()));
-                    return generateNumberExpression(std::move(number));
+                case sema::TypeCheckedAST::Kind::integerLiteralExpression: {
+                    auto literal = std::unique_ptr<sema::TypeCheckedIntegerLiteralExpressionAST>(
+                        llvm::cast<sema::TypeCheckedIntegerLiteralExpressionAST>(expression.release()));
+                    return generateIntegerLiteralExpression(std::move(literal));
+                }
+                case sema::TypeCheckedAST::Kind::floatingPointLiteralExpression: {
+                    auto literal = std::unique_ptr<sema::TypeCheckedFloatingPointLiteralExpressionAST>(
+                        llvm::cast<sema::TypeCheckedFloatingPointLiteralExpressionAST>(expression.release()));
+                    return generateFloatingPointLiteralExpression(std::move(literal));
                 }
                 case sema::TypeCheckedAST::Kind::booleanLiteralExpression: {
                     auto literal = std::unique_ptr<sema::TypeCheckedBooleanLiteralExpressionAST>(
@@ -66,30 +72,47 @@ namespace juice {
             using AssignmentFunction =
                 llvm::function_ref<llvm::Value * (llvm::IRBuilder<> &, llvm::Value *, llvm::Value *)>;
 
-            static const std::map<TokenType, AssignmentFunction> assignmentOperators {
+            static const std::map<TokenType, std::pair<AssignmentFunction, AssignmentFunction>> assignmentOperators {
                 {
                     TokenType::operatorEqual,
-                    nullptr
+                    {
+                        nullptr,
+                        nullptr
+                    }
                 },
                 {
                     TokenType::operatorPlusEqual,
-                    [](auto & builder, auto l, auto r) { return builder.CreateFAdd(l, r, "addtmp"); }
+                    {
+                        [](auto & builder, auto l, auto r) { return builder.CreateAdd(l, r, "addtmp"); },
+                        [](auto & builder, auto l, auto r) { return builder.CreateFAdd(l, r, "addtmp"); }
+                    }
                 },
                 {
                     TokenType::operatorMinusEqual,
-                    [](auto & builder, auto l, auto r) { return builder.CreateFSub(l, r, "subtmp"); }
+                    {
+                        [](auto & builder, auto l, auto r) { return builder.CreateSub(l, r, "subtmp"); },
+                        [](auto & builder, auto l, auto r) { return builder.CreateFSub(l, r, "subtmp"); }
+                    }
                 },
                 {
                     TokenType::operatorAsteriskEqual,
-                    [](auto & builder, auto l, auto r) { return builder.CreateFMul(l, r, "multmp"); }
+                    {
+                        [](auto & builder, auto l, auto r) { return builder.CreateMul(l, r, "multmp"); },
+                        [](auto & builder, auto l, auto r) { return builder.CreateFMul(l, r, "multmp"); }
+                    }
                 },
                 {
                     TokenType::operatorSlashEqual,
-                    [](auto & builder, auto l, auto r) { return builder.CreateFDiv(l, r, "divtmp"); }
+                    {
+                        [](auto & builder, auto l, auto r) { return builder.CreateSDiv(l, r, "divtmp"); },
+                        [](auto & builder, auto l, auto r) { return builder.CreateFDiv(l, r, "divtmp"); }
+                    }
                 }
             };
 
             auto instruction = assignmentOperators.find(expression->_token->type);
+
+            sema::Type type = expression->_type;
 
             if (instruction != assignmentOperators.end()) {
                 const auto & variable = llvm::cast<sema::TypeCheckedVariableExpressionAST>(*expression->_left);
@@ -100,10 +123,14 @@ namespace juice {
 
                 llvm::AllocaInst * alloca = _allocas.at(variable._index);
 
-                if (instruction->second) {
-                    llvm::Value * variableValue = _builder.CreateLoad(variable._type->toLLVM(_context), alloca, name);
+                if (type.isBuiltinInteger() && instruction->second.first) {
+                    llvm::Value * variableValue = _builder.CreateLoad(type->toLLVM(_context), alloca, name);
 
-                    right = instruction->second(_builder, variableValue, right);
+                    right = instruction->second.first(_builder, variableValue, right);
+                } else if (type.isBuiltinFloatingPoint() && instruction->second.second) {
+                    llvm::Value * variableValue = _builder.CreateLoad(type->toLLVM(_context), alloca, name);
+
+                    right = instruction->second.second(_builder, variableValue, right);
                 }
 
                 _builder.CreateStore(right, alloca);
@@ -149,39 +176,89 @@ namespace juice {
 
             auto right = generateExpression(std::move(expression->_right));
 
-            switch (expression->_token->type) {
-                case TokenType::operatorPlus:
-                    return _builder.CreateFAdd(left, right, "addtmp");
-                case TokenType::operatorMinus:
-                    return _builder.CreateFSub(left, right, "subtmp");
-                case TokenType::operatorAsterisk:
-                    return _builder.CreateFMul(left, right, "multmp");
-                case TokenType::operatorSlash:
-                    return _builder.CreateFDiv(left, right, "divtmp");
-                case TokenType::operatorEqualEqual:
-                    return _builder.CreateFCmpOEQ(left, right, "eqtmp");
-                case TokenType::operatorBangEqual:
-                    return _builder.CreateFCmpONE(left, right, "netmp");
-                case TokenType::operatorLower:
-                    return _builder.CreateFCmpOLT(left, right, "lttmp");
-                case TokenType::operatorLowerEqual:
-                    return _builder.CreateFCmpOLE(left, right, "letmp");
-                case TokenType::operatorGreater:
-                    return _builder.CreateFCmpOGT(left, right, "gttmp");
-                case TokenType::operatorGreaterEqual:
-                    return _builder.CreateFCmpOGE(left, right, "getmp");
-                default:
-                    llvm_unreachable("All possible parsed operators should be handled here");
+            if (type.isBuiltinInteger()) {
+                switch (expression->_token->type) {
+                    case TokenType::operatorPlus:
+                        return _builder.CreateAdd(left, right, "addtmp");
+                    case TokenType::operatorMinus:
+                        return _builder.CreateSub(left, right, "subtmp");
+                    case TokenType::operatorAsterisk:
+                        return _builder.CreateMul(left, right, "multmp");
+                    case TokenType::operatorSlash:
+                        return _builder.CreateSDiv(left, right, "divtmp");
+                    case TokenType::operatorEqualEqual:
+                        return _builder.CreateICmpEQ(left, right, "eqtmp");
+                    case TokenType::operatorBangEqual:
+                        return _builder.CreateICmpNE(left, right, "netmp");
+                    case TokenType::operatorLower:
+                        return _builder.CreateICmpSLT(left, right, "lttmp");
+                    case TokenType::operatorLowerEqual:
+                        return _builder.CreateICmpSLE(left, right, "letmp");
+                    case TokenType::operatorGreater:
+                        return _builder.CreateICmpSGT(left, right, "gttmp");
+                    case TokenType::operatorGreaterEqual:
+                        return _builder.CreateICmpSGE(left, right, "getmp");
+                    default:
+                        llvm_unreachable("All possible parsed operators should be handled here");
+                }
+            } else if (type.isBuiltinFloatingPoint()) {
+                switch (expression->_token->type) {
+                    case TokenType::operatorPlus:
+                        return _builder.CreateFAdd(left, right, "addtmp");
+                    case TokenType::operatorMinus:
+                        return _builder.CreateFSub(left, right, "subtmp");
+                    case TokenType::operatorAsterisk:
+                        return _builder.CreateFMul(left, right, "multmp");
+                    case TokenType::operatorSlash:
+                        return _builder.CreateFDiv(left, right, "divtmp");
+                    case TokenType::operatorEqualEqual:
+                        return _builder.CreateFCmpOEQ(left, right, "eqtmp");
+                    case TokenType::operatorBangEqual:
+                        return _builder.CreateFCmpONE(left, right, "netmp");
+                    case TokenType::operatorLower:
+                        return _builder.CreateFCmpOLT(left, right, "lttmp");
+                    case TokenType::operatorLowerEqual:
+                        return _builder.CreateFCmpOLE(left, right, "letmp");
+                    case TokenType::operatorGreater:
+                        return _builder.CreateFCmpOGT(left, right, "gttmp");
+                    case TokenType::operatorGreaterEqual:
+                        return _builder.CreateFCmpOGE(left, right, "getmp");
+                    default:
+                        llvm_unreachable("All possible parsed operators should be handled here");
+                }
+            } else {
+                llvm_unreachable("All possible types should be handled here");
             }
         }
 
-        llvm::Value *
-        IRGen::generateNumberExpression(std::unique_ptr<sema::TypeCheckedNumberExpressionAST> expression) {
-            return llvm::ConstantFP::get(_context, llvm::APFloat(expression->_value));
+        llvm::Value * IRGen::generateIntegerLiteralExpression(
+            std::unique_ptr<sema::TypeCheckedIntegerLiteralExpressionAST> expression) {
+            if (expression->_type.isBuiltinInteger()) {
+                return llvm::ConstantInt::get(expression->_type->toLLVM(_context), expression->_value, true);
+            } else if (expression->_type.isBuiltinDouble()) {
+                return llvm::ConstantFP::get(llvm::Type::getDoubleTy(_context),
+                                             llvm::APFloat((double)expression->_value));
+            } else if (expression->_type.isBuiltinFloat()) {
+                return llvm::ConstantFP::get(llvm::Type::getFloatTy(_context),
+                                             llvm::APFloat((float)expression->_value));
+            } else {
+                llvm_unreachable("integer literal can only be of integer or floating point type");
+            }
         }
 
-        llvm::Value *
-        IRGen::generateBooleanLiteralExpression(
+        llvm::Value * IRGen::generateFloatingPointLiteralExpression(
+            std::unique_ptr<sema::TypeCheckedFloatingPointLiteralExpressionAST> expression) {
+            if (expression->_type.isBuiltinDouble()) {
+                return llvm::ConstantFP::get(llvm::Type::getDoubleTy(_context), llvm::APFloat(expression->_value));
+            } else if (expression->_type.isBuiltinFloat()) {
+                return llvm::ConstantFP::get(llvm::Type::getFloatTy(_context),
+                                             llvm::APFloat((float)expression->_value));
+            } else {
+                llvm_unreachable("integer literal can only be of integer or floating point type");
+            }
+        }
+
+        llvm::Value * IRGen::generateBooleanLiteralExpression(
             std::unique_ptr<sema::TypeCheckedBooleanLiteralExpressionAST> expression) {
             return _builder.getInt1(expression->_value);
         }

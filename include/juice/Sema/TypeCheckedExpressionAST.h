@@ -82,25 +82,48 @@ namespace juice {
             }
         };
 
-        class TypeCheckedNumberExpressionAST: public TypeCheckedExpressionAST {
-            double _value;
+        class TypeCheckedIntegerLiteralExpressionAST: public TypeCheckedExpressionAST {
+            int64_t _value;
 
-            TypeCheckedNumberExpressionAST(Type type, std::unique_ptr<parser::LexerToken> token, double value);
+            TypeCheckedIntegerLiteralExpressionAST(Type type, std::unique_ptr<parser::LexerToken> token, int64_t value);
 
             friend class irgen::IRGen;
 
         public:
-            TypeCheckedNumberExpressionAST() = delete;
+            TypeCheckedIntegerLiteralExpressionAST() = delete;
 
             void diagnoseInto(diag::DiagnosticEngine & diagnostics, unsigned int level) const override;
 
-            static std::unique_ptr<TypeCheckedNumberExpressionAST>
-            createByTypeChecking(std::unique_ptr<ast::NumberExpressionAST> ast, const TypeHint & hint,
+            static std::unique_ptr<TypeCheckedIntegerLiteralExpressionAST>
+            createByTypeChecking(std::unique_ptr<ast::IntegerLiteralExpressionAST> ast, const TypeHint & hint,
                                  TypeChecker::State & state, diag::DiagnosticEngine & diagnostics);
 
 
             static bool classof(const TypeCheckedAST * ast) {
-                return ast->getKind() == Kind::numberExpression;
+                return ast->getKind() == Kind::integerLiteralExpression;
+            }
+        };
+
+        class TypeCheckedFloatingPointLiteralExpressionAST: public TypeCheckedExpressionAST {
+            double _value;
+
+            TypeCheckedFloatingPointLiteralExpressionAST(Type type, std::unique_ptr<parser::LexerToken> token,
+                                                         double value);
+
+            friend class irgen::IRGen;
+
+        public:
+            TypeCheckedFloatingPointLiteralExpressionAST() = delete;
+
+            void diagnoseInto(diag::DiagnosticEngine & diagnostics, unsigned int level) const override;
+
+            static std::unique_ptr<TypeCheckedFloatingPointLiteralExpressionAST>
+            createByTypeChecking(std::unique_ptr<ast::FloatingPointLiteralExpressionAST> ast, const TypeHint & hint,
+                                 TypeChecker::State & state, diag::DiagnosticEngine & diagnostics);
+
+
+            static bool classof(const TypeCheckedAST * ast) {
+                return ast->getKind() == Kind::floatingPointLiteralExpression;
             }
         };
 

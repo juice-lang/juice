@@ -37,12 +37,23 @@ namespace juice {
             diagnostics.diagnose(location, diag::DiagnosticID::ast_end, getColor(level), level);
         }
 
-        NumberExpressionAST::NumberExpressionAST(std::unique_ptr<parser::LexerToken> token, double value):
-                ExpressionAST(Kind::number, std::move(token)), _value(value) {}
+        IntegerLiteralExpressionAST::IntegerLiteralExpressionAST(std::unique_ptr<parser::LexerToken> token,
+                                                                 int64_t value):
+            ExpressionAST(Kind::integerLiteral, std::move(token)), _value(value) {}
 
-        void NumberExpressionAST::diagnoseInto(diag::DiagnosticEngine & diagnostics, unsigned int level) const {
-            diagnostics.diagnose(getLocation(), diag::DiagnosticID::number_expression_ast, getColor(level), level,
-                                 _token.get(), _value);
+        void IntegerLiteralExpressionAST::diagnoseInto(diag::DiagnosticEngine & diagnostics, unsigned int level) const {
+            diagnostics.diagnose(getLocation(), diag::DiagnosticID::integer_literal_expression_ast, getColor(level),
+                                 level, _token.get(), _value);
+        }
+
+        FloatingPointLiteralExpressionAST::FloatingPointLiteralExpressionAST(std::unique_ptr<parser::LexerToken> token,
+                                                                             double value):
+            ExpressionAST(Kind::floatingPointLiteral, std::move(token)), _value(value) {}
+
+        void FloatingPointLiteralExpressionAST::diagnoseInto(diag::DiagnosticEngine & diagnostics,
+                                                             unsigned int level) const {
+            diagnostics.diagnose(getLocation(), diag::DiagnosticID::floating_point_literal_expression_ast,
+                                 getColor(level), level, _token.get(), _value);
         }
 
         BooleanLiteralExpressionAST::BooleanLiteralExpressionAST(std::unique_ptr<parser::LexerToken> token, bool value):

@@ -14,6 +14,8 @@
 
 #include "Type.h"
 
+#include "llvm/Support/ErrorHandling.h"
+
 namespace juice {
     namespace sema {
         class BuiltinType: public TypeBase {
@@ -62,6 +64,49 @@ namespace juice {
                 return &_bool;
             }
 
+            static const BuiltinIntegerType * getInt8() {
+                static const BuiltinIntegerType int8(Width::_8);
+
+                return &int8;
+            }
+
+            static const BuiltinIntegerType * getInt16() {
+                static const BuiltinIntegerType int16(Width::_16);
+
+                return &int16;
+            }
+
+            static const BuiltinIntegerType * getInt32() {
+                static const BuiltinIntegerType int32(Width::_32);
+
+                return &int32;
+            }
+
+            static const BuiltinIntegerType * getInt64() {
+                static const BuiltinIntegerType int64(Width::_64);
+
+                return &int64;
+            }
+
+            static const BuiltinIntegerType * getInt128() {
+                static const BuiltinIntegerType int128(Width::_128);
+
+                return &int128;
+            }
+
+            static const BuiltinIntegerType * getNativeWidth() {
+                int wordBits = sizeof(void *) * 8;
+
+                switch (wordBits) {
+                    case 8: return getInt8();
+                    case 16: return getInt16();
+                    case 32: return getInt32();
+                    case 64: return getInt64();
+                    default:
+                        llvm_unreachable("non-standard integer size is not supported");
+                }
+            }
+
 
             llvm::Type * toLLVM(llvm::LLVMContext & context) const override;
 
@@ -70,6 +115,9 @@ namespace juice {
 
             Width getWidth() const { return _width; }
             unsigned int getBitWidth() const { return (unsigned int)_width; }
+
+            int64_t getMinimumValue() const;
+            int64_t getMaximumValue() const;
 
             bool equals(const TypeBase * other) const override;
 

@@ -49,11 +49,11 @@ namespace juice {
 
             llvm::Value * value = generateModule();
 
-            llvm::GlobalVariable * globalString;
-            if (_ast->_type.isBuiltinDouble()) {
-                globalString = _builder.CreateGlobalString("%f\n", ".str");
+            llvm::GlobalVariable * formatString;
+            if (_ast->_type.isBuiltinFloatingPoint()) {
+                formatString = _builder.CreateGlobalString("%f\n", ".str");
             } else if (_ast->_type.isBuiltinBool()) {
-                globalString = _builder.CreateGlobalString("%s\n", ".str");
+                formatString = _builder.CreateGlobalString("%s\n", ".str");
 
                 auto * trueString = _builder.CreateGlobalString("true", "true.str");
                 auto * falseString = _builder.CreateGlobalString("false", "false.str");
@@ -84,14 +84,16 @@ namespace juice {
                 phi->addIncoming(falseStringValue, falseBlock);
 
                 value = phi;
+            } else if (_ast->_type.isBuiltinInteger()) {
+                formatString = _builder.CreateGlobalString("%d\n", ".str");
             } else {
                 llvm_unreachable("All possible yield types kinds should be handled here");
             }
 
-            llvm::Value * stringValue = _builder.CreateBitCast(globalString, llvm::Type::getInt8PtrTy(_context),
-                                                               "cast");
+            llvm::Value * formatStringValue = _builder.CreateBitCast(formatString, llvm::Type::getInt8PtrTy(_context),
+                                                                     "cast");
 
-            _builder.CreateCall(printfFunction, {stringValue, value}, "printfCall");
+            _builder.CreateCall(printfFunction, {formatStringValue, value}, "printfCall");
 
             _builder.CreateRet(_builder.getInt32(0));
 

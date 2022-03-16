@@ -110,7 +110,7 @@ namespace juice {
         private:
             Kind _kind;
             union {
-                unsigned int _integer = 0;
+                u_int64_t _integer = 0;
                 double _double;
                 bool _boolean;
                 llvm::StringRef _string;
@@ -126,8 +126,14 @@ namespace juice {
             DiagnosticArg() = delete;
 
             // NOLINTBEGIN(cppcoreguidelines-pro-type-member-init)
-            explicit DiagnosticArg(unsigned int integer): _kind(Kind::integer), _integer(integer) {}
-            explicit DiagnosticArg(int integer): _kind(Kind::integer), _integer(integer) {}
+            explicit DiagnosticArg(u_int8_t integer): _kind(Kind::integer), _integer(integer) {}
+            explicit DiagnosticArg(int8_t integer): _kind(Kind::integer), _integer(integer) {}
+            explicit DiagnosticArg(u_int16_t integer): _kind(Kind::integer), _integer(integer) {}
+            explicit DiagnosticArg(int16_t integer): _kind(Kind::integer), _integer(integer) {}
+            explicit DiagnosticArg(u_int32_t integer): _kind(Kind::integer), _integer(integer) {}
+            explicit DiagnosticArg(int32_t integer): _kind(Kind::integer), _integer(integer) {}
+            explicit DiagnosticArg(u_int64_t integer): _kind(Kind::integer), _integer(integer) {}
+            explicit DiagnosticArg(int64_t integer): _kind(Kind::integer), _integer(integer) {}
             explicit DiagnosticArg(double doubleValue): _kind(Kind::doubleValue), _double(doubleValue) {}
             explicit DiagnosticArg(bool boolean): _kind(Kind::boolean), _boolean(boolean) {}
             explicit DiagnosticArg(const char * cString): _kind(Kind::string), _string(cString) {}
@@ -137,7 +143,7 @@ namespace juice {
                 _kind(Kind::lexerToken), _lexerToken(lexerToken) {}
             explicit DiagnosticArg(const basic::Color color): _kind(Kind::color), _color(color) {}
             explicit DiagnosticArg(sema::Type type): _kind(Kind::type), _type(type) {}
-            explicit DiagnosticArg(const std::vector<sema::Type> & types): _kind(Kind::types), _types(&types) {}
+            explicit DiagnosticArg(const std::vector<sema::Type> * types): _kind(Kind::types), _types(types) {}
             explicit DiagnosticArg(const ast::TypeRepr * typeRepr): _kind(Kind::typeRepr), _typeRepr(typeRepr) {}
             explicit DiagnosticArg(std::error_code errorCode): _kind(Kind::errorCode), _errorCode(errorCode) {}
             // NOLINTEND(cppcoreguidelines-pro-type-member-init)
@@ -160,7 +166,7 @@ namespace juice {
 
             Kind getKind() const { return _kind; }
 
-            unsigned int getAsInteger() const { return _integer; }
+            u_int64_t getAsInteger() const { return _integer; }
             double getAsDouble() const { return _double; }
             bool getAsBoolean() const { return _boolean; }
             llvm::StringRef getAsString() const { return _string; }
