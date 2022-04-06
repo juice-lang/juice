@@ -17,6 +17,7 @@
 #include <utility>
 
 #include "Type.h"
+#include "VariableDeclaration.h"
 #include "juice/AST/AST.h"
 #include "llvm/ADT/Optional.h"
 #include "llvm/ADT/StringMap.h"
@@ -29,8 +30,7 @@ namespace juice {
         class TypeChecker {
         public:
             class State {
-                typedef std::pair<llvm::StringRef, Type> VariableDeclarationPair;
-                typedef std::vector<VariableDeclarationPair> VariableDeclarationVector;
+                typedef std::vector<VariableDeclaration> VariableDeclarationVector;
 
                 struct Scope {
                     llvm::StringMap<Type> typeDeclarations;
@@ -52,8 +52,8 @@ namespace juice {
                     bool addTypeDeclaration(llvm::StringRef name, Type type);
 
                     bool hasVariableDeclaration(llvm::StringRef name) const;
-                    llvm::Optional<std::pair<size_t, Type>> getVariableDeclaration(llvm::StringRef name) const;
-                    llvm::Optional<size_t> addVariableDeclaration(llvm::StringRef name, Type type);
+                    llvm::Optional<VariableDeclaration> getVariableDeclaration(llvm::StringRef name) const;
+                    llvm::Optional<size_t> addVariableDeclaration(llvm::StringRef name, Type type, bool isMutable);
                 };
 
                 VariableDeclarationVector _variableDeclarations;
@@ -72,8 +72,8 @@ namespace juice {
                 bool addTypeDeclaration(llvm::StringRef name, Type type);
 
                 bool hasVariableDeclaration(llvm::StringRef name) const;
-                llvm::Optional<std::pair<size_t, Type>> getVariableDeclaration(llvm::StringRef name) const;
-                llvm::Optional<size_t> addVariableDeclaration(llvm::StringRef name, Type type);
+                llvm::Optional<VariableDeclaration> getVariableDeclaration(llvm::StringRef name) const;
+                llvm::Optional<size_t> addVariableDeclaration(llvm::StringRef name, Type type, bool isMutable);
             };
 
             struct Result {

@@ -38,17 +38,17 @@ namespace juice {
             ::TypeCheckedVariableDeclarationAST(std::unique_ptr<parser::LexerToken> keyword,
                                                 std::unique_ptr<parser::LexerToken> name,
                                                 std::unique_ptr<TypeCheckedExpressionAST> initialization,
-                                                Type variableType, size_t index):
+                                                Type variableType, size_t index, bool isMutable):
             TypeCheckedDeclarationAST(Kind::variableDeclaration, NothingType::get()), _keyword(std::move(keyword)),
             _name(std::move(name)), _initialization(std::move(initialization)), _variableType(variableType),
-            _index(index) {}
+            _index(index), _isMutable(isMutable) {}
 
         void TypeCheckedVariableDeclarationAST::diagnoseInto(diag::DiagnosticEngine & diagnostics,
                                                              unsigned int level) const {
             basic::SourceLocation location(getLocation());
 
             diagnostics.diagnose(location, diag::DiagnosticID::type_checked_variable_declaration_ast, getColor(level),
-                                 (unsigned int)_index, level, _name.get(), _variableType);
+                                 (unsigned int)_index, level, _name.get(), _variableType, _isMutable);
             _initialization->diagnoseInto(diagnostics, level + 1);
             diagnostics.diagnose(location, diag::DiagnosticID::ast_end, getColor(level), level);
         }
@@ -59,6 +59,7 @@ namespace juice {
                                                                 diag::DiagnosticEngine & diagnostics) {
             basic::SourceLocation location(ast->getLocation());
             auto name = std::move(ast->_name);
+            bool isMutable = ast->_isMutable;
 
             Type annotatedType;
             if (ast->_typeAnnotation) {
@@ -81,7 +82,7 @@ namespace juice {
 
             Type variableType = annotatedType ? annotatedType : initialization->getType();
 
-            auto index = state.addVariableDeclaration(name->string, variableType);
+            auto index = state.addVariableDeclaration(name->string, variableType, isMutable);
 
             if (!index) {
                 diagnostics.diagnose(location, diag::DiagnosticID::variable_declaration_ast_redeclaration,
@@ -108,7 +109,8 @@ namespace juice {
 
             return std::unique_ptr<TypeCheckedVariableDeclarationAST>(
                 new TypeCheckedVariableDeclarationAST(std::move(ast->_keyword), std::move(name),
-                                                      std::move(initialization), variableType, index.getValueOr(0)));
+                                                      std::move(initialization), variableType, index.getValueOr(0),
+                                                      isMutable));
         }
     }
 }

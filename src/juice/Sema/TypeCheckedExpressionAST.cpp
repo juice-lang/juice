@@ -424,15 +424,15 @@ namespace juice {
                 new TypeCheckedBooleanLiteralExpressionAST(type, std::move(ast->_token), ast->_value));
         }
 
-        TypeCheckedVariableExpressionAST::TypeCheckedVariableExpressionAST(Type type,
-                                                                           std::unique_ptr<parser::LexerToken> token,
-                                                                           size_t index):
-            TypeCheckedExpressionAST(Kind::variableExpression, type, std::move(token)), _index(index) {}
+        TypeCheckedVariableExpressionAST::TypeCheckedVariableExpressionAST(std::unique_ptr<parser::LexerToken> token,
+                                                                           VariableDeclaration declaration):
+            TypeCheckedExpressionAST(Kind::variableExpression, declaration.type, std::move(token)),
+            _index(declaration.index), _isMutable(declaration.isMutable) {}
 
         void
         TypeCheckedVariableExpressionAST::diagnoseInto(diag::DiagnosticEngine & diagnostics, unsigned int level) const {
             diagnostics.diagnose(getLocation(), diag::DiagnosticID::type_checked_variable_expression_ast,
-                                 getColor(level), getType(), (unsigned int)_index, _token.get());
+                                 getColor(level), getType(), (unsigned int)_index, level, _token.get(), _isMutable);
         }
 
         std::unique_ptr<TypeCheckedVariableExpressionAST>
@@ -444,18 +444,43 @@ namespace juice {
 
             auto optionalDeclaration = state.getVariableDeclaration(token->string);
 
-            size_t index = 0;
-            Type type = NothingType::get();
+            VariableDeclaration declaration;
             if (optionalDeclaration) {
-                std::tie(index, type) = *optionalDeclaration;
+                declaration = *optionalDeclaration;
 
-                checkType(type, hint, location, diagnostics);
+                if (!declaration.isMutable) {
+                    if (hint.requiresLValue()) {
+                        switch (hint.getKind()) {
+                            case TypeHint::Kind::none: break;
+                            case TypeHint::Kind::unknown: {
+                                diagnostics.diagnose(location,
+                                                     diag::DiagnosticID::expression_ast_expected_lvalue_unknown_type,
+                                                     "immutable variable");
+                                break;
+                            }
+                            case TypeHint::Kind::expected: {
+                                Type expectedType = llvm::cast<ExpectedTypeHint>(hint).getType();
+                                diagnostics.diagnose(location, diag::DiagnosticID::expression_ast_expected_lvalue,
+                                                     expectedType, "immutable variable");
+                                break;
+                            }
+                            case TypeHint::Kind::expectedEither: {
+                                const auto & types = llvm::cast<ExpectedEitherTypeHint>(hint).getTypes();
+                                diagnostics.diagnose(location, diag::DiagnosticID::expression_ast_expected_lvalue_types,
+                                                     &types, "immutable variable");
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                checkType(declaration.type, hint, location, diagnostics);
             } else {
                 diagnostics.diagnose(location, diag::DiagnosticID::expression_ast_unresolved_identifier, token->string);
             }
 
             return std::unique_ptr<TypeCheckedVariableExpressionAST>(
-                new TypeCheckedVariableExpressionAST(type, std::move(token), index));
+                new TypeCheckedVariableExpressionAST(std::move(token), declaration));
         }
 
         TypeCheckedGroupingExpressionAST

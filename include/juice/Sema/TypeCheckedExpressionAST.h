@@ -18,6 +18,7 @@
 
 #include "TypeCheckedAST.h"
 #include "TypeChecker.h"
+#include "VariableDeclaration.h"
 #include "juice/AST/ExpressionAST.h"
 #include "juice/Basic/SourceLocation.h"
 #include "juice/Parser/LexerToken.h"
@@ -151,9 +152,10 @@ namespace juice {
 
         class TypeCheckedVariableExpressionAST: public TypeCheckedExpressionAST {
             size_t _index;
+            bool _isMutable;
 
-            TypeCheckedVariableExpressionAST(Type type, std::unique_ptr<parser::LexerToken> token,
-                                             size_t index);
+            TypeCheckedVariableExpressionAST(std::unique_ptr<parser::LexerToken> token,
+                                             VariableDeclaration declaration);
 
             friend class irgen::IRGen;
 

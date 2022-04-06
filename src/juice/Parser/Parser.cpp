@@ -654,6 +654,8 @@ namespace juice {
         llvm::Expected<std::unique_ptr<ast::VariableDeclarationAST>> Parser::parseVariableDeclaration() {
             auto keyword = std::move(_matchedToken);
 
+            bool isMutable = keyword->type == LexerToken::Type::keywordVar;
+
             if (auto error = consume(LexerToken::Type::identifier, diag::DiagnosticID::expected_variable_name))
                 return error;
 
@@ -684,11 +686,12 @@ namespace juice {
             }
 
             return std::make_unique<ast::VariableDeclarationAST>(std::move(keyword), std::move(name),
-                                                                 std::move(typeAnnotation), std::move(*initialization));
+                                                                 std::move(typeAnnotation), isMutable,
+                                                                 std::move(*initialization));
         }
 
         llvm::Expected<std::unique_ptr<ast::StatementAST>> Parser::parseStatement() {
-            auto matchedVar = match(LexerToken::Type::keywordVar);
+            auto matchedVar = match(LexerToken::Type::keywordLet, LexerToken::Type::keywordVar);
             if (auto error = matchedVar.takeError()) return error;
 
             if (*matchedVar) return parseVariableDeclaration();

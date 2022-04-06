@@ -43,6 +43,7 @@ namespace juice {
         class VariableDeclarationAST: public DeclarationAST {
             std::unique_ptr<parser::LexerToken> _keyword, _name;
             std::unique_ptr<TypeRepr> _typeAnnotation;
+            bool _isMutable;
             std::unique_ptr<ExpressionAST> _initialization;
 
             friend class sema::TypeCheckedVariableDeclarationAST;
@@ -51,9 +52,8 @@ namespace juice {
             VariableDeclarationAST() = delete;
 
             VariableDeclarationAST(std::unique_ptr<parser::LexerToken> keyword,
-                                   std::unique_ptr<parser::LexerToken> name,
-                                   std::unique_ptr<TypeRepr> typeAnnotation,
-                                   std::unique_ptr<ExpressionAST> initialization);
+                                   std::unique_ptr<parser::LexerToken> name, std::unique_ptr<TypeRepr> typeAnnotation,
+                                   bool isMutable, std::unique_ptr<ExpressionAST> initialization);
 
             ~VariableDeclarationAST() override = default;
 

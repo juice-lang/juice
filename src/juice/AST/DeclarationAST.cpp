@@ -16,16 +16,17 @@ namespace juice {
     namespace ast {
         VariableDeclarationAST::VariableDeclarationAST(std::unique_ptr<parser::LexerToken> keyword,
                                                        std::unique_ptr<parser::LexerToken> name,
-                                                       std::unique_ptr<TypeRepr> typeAnnotation,
+                                                       std::unique_ptr<TypeRepr> typeAnnotation, bool isMutable,
                                                        std::unique_ptr<ExpressionAST> initialization):
                 DeclarationAST(Kind::variableDeclaration), _keyword(std::move(keyword)), _name(std::move(name)),
-                _typeAnnotation(std::move(typeAnnotation)), _initialization(std::move(initialization)) {}
+                _typeAnnotation(std::move(typeAnnotation)), _isMutable(isMutable),
+                _initialization(std::move(initialization)) {}
 
         void VariableDeclarationAST::diagnoseInto(diag::DiagnosticEngine & diagnostics, unsigned int level) const {
             basic::SourceLocation location(getLocation());
 
             diagnostics.diagnose(location, diag::DiagnosticID::variable_declaration_ast, getColor(level), level,
-                                 _name.get(), _typeAnnotation.get());
+                                 _name.get(), _typeAnnotation.get(), _isMutable);
             _initialization->diagnoseInto(diagnostics, level + 1);
             diagnostics.diagnose(location, diag::DiagnosticID::ast_end, getColor(level), level);
         }

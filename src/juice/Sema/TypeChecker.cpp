@@ -50,31 +50,33 @@ namespace juice {
 
         bool TypeChecker::State::Scope::hasVariableDeclaration(llvm::StringRef name) const {
             auto begin = variableDeclarations.begin();
-            auto result = std::find_if(begin, begin + currentVariableIndex, [&](const VariableDeclarationPair & pair) {
-                return pair.first.equals(name);
+            auto result = std::find_if(begin, begin + currentVariableIndex, [&](const auto & declaration) {
+                return declaration.name.equals(name);
             });
 
             return result != begin + currentVariableIndex;
         }
 
-        llvm::Optional<std::pair<size_t, Type>>
+        llvm::Optional<VariableDeclaration>
         TypeChecker::State::Scope::getVariableDeclaration(llvm::StringRef name) const {
             auto begin = variableDeclarations.begin();
-            auto result = std::find_if(begin, begin + currentVariableIndex, [&](const VariableDeclarationPair & pair) {
-                return pair.first.equals(name);
+            auto result = std::find_if(begin, begin + currentVariableIndex, [&](const auto & declaration) {
+                return declaration.name.equals(name);
             });
 
             if (result == begin + currentVariableIndex) return llvm::None;
 
-            return std::make_pair((size_t)(result - begin), (*result).second);
+            return *result;
         }
 
-        llvm::Optional<size_t> TypeChecker::State::Scope::addVariableDeclaration(llvm::StringRef name, Type type) {
+        llvm::Optional<size_t>
+        TypeChecker::State::Scope::addVariableDeclaration(llvm::StringRef name, Type type, bool isMutable) {
             if (!(hasVariableDeclaration(name) || hasTypeDeclaration(name))) {
                 auto begin = variableDeclarations.begin();
-                if (begin + currentVariableIndex == variableDeclarations.end()) {
-                    variableDeclarations.emplace_back(name, type);
-                } else variableDeclarations.at(currentVariableIndex) = std::make_pair(name, type);
+                auto currentIter = begin + currentVariableIndex;
+                if (currentIter == variableDeclarations.end()) {
+                    variableDeclarations.emplace_back(name, type, currentVariableIndex, isMutable);
+                } else variableDeclarations.emplace(currentIter, name, type, currentVariableIndex, isMutable);
 
                 return currentVariableIndex++;
             }
@@ -110,12 +112,13 @@ namespace juice {
             return _currentScope->hasVariableDeclaration(name);
         }
 
-        llvm::Optional<std::pair<size_t, Type>> TypeChecker::State::getVariableDeclaration(llvm::StringRef name) const {
+        llvm::Optional<VariableDeclaration> TypeChecker::State::getVariableDeclaration(llvm::StringRef name) const {
             return _currentScope->getVariableDeclaration(name);
         }
 
-        llvm::Optional<size_t> TypeChecker::State::addVariableDeclaration(llvm::StringRef name, Type type) {
-            return _currentScope->addVariableDeclaration(name, type);
+        llvm::Optional<size_t>
+        TypeChecker::State::addVariableDeclaration(llvm::StringRef name, Type type, bool isMutable) {
+            return _currentScope->addVariableDeclaration(name, type, isMutable);
         }
 
         TypeChecker::Result::Result(std::unique_ptr<TypeCheckedModuleAST> ast, size_t allocaVectorSize):
